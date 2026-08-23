@@ -1,0 +1,112 @@
+{
+  "pathRoot": ".",
+  "indexRoot": "index",
+  "organize": {
+    "defaultMode": "hardlink",
+    "defaultFallback": "copy",
+    "onConflict": "overwrite",
+    "metadataDir": "",
+    "deleteMetadataOnFail": false,
+    "overwriteVideoSubtitle": true,
+    "overwriteImages": true,
+    "minFileSizeMb": 100,
+    "videoExtensions": [
+      "mp4",
+      "avi",
+      "rmvb",
+      "wmv",
+      "mov",
+      "mkv",
+      "webm",
+      "iso",
+      "mpg",
+      "m4v",
+      "ts",
+      "flv",
+      "strm",
+      "vob",
+      "m2ts"
+    ],
+    "filenameBlacklist": [],
+    "junkFilters": [
+      "2048论坛@fun2048.com",
+      "1080p",
+      "720p",
+      "22-sht.me",
+      "-HD",
+      "bbs2048.org@",
+      "hhd800.com@",
+      "icao.me@",
+      "hhb_000",
+      "[456k.me]",
+      "[ThZu.Cc]",
+      "_U3C3",
+      "-hhb"
+    ],
+    "crackKeywords": [
+      "uncensored",
+      "破解"
+    ],
+    "cleanup": {
+      "enabled": false,
+      "whitelistProtect": true,
+      "deleteSmallFiles": true,
+      "deleteNonWhitelist": true,
+      "deleteBlacklist": true,
+      "extraWhitelistExt": []
+    }
+  },
+  "server": {
+    "host": "0.0.0.0",
+    "port": 9210
+  },
+  "web": {
+    "port": 3050,
+    "apiOrigin": "http://127.0.0.1:9210"
+  },
+  "kinds": {
+    "japan_censored": {
+      "enabled": true,
+      "label": "日本有码",
+      "sourceRoot": "media/本地索引/日本有码",
+      "libraryRoot": "media/片商目录/日本有码",
+      "organizeMode": "hardlink"
+    },
+    "japan_gravure": {
+      "enabled": true,
+      "label": "日本写真",
+      "sourceRoot": "",
+      "libraryRoot": ""
+    },
+    "japan_uncensored": {
+      "enabled": true,
+      "label": "日本无码",
+      "sourceRoot": "",
+      "libraryRoot": ""
+    },
+    "japan_amateur": {
+      "enabled": true,
+      "label": "日本素人",
+      "sourceRoot": "",
+      "libraryRoot": ""
+    },
+    "fc2": {
+      "enabled": true,
+      "label": "FC2",
+      "sourceRoot": "",
+      "libraryRoot": ""
+    },
+    "china": {
+      "enabled": true,
+      "label": "国产无码",
+      "sourceRoot": "",
+      "libraryRoot": ""
+    },
+    "western": {
+      "enabled": true,
+      "label": "欧美无码",
+      "sourceRoot": "",
+      "libraryRoot": ""
+    }
+  }
+}

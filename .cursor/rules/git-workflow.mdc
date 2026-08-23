@@ -1,0 +1,31 @@
+---
+description: Git 提交与 PR 流程 — 仅在用户明确要求 commit/PR 时遵守
+alwaysApply: false
+---
+
+# Git / PR 流程
+
+**触发**：仅当用户明确要求 commit 或 PR；否则不提交、不 push。
+
+## 安全红线
+
+- 不改 git config；不做 destructive 操作（force push、hard reset 等），除非用户明确要求
+- 不用 `--no-verify`；不向 main/master force push
+- 不提交含密钥的文件（`.env` 等），发现则警告
+- amend 仅当：用户要求，或 pre-commit hook 改文件且 HEAD 是你未 push 的 commit
+- commit 失败或被 hook 拒绝 → 修问题后**新 commit**，不要 amend
+
+## Commit 步骤
+
+1. 并行：`git status`、`git diff`、`git log -5`
+2. 写 1–2 句 why 导向的 commit message
+3. 顺序：`git add` → `git commit`（HEREDOC 传 message）→ `git status` 验证
+4. 用户未要求则不 push
+
+## PR 步骤
+
+1. 并行：status、diff、remote 跟踪、`git log` + `git diff base...HEAD`
+2. 摘要覆盖分支上**全部** commit，非仅最新一条
+3. 需 push 时：`git push -u origin HEAD`
+4. `gh pr create --title "..." --body "$(cat <<'EOF' ... EOF)"`
+5. 返回 PR URL；此流程不用 TodoWrite/Task

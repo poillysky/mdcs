@@ -1,0 +1,38 @@
+# 运行时
+data/
+media/
+
+# 外部服务生成的来源（只读，不提交媒体）
+index/
+
+# 本地配置（含代理/内网地址）
+config/scrape.json
+
+# 参考项目（体积大、含嵌套 git）
+references/
+
+# 媒体文件
+inbox/**/*
+!inbox/**/.gitkeep
+library/**/*
+!library/**/.gitkeep
+
+# 依赖
+node_modules/
+apps/server/node_modules/
+apps/web/node_modules/
+
+# 构建产物
+apps/web/dist/
+
+# 临时
+_schema_*.txt
+
+# 常见视频
+*.mp4
+*.mkv
+*.avi
+*.wmv
+*.mov
+*.ts
+*.m2ts

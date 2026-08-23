@@ -1,0 +1,24 @@
+{
+  "monitor": {
+    "enabled": true,
+    "mode": "performance",
+    "intervalSec": 30,
+    "entries": []
+  },
+  "webhook": {
+    "enabled": false,
+    "endpoints": []
+  },
+  "presets": [],
+  "qb": {
+    "enabled": false,
+    "jobMode": "full",
+    "kinds": [],
+    "categories": []
+  },
+  "actors": {
+    "source": "local",
+    "embyUrl": "",
+    "embyApiKey": ""
+  }
+}

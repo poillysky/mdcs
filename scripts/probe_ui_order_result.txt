@@ -1,0 +1,64 @@
+﻿
+=== Network config ===
+proxyUrl=http://192.168.2.88:7893
+flareSolverrUrl=http://192.168.2.38:8191/v1
+requestTimeoutSec=30
+Skip target=direct
+
+[net] testing proxy ...
+  -> [OK] 经代理 http://192.168.2.88:7893 可达 javbus（HTTP 200） (1123ms)
+[net] testing flare ...
+  -> [OK] FlareSolverr 连接正常，页面探活未通过：The operation was aborted due to timeout (30037ms)
+
+=== Provider probe UI order (proxy -> adaptive -> flare) ===
+[1/24] dmm
+  -> [OK] access=proxy 3087ms status=200 可达
+[2/24] libredmm
+  -> [OK] access=proxy 1162ms status=200 可达
+[3/24] airav
+  -> [FAIL] access=proxy 573ms status=403 HTTP 403 https://www.airav.wiki/
+[4/24] airav_io
+  -> [FAIL] access=proxy 583ms status=403 HTTP 403 https://airav.io/cn/
+[5/24] avmoo
+  -> [OK] access=proxy 2470ms status=200 可达
+[6/24] jav321
+  -> [OK] access=proxy 628ms status=200 可达
+[7/24] avbase
+  -> [FAIL] access=proxy 570ms status=403 HTTP 403 https://www.avbase.net/
+[8/24] mgstage
+  -> [FAIL] access=proxy 482ms status=403 HTTP 403 https://www.mgstage.com/
+[9/24] carib
+  -> [OK] access=proxy 653ms status=200 可达
+[10/24] fc2
+  -> [OK] access=proxy 1561ms status=200 可达
+[11/24] madou
+  -> [OK] access=proxy 696ms status=200 可达
+[12/24] madouqu
+  -> [OK] access=proxy 1573ms status=200 可达
+[13/24] freejavbt
+  -> [OK] access=proxy 635ms status=200 可达
+[14/24] sevenmmtv
+  -> [OK] access=proxy 1329ms status=200 可达
+[15/24] iqqtv
+  -> [FAIL] access=proxy 761ms status=403 HTTP 403 https://iqqtv.net/
+[16/24] theporndb
+  -> [FAIL] access=proxy 981ms status=404 HTTP 404 https://api.theporndb.net/
+[17/24] xiao_huang_shu
+  -> [FAIL] access=proxy 25006ms status= The operation was aborted due to timeout
+[18/24] javbus
+  -> [OK] access=proxy_adaptive 785ms status=200 可达
+[19/24] javdb
+  -> [FAIL] access=proxy_flare 25005ms status= The operation was aborted due to timeout
+[20/24] avsox
+  -> [FAIL] access=proxy_flare 25005ms status= The operation was aborted due to timeout
+[21/24] javlibrary
+  -> [FAIL] access=proxy_flare 25012ms status= The operation was aborted due to timeout
+[22/24] miss_av
+  -> [ERR] 基础连接已经关闭: 服务器关闭了本应保持活动状态的连接。
+[23/24] fc2_hub
+  -> [ERR] 无法连接到远程服务器
+[24/24] fd2ppv
+  -> [FAIL] access=proxy_flare 2770ms status=500 FlareSolverr HTTP 500
+
+SUMMARY OK=11 FAIL=13 TOTAL=24
+Log: e:\MDCS\scripts\probe_ui_order_result.txt

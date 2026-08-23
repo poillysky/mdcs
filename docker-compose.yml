@@ -1,0 +1,15 @@
+services:
+  mdcs:
+    build: .
+    ports:
+      - "9210:9210"
+    environment:
+      PORT: "9210"
+      HOST: "0.0.0.0"
+      # MDCS_API_TOKEN: "change-me"
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+      - ./inbox:/app/inbox
+      - ./library:/app/library
+    restart: unless-stopped

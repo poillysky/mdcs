@@ -1,0 +1,21 @@
+{
+  "name": "mdcs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "独立 AV 刮削整理服务（前后端分离）",
+  "scripts": {
+    "dev": "npm run dev:all",
+    "dev:all": "concurrently -n server,web -c blue,green \"npm run dev --prefix apps/server\" \"npm run dev --prefix apps/web\"",
+    "dev:server": "npm run dev --prefix apps/server",
+    "dev:web": "npm run dev --prefix apps/web",
+    "start": "npm run start --prefix apps/server",
+    "build": "npm run build --prefix apps/web",
+    "install:all": "npm install --prefix apps/server && npm install --prefix apps/web",
+    "typecheck": "npm run typecheck --prefix apps/server && npm run typecheck --prefix apps/web",
+    "test": "npm run test --prefix apps/server",
+    "bench:scan": "npm run bench:scan --prefix apps/server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

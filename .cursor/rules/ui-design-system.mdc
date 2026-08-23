@@ -1,0 +1,21 @@
+---
+description: apps/web UI 极简克制设计契约
+globs: apps/web/**/*.{tsx,ts,css}
+alwaysApply: false
+---
+
+# UI 设计契约（强制）
+
+改样式/页面前**先读** [`docs/UI-DESIGN-SYSTEM.md`](../../docs/UI-DESIGN-SYSTEM.md)；密度见 [`UI-DENSITY.md`](../../docs/UI-DENSITY.md)；iOS 见 [`UI-IOS.md`](../../docs/UI-IOS.md)。禁止自创风格。
+
+## 禁止
+
+流体/多彩渐变、霓虹发光、科技蓝光、Blob；高饱和撞色、厚阴影/粗边框/立体厚卡；弹跳/粒子/流光/夸张动效；拥挤排版、emoji 堆砌、网红模板风；擅自改色值或新增主色/辅助色。
+
+## 必须
+
+极简留白、浅纯色背景、中性色 ~90%；Token 仅来自 `UI-DESIGN-SYSTEM.md` §3–§5；主色限主按钮/选中/导航，辅助色限标签点缀；动效 ≤200ms ease-out 微过渡；与旧暗色冲突时以本契约为准，改浅色 Token。
+
+## 落地
+
+Token → `apps/web/src/styles.css` `:root`；文案/交互 → `docs/UI-PLAYBOOK.md`、`docs/UI-COPY.md`。

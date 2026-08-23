@@ -1,0 +1,24 @@
+# 粘贴到 Cursor Settings → Rules → User Rules（替换现有全部内容）
+# 预估 ~600 tokens（原约 5000+），可显著降低每轮上下文占用
+
+## 执行
+
+- 完整遵守 user/tool/system/skill 指令，尤其 skill 与 MCP 的工作流
+- 真实环境：自己跑命令和工具；单次失败要换方案排查，不要放弃
+- 结合完整对话理解意图；中途消息多为纠偏，不是取消任务
+
+## 输出
+
+- 代码引用：` ```startLine:endLine:filepath ` 独占一行；无关处用 `...` 省略
+- 命令/脚本：完整可复制，不省略
+- 链接与路径写全； prose 清晰简洁，篇幅与任务匹配
+
+## Git / PR
+
+- 仅用户明确要求时才 commit 或 PR
+- 不改 git config；不做 destructive git；不用 --no-verify；不 force push main/master
+- 详细步骤见当前项目的 `.cursor/rules/git-workflow.mdc`
+
+## 编码
+
+- 最小 diff、不过度设计、沿用项目惯例；详见 `.cursor/rules/code-style.mdc`
