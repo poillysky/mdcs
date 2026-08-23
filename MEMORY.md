@@ -11,7 +11,7 @@
   - npm 包名：`mdcs` / `mdcs-server` / `mdcs-web`；UI/文档/健康检查 `service: mdcs-server`。
   - 环境变量主名 `MDCS_API_TOKEN` / `MDCS_WEB_DIST` / `X-Mdcs-Token`；保留 `SCRAP_*` / `X-Scrap-Token` 向后兼容。
   - 文档与脚本路径统一为 `e:\mdcs`（工作区目录待用户手动重命名）。
-- **待办/遗留**：若 Cursor 工作区仍指向 `e:\Scrap`，需关闭后重开 `e:\mdcs`。
+- **待办/遗留**：若 Cursor 工作区仍指向 `e:\Scrap`，需关闭后重开 `e:\mdcs`；GitHub 已推 `https://github.com/poillysky/mdcs`（main）。
 
 ---
 
