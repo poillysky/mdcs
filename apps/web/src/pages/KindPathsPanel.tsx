@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
-import { ArrowPathIcon } from "@heroicons/react/20/solid";
-import { scanKind, updateKind, type KindRow } from "../api";
+import { updateKind, type KindRow } from "../api";
 import { KindSettingsModal } from "./KindSettingsModal";
 import { KIND_SHORT_LABELS } from "../lib/labels";
+import { displayRelativePath, shortRelativePath } from "../lib/paths";
 import type { NotifyFn } from "../lib/notify";
 
 type Props = {
@@ -14,15 +14,12 @@ type Props = {
 
 function pathPreview(value: string) {
   if (!value) return "未绑定";
-  const parts = value.split("/").filter(Boolean);
-  if (parts.length <= 2) return `/${parts.join("/")}`;
-  return `/${parts.slice(-2).join("/")}`;
+  return shortRelativePath(value, 2);
 }
 
 export function KindPathsPanel({ kinds, loading, onChanged, notify }: Props) {
   const [activeKindId, setActiveKindId] = useState("");
   const [editorOpen, setEditorOpen] = useState(false);
-  const [scanningId, setScanningId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const kind = kinds.find((k) => k.id === activeKindId) ?? null;
@@ -74,23 +71,6 @@ export function KindPathsPanel({ kinds, loading, onChanged, notify }: Props) {
     }
   }
 
-  async function runScanFor(target: KindRow) {
-    if (!target.sourceRoot) {
-      notify("warn", "请先绑定来源目录");
-      return;
-    }
-    setScanningId(target.id);
-    try {
-      await scanKind(target.id);
-      notify("ok", `「${target.label}」扫描已完成`);
-      onChanged();
-    } catch (e) {
-      notify("error", e, "扫描失败");
-    } finally {
-      setScanningId(null);
-    }
-  }
-
   if (!kinds.length) {
     return <div className="empty-block">加载分区配置…</div>;
   }
@@ -104,7 +84,6 @@ export function KindPathsPanel({ kinds, loading, onChanged, notify }: Props) {
       <div className="mon-panel-body mon-panel-body--pad">
         <div className="kind-cfg-list">
           {kinds.map((k) => {
-            const busy = scanningId === k.id;
             const toggling = togglingId === k.id;
             return (
               <div
@@ -126,7 +105,7 @@ export function KindPathsPanel({ kinds, loading, onChanged, notify }: Props) {
                   </span>
                   <label
                     className="switch kind-cfg-enable"
-                    title={k.enabled ? "停用分区" : "启用分区"}
+                    title={k.enabled ? "停用监控" : "启用监控"}
                     onClick={(e) => e.stopPropagation()}
                     onKeyDown={(e) => e.stopPropagation()}
                   >
@@ -138,28 +117,15 @@ export function KindPathsPanel({ kinds, loading, onChanged, notify }: Props) {
                     />
                     <span />
                   </label>
-                  <button
-                    type="button"
-                    className={`kind-cfg-scan${busy ? " is-busy" : ""}`}
-                    disabled={!k.enabled || !k.sourceRoot || busy || loading}
-                    aria-label={busy ? "扫描中" : "扫描来源"}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      void runScanFor(k);
-                    }}
-                  >
-                    <ArrowPathIcon className="kind-cfg-scan-icon" aria-hidden />
-                    <span>{busy ? "中" : "扫描"}</span>
-                  </button>
                 </div>
                 <div className="kind-cfg-item-paths">
                   <div className={`kind-cfg-path${!k.sourceRoot ? " empty" : ""}`}>
                     <em>来源</em>
-                    <span title={k.sourceRoot || undefined}>{pathPreview(k.sourceRoot)}</span>
+                    <span title={displayRelativePath(k.sourceRoot)}>{pathPreview(k.sourceRoot)}</span>
                   </div>
                   <div className={`kind-cfg-path${!k.libraryRoot ? " empty" : ""}`}>
                     <em>输出</em>
-                    <span title={k.libraryRoot || undefined}>{pathPreview(k.libraryRoot)}</span>
+                    <span title={displayRelativePath(k.libraryRoot)}>{pathPreview(k.libraryRoot)}</span>
                   </div>
                 </div>
               </div>

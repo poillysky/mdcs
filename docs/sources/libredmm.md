@@ -1,7 +1,30 @@
 # LibreDMM — 测试记录
 
 > UI 卡片顺序：**#4 有码 AV 组**（javbus → javdb → dmm → **libredmm**）  
-> 最后实测：2026-08-23 15:12 (UTC+8)（逐站复测 · 规范见 SOURCE-SINGLE-SITE-TEST.md）
+> 最后实测：2026-08-23 23:00 (UTC+8)（完整报告 · 规范见 SOURCE-SINGLE-SITE-TEST.md）
+
+---
+
+## 2026-08-23 完整报告（23:00 复跑）
+
+| 环节 | 结果 | 说明 |
+|------|------|------|
+| L1 单测 | ⚠️ 无专用文件 | E2E 覆盖 parseHit |
+| 测通 | ✅ **508ms** | `probeVia: direct` |
+| Live + E2E | ✅ 全过 | 刮削 ~0.5s · 总 ~5.7s |
+| 封面 | ✅ **145808 B** | outlet `77sone001` mono pl |
+| 海报 | ✅ **41949 B** | censored |
+| NFO | ✅ **21/21** 必过 | 刮削 **19/30** |
+
+报告：`media/片商目录/日本有码/SONE/SONE-001/_scrap/libredmm/organized/e2e-report.json`
+
+### ⚠️ 条目说明
+
+SONE-001 命中 **アウトレット** 再贩条目（`77sone001`），标题含プレコレ/アウトレット — 源站索引策略，非 MDCS bug。正式 digital 以 **dmm/javbus** 为准。
+
+### 结论
+
+**生产可用 ✅** — 补充元数据源；高清封面/正式条目优先 dmm。本轮无代码修复。
 
 ---
 

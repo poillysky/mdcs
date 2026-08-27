@@ -6,6 +6,9 @@ import {
   type SourcesTabId,
 } from "../lib/sourcesTabs";
 import type { NotifyFn } from "../lib/notify";
+import { PrioritySettingsPanel } from "./PrioritySettingsPanel";
+import { RecognitionSettingsPanel } from "./RecognitionSettingsPanel";
+import { RetrySettingsPanel } from "./RetrySettingsPanel";
 import { ScrapeConfigPanel } from "./ScrapeConfigPanel";
 
 type Props = {
@@ -44,10 +47,15 @@ export function SourcesPage({ path, onNavigate, notify }: Props) {
         ))}
       </div>
       <div className="settings-panel sources-panel">
-        <ScrapeConfigPanel
-          notify={notify}
-          variant={activeTab === "fields" ? "fields" : "providers"}
-        />
+        {activeTab === "recognition" ? (
+          <RecognitionSettingsPanel notify={notify} />
+        ) : activeTab === "retry" ? (
+          <RetrySettingsPanel notify={notify} />
+        ) : activeTab === "fields" ? (
+          <PrioritySettingsPanel notify={notify} />
+        ) : (
+          <ScrapeConfigPanel notify={notify} variant="providers" />
+        )}
       </div>
     </>
   );

@@ -1,7 +1,33 @@
 # 7MMTV — 测试记录
 
 > UI 卡片顺序：**#9 有码 AV 组**（airav_io → **sevenmmtv** → airav）  
-> 最后实测：2026-08-23 15:57 (UTC+8)
+> 最后实测：2026-08-23 23:02 (UTC+8)（完整报告 · 规范见 SOURCE-SINGLE-SITE-TEST.md）
+
+---
+
+## 2026-08-23 完整报告（23:02 复跑）
+
+| 环节 | 结果 | 说明 |
+|------|------|------|
+| L1 单测 | ✅ **3/3** | 554ms |
+| 测通 | ✅ **692ms** | `probeVia: curl` · proxy_adaptive |
+| Live + E2E | ✅ 全过 | 刮削 ~7s · 总 ~12s |
+| 封面 | ✅ **163227 B** | 1025cdn |
+| extrafanart | ✅ **3/3** | |
+| 海报 | ✅ **57817 B** | censored |
+| NFO | ✅ **24/24** | 中文源无 originalplot 时不误报必过 |
+| 刮削 | **22/30** | |
+
+报告：`media/片商目录/日本有码/SONE/SONE-001/_scrap/sevenmmtv/organized/e2e-report.json`
+
+### 字段亮点（SONE-001）
+
+- 中文 title/plot · actor · director · studio · runtime · premiered
+- **未采集**：series / rating / trailer
+
+### 结论
+
+**生产可用 ✅** — 中文元数据/简介补充源；curl 优先可达。本轮无 Provider 修复。
 
 ---
 

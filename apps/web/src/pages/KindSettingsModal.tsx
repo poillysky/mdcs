@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchKinds, fetchScrapeConfig, saveScrapeConfig, updateKind, type KindRow } from "../api";
 import { FolderPicker } from "../components/FolderPicker";
+import { KindSourcesSettingsView } from "../components/KindSourcesSettingsView";
 import { Modal } from "../components/Modal";
 import { SettingRow } from "../components/SettingRow";
-import { FieldPriorityEditor } from "../components/FieldPriorityEditor";
-import { SourceChainEditor } from "../components/SourceChainEditor";
 import type { NotifyFn } from "../lib/notify";
+import { displayRelativePath, normalizeRelativePath } from "../lib/paths";
 import type { OrganizeConfig, ProviderCatalogRow, ScrapeConfig } from "../types";
 
 type TabId = "organize" | "download" | "naming" | "watermark" | "metadata" | "nfo" | "sources";
@@ -103,8 +103,8 @@ function toKindDraft(k: KindRow, organize: OrganizeConfig | null): KindDraft {
   return {
     enabled: k.enabled,
     label: k.label,
-    sourceRoot: k.sourceRoot,
-    libraryRoot: k.libraryRoot,
+    sourceRoot: normalizeRelativePath(k.sourceRoot || k.sourceAbs || ""),
+    libraryRoot: normalizeRelativePath(k.libraryRoot || k.libraryAbs || ""),
     useGlobalOrganize: k.useGlobalOrganize !== false,
     organizeMode: k.organizeMode || organize?.defaultMode || "hardlink",
     organizeFallback: k.organizeFallback || organize?.defaultFallback || "copy",
@@ -149,12 +149,12 @@ function GlobalToggle({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <SettingRow label="使用全局配置">
-      <label className="switch">
+    <label className="advanced-job-row">
+      <span>使用全局配置</span>
+      <span className="switch">
         <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-        <span />
-      </label>
-    </SettingRow>
+      </span>
+    </label>
   );
 }
 
@@ -174,6 +174,7 @@ export function KindSettingsModal({
   const [catalog, setCatalog] = useState<ProviderCatalogRow[]>([]);
   const [profile, setProfile] = useState<ProfileDraft | null>(null);
   const [profileBaseline, setProfileBaseline] = useState<string>("");
+  const [scrapeBaseline, setScrapeBaseline] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -185,6 +186,7 @@ export function KindSettingsModal({
       try {
         const [scrapeData, kindsData] = await Promise.all([fetchScrapeConfig(), fetchKinds()]);
         setScrape(scrapeData.config);
+        setScrapeBaseline(JSON.stringify(scrapeData.config));
         setCatalog(scrapeData.catalog ?? []);
         const fresh = kindsData.kinds.find((k) => k.id === kind.id) ?? kind;
         const kd = toKindDraft(fresh, kindsData.organize);
@@ -202,11 +204,12 @@ export function KindSettingsModal({
   }, [open, kind?.id, notify]);
 
   const dirty = useMemo(() => {
-    if (!kindDraft || !kindBaseline || !profile) return false;
+    if (!kindDraft || !kindBaseline || !profile || !scrape) return false;
     const kindDirty = JSON.stringify(kindDraft) !== JSON.stringify(kindBaseline);
     const profileDirty = JSON.stringify(profile) !== profileBaseline;
-    return kindDirty || profileDirty;
-  }, [kindDraft, kindBaseline, profile, profileBaseline]);
+    const scrapeDirty = JSON.stringify(scrape) !== scrapeBaseline;
+    return kindDirty || profileDirty || scrapeDirty;
+  }, [kindDraft, kindBaseline, profile, profileBaseline, scrape, scrapeBaseline]);
 
   function patchKind(next: Partial<KindDraft>) {
     setKindDraft((prev) => (prev ? { ...prev, ...next } : prev));
@@ -250,8 +253,8 @@ export function KindSettingsModal({
       const kindPatch: Parameters<typeof updateKind>[1] = {
         enabled: kind.enabled,
         label: kindDraft.label,
-        sourceRoot: kindDraft.sourceRoot,
-        libraryRoot: kindDraft.libraryRoot,
+        sourceRoot: normalizeRelativePath(kindDraft.sourceRoot),
+        libraryRoot: normalizeRelativePath(kindDraft.libraryRoot),
         useGlobalOrganize: kindDraft.useGlobalOrganize,
       };
       if (!kindDraft.useGlobalOrganize) {
@@ -294,6 +297,7 @@ export function KindSettingsModal({
       };
       const { config: saved } = await saveScrapeConfig(nextScrape);
       setScrape(saved);
+      setScrapeBaseline(JSON.stringify(saved));
       const pf = ensureProfile(saved, kind.id);
       setProfile(pf);
       setProfileBaseline(JSON.stringify(pf));
@@ -307,39 +311,56 @@ export function KindSettingsModal({
     }
   }
 
-  const titlePath = kind?.sourceRoot || kind?.sourceAbs || kind?.label || "";
-  const title = `监控目录设置${titlePath ? ` - ${titlePath}` : ""}`;
+  const titlePath =
+    displayRelativePath(kind?.sourceRoot || kind?.sourceAbs || "") !== "—"
+      ? displayRelativePath(kind?.sourceRoot || kind?.sourceAbs || "")
+      : kind?.label || "";
 
   return (
     <Modal
       open={open && !!kind}
-      title={title}
-      wide
+      variant="sheet"
+      padded
+      className="modal-kind-settings"
+      title="监控目录设置"
+      subtitle={titlePath || undefined}
       onClose={close}
       footer={
-        <button type="button" className="btn primary" disabled={!dirty || saving || loading} onClick={() => void save()}>
-          {saving ? "保存中…" : "保存修改"}
-        </button>
+        <>
+          <button
+            type="button"
+            className="btn primary solid"
+            disabled={!dirty || saving || loading}
+            onClick={() => void save()}
+          >
+            {saving ? "保存中…" : "保存修改"}
+          </button>
+          <button type="button" className="btn text" onClick={close}>
+            关闭
+          </button>
+        </>
       }
     >
-      <div className="kind-settings">
-        <nav className="kind-settings-tabs" aria-label="分区设置分类">
+      <div className="kind-settings advanced-job-modal">
+        <div className="advanced-job-tabs" role="tablist" aria-label="分区设置分类">
           {TABS.map((t) => (
             <button
               key={t.id}
               type="button"
-              className={`kind-settings-tab${tab === t.id ? " is-active" : ""}`}
+              role="tab"
+              aria-selected={tab === t.id}
+              className={`advanced-job-tab${tab === t.id ? " is-active" : ""}`}
               onClick={() => setTab(t.id)}
             >
               {t.label}
             </button>
           ))}
-        </nav>
+        </div>
 
         {loading || !kindDraft || !profile || !scrape ? (
           <div className="empty-block">加载配置…</div>
         ) : (
-          <div className="kind-settings-body cfg-modal-body">
+          <div className="kind-settings-body advanced-job-panel">
             {tab === "organize" ? (
               <>
                 <GlobalToggle
@@ -348,6 +369,8 @@ export function KindSettingsModal({
                 />
                 <SettingRow label="整理目录" layout="stack">
                   <FolderPicker
+                    variant="inline"
+                    pickerTitle="选择整理目录"
                     value={kindDraft.libraryRoot}
                     onChange={(relative) => patchKind({ libraryRoot: relative })}
                     usedBy={usedLibraries}
@@ -357,6 +380,8 @@ export function KindSettingsModal({
                 </SettingRow>
                 <SettingRow label="来源目录" layout="stack">
                   <FolderPicker
+                    variant="inline"
+                    pickerTitle="选择刮削路径"
                     value={kindDraft.sourceRoot}
                     onChange={(relative) => patchKind({ sourceRoot: relative })}
                     usedBy={usedSources}
@@ -401,6 +426,8 @@ export function KindSettingsModal({
                       layout="stack"
                     >
                       <FolderPicker
+                        variant="inline"
+                        pickerTitle="选择元数据目录"
                         value={kindDraft.metadataDir}
                         onChange={(relative) => patchKind({ metadataDir: relative })}
                         currentLabel={kindDraft.label}
@@ -641,42 +668,23 @@ export function KindSettingsModal({
                   checked={profile.useGlobal?.sources !== false}
                   onChange={(v) => patchUseGlobal("sources", v)}
                 />
-                <SettingRow
-                  label="元数据源链"
-                  hint="靠前优先；多源聚合按此顺序回退"
-                  layout="stack"
-                >
-                  <SourceChainEditor
-                    values={profile.metaSources}
-                    onChange={(metaSources) => patchProfile({ metaSources })}
+                {profile.useGlobal?.sources === false && scrape ? (
+                  <KindSourcesSettingsView
+                    kindLabel={kindDraft?.label || kind?.label || "分区"}
+                    scrape={scrape}
                     catalog={catalog}
-                    disabled={profile.useGlobal?.sources !== false}
+                    profile={{
+                      metaSources: profile.metaSources,
+                      coverSources: profile.coverSources,
+                      fieldPriority: profile.fieldPriority,
+                    }}
+                    onScrapeChange={(next, nextCatalog) => {
+                      setScrape(next);
+                      if (nextCatalog) setCatalog(nextCatalog);
+                    }}
+                    onProfileChange={(patch) => patchProfile(patch)}
+                    notify={notify}
                   />
-                </SettingRow>
-                <SettingRow
-                  label="封面源链"
-                  hint="靠前优先；用于封面/海报抓取顺序"
-                  layout="stack"
-                >
-                  <SourceChainEditor
-                    values={profile.coverSources}
-                    onChange={(coverSources) => patchProfile({ coverSources })}
-                    catalog={catalog}
-                    disabled={profile.useGlobal?.sources !== false}
-                  />
-                </SettingRow>
-                {profile.useGlobal?.sources === false ? (
-                  <SettingRow
-                    label="字段优先级"
-                    hint="覆盖全局 merge 字段链；留空继承全局"
-                    layout="stack"
-                  >
-                    <FieldPriorityEditor
-                      fieldPriority={profile.fieldPriority ?? {}}
-                      globalFieldPriority={scrape?.fieldPriority}
-                      onChange={(fieldPriority) => patchProfile({ fieldPriority })}
-                    />
-                  </SettingRow>
                 ) : null}
               </>
             ) : null}

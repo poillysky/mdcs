@@ -335,7 +335,7 @@ export function NamingSettingsPanel({ notify }: Props) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `scrap-naming-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `mdcs-naming-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
     notify("ok", "命名配置已导出");

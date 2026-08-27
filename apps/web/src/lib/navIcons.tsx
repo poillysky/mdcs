@@ -6,6 +6,7 @@ import {
   GlobeAltIcon,
   HomeIcon,
   SparklesIcon,
+  Squares2X2Icon,
   UserIcon,
 } from "@heroicons/react/24/solid";
 import type { RouteId } from "./routes";
@@ -16,6 +17,7 @@ type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 export const NAV_ICONS: Record<RouteId, IconComponent> = {
   dashboard: HomeIcon,
   tasks: SparklesIcon,
+  kindTasks: Squares2X2Icon,
   records: ClockIcon,
   actors: UserIcon,
   files: FolderIcon,

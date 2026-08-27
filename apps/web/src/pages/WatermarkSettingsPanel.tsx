@@ -57,6 +57,26 @@ const POS_OPTS: { value: Pos; label: string }[] = [
 
 type PreviewMark = { id: string; text: string; tone: string; file: string; pos: Pos };
 
+function asPos(v: string | undefined): Pos {
+  if (
+    v === "auto" ||
+    v === "top-left" ||
+    v === "top-right" ||
+    v === "bottom-left" ||
+    v === "bottom-right"
+  ) {
+    return v;
+  }
+  return "auto";
+}
+
+function asCorner(v: string | undefined): Corner {
+  if (v === "top-left" || v === "top-right" || v === "bottom-left" || v === "bottom-right") {
+    return v;
+  }
+  return "top-left";
+}
+
 const PREVIEW_ASSET = "/watermarks/default";
 
 function Section({
@@ -115,7 +135,7 @@ function buildPreviewMarks(w: Wm, showAll: boolean): PreviewMark[] {
       text: "4K",
       tone: "res",
       file: "4k.png",
-      pos: w.posResolution,
+      pos: asPos(w.posResolution),
     });
     if (showAll) {
       all.push({
@@ -123,24 +143,24 @@ function buildPreviewMarks(w: Wm, showAll: boolean): PreviewMark[] {
         text: "8K",
         tone: "res",
         file: "8k.png",
-        pos: w.posResolution,
+        pos: asPos(w.posResolution),
       });
     }
   }
   if (w.markSubtitle) {
-    all.push({ id: "sub", text: "字幕", tone: "sub", file: "sub.png", pos: w.posSubtitle });
+    all.push({ id: "sub", text: "字幕", tone: "sub", file: "sub.png", pos: asPos(w.posSubtitle) });
   }
   if (w.markCracked) {
-    all.push({ id: "cracked", text: "破解", tone: "cracked", file: "umr.png", pos: w.posCracked });
+    all.push({ id: "cracked", text: "破解", tone: "cracked", file: "umr.png", pos: asPos(w.posCracked) });
   }
   if (w.markLeak) {
-    all.push({ id: "leak", text: "流出", tone: "leak", file: "leak.png", pos: w.posLeak });
+    all.push({ id: "leak", text: "流出", tone: "leak", file: "leak.png", pos: asPos(w.posLeak) });
   }
   if (w.markUncensored) {
-    all.push({ id: "wuma", text: "无码", tone: "wuma", file: "wuma.png", pos: w.posUncensored });
+    all.push({ id: "wuma", text: "无码", tone: "wuma", file: "wuma.png", pos: asPos(w.posUncensored) });
   }
   if (w.markCensored) {
-    all.push({ id: "youma", text: "有码", tone: "youma", file: "youma.png", pos: w.posCensored });
+    all.push({ id: "youma", text: "有码", tone: "youma", file: "youma.png", pos: asPos(w.posCensored) });
   }
 
   if (showAll) return all;
@@ -158,7 +178,7 @@ function buildPreviewMarks(w: Wm, showAll: boolean): PreviewMark[] {
 }
 
 function resolveCorner(mark: PreviewMark, index: number, w: Wm): Corner {
-  const start = w.startPosition || w.position || "top-left";
+  const start = asCorner(w.startPosition || w.position || "top-left");
   if (mark.pos !== "auto") return mark.pos;
   if (w.layout === "stack") return start;
   const order: Corner[] = ["top-left", "top-right", "bottom-right", "bottom-left"];
@@ -264,7 +284,7 @@ export function WatermarkSettingsPanel({ notify }: Props) {
       next.scalePercent = Math.max(1, Math.min(40, Math.round(100 / r)));
     }
     if (partial.startPosition != null) {
-      next.position = partial.startPosition;
+      next.position = asCorner(partial.startPosition);
     }
     setConfig({ ...config, watermark: next });
   }

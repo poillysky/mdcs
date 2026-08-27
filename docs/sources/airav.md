@@ -1,7 +1,32 @@
 # AirAV — 测试记录
 
 > UI 卡片顺序：**#10 有码 AV 组**（sevenmmtv → **airav** → avbase）  
-> 最后实测：2026-08-23 16:05 (UTC+8)
+> 最后实测：2026-08-23 23:06 (UTC+8)（完整报告 · 规范见 SOURCE-SINGLE-SITE-TEST.md）
+
+---
+
+## 2026-08-23 完整报告（23:06 复跑）
+
+| 环节 | 结果 | 说明 |
+|------|------|------|
+| L1 单测 | ✅ **3/3** | 435ms |
+| 测通 | ✅ **1868ms** | `probeVia: curl` · airav.wiki |
+| Live + E2E | ✅ 全过 | 刮削 ~6s · 总 ~14s |
+| 封面 | ✅ **112895 B** | airav.io CDN |
+| 海报 | ✅ **44139 B** | censored |
+| NFO | ✅ **21/21** 必过 | 刮削 **19/30** |
+
+报告：`media/片商目录/日本有码/SONE/SONE-001/_scrap/airav/organized/e2e-report.json`
+
+### 字段亮点（SONE-001）
+
+- 中文 title/plot · **originalplot** · actor · studio · premiered
+- 委托 **airav_io** 搜索链成功（6 次 curl）
+- **未采集**：director / runtime / rating / series 等
+
+### 结论
+
+**生产可用 ✅** — 与 airav_io 等效元数据；本轮无代码修复。
 
 ---
 

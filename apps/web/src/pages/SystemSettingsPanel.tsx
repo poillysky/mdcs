@@ -15,10 +15,20 @@ const DEFAULT_LLM = {
 
 const OPENAI_DEFAULT_BASE = "https://api.openai.com/v1";
 
+const LLM_LS = {
+  baseUrl: "mdcs.llm.baseUrl",
+  apiKey: "mdcs.llm.apiKey",
+  model: "mdcs.llm.model",
+} as const;
+
+function readLlmLocal(field: keyof typeof LLM_LS): string {
+  return localStorage.getItem(LLM_LS[field]) || "";
+}
+
 function syncLlmLocal(llm: { baseUrl: string; apiKey: string; model: string }) {
-  localStorage.setItem("scrap.llm.baseUrl", llm.baseUrl || "");
-  localStorage.setItem("scrap.llm.apiKey", llm.apiKey || "");
-  localStorage.setItem("scrap.llm.model", llm.model || DEFAULT_LLM.model);
+  localStorage.setItem(LLM_LS.baseUrl, llm.baseUrl || "");
+  localStorage.setItem(LLM_LS.apiKey, llm.apiKey || "");
+  localStorage.setItem(LLM_LS.model, llm.model || DEFAULT_LLM.model);
 }
 
 function Section({
@@ -55,12 +65,9 @@ export function SystemSettingsPanel({ notify }: Props) {
         const data = await fetchScrapeConfig();
         const cfg = data.config;
         const llm = {
-          baseUrl: cfg.llm?.baseUrl || localStorage.getItem("scrap.llm.baseUrl") || "",
-          apiKey: cfg.llm?.apiKey || localStorage.getItem("scrap.llm.apiKey") || "",
-          model:
-            cfg.llm?.model ||
-            localStorage.getItem("scrap.llm.model") ||
-            DEFAULT_LLM.model,
+          baseUrl: cfg.llm?.baseUrl || readLlmLocal("baseUrl") || "",
+          apiKey: cfg.llm?.apiKey || readLlmLocal("apiKey") || "",
+          model: cfg.llm?.model || readLlmLocal("model") || DEFAULT_LLM.model,
         };
         setConfig({ ...cfg, llm });
         syncLlmLocal(llm);

@@ -142,7 +142,6 @@ async def test_xxx_crawler():
 | fc2 | fc2.py | test_fc2.py, test_fc2_trailer.py | fc2 | ❌ | ✅ |
 | fc2hub | fc2hub.py | test_fc2hub.py | fc2_hub | ✅ | ⚠️ |
 | fc2ppvdb | fc2ppvdb.py | test_fc2ppvdb.py | fd2ppv | ❌ | ✅ |
-| fc2club | fc2club.py | test_fc2club.py | — | — | — |
 | freejavbt | freejavbt.py | test_freejavbt.py | freejavbt | ❌ | ⚠️ |
 | iqqtv | iqqtv.py | test_iqqtv.py, test_iqqtv_crawler.py, test_iqqtv_title_cleanup.py | iqqtv | ❌ | ✅ |
 | madouqu | madouqu.py | test_madouqu.py | madouqu | ❌ | ❌ |
@@ -313,12 +312,11 @@ apps/server/tests/scrape/data/
 | missav / missav_api | ✅ | 低优；与 miss_av stub 合并规划 |
 | mgstage, 7mmtv | ✅ | 色花有 seeds；implement 后复制 test_mmtv |
 | getchu, kin8, prestige, faleno | ✅ |  niche；按需 |
-| fc2club | ✅ | 与 fd2ppv 重复度 high |
 | official, r18dev, xcity | ✅ | 官方/开发源；低优 |
 | javlibrary | ✅ | 高价值；复制 test_javlibrary + Flare |
 | avbase | ✅ | adaptive；复制 test_avbase |
 
-**不纳入 MDCS catalog**：forum（色花有、MDCS 故意无）、avheat/avsex/cnmdb 等 MDCX 小众源。
+**不纳入 MDCS catalog**：forum（色花有、MDCS 故意无）、avheat/avsex 等 MDCX 小众源；cnmdb 已关站（301→Telegram）已从 catalog 移除。
 
 ---
 

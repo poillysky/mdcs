@@ -89,7 +89,7 @@ export function AppShell({ route, onNavigate, children }: Props) {
 
       <aside className={`sidebar${open ? " open" : ""}`} aria-hidden={!isDesktop && !open}>
         <div className="brand">
-          <div className="brand-mark">M</div>
+          <img className="brand-mark" src="/logo.png" alt="MDCS" width={36} height={36} />
           <div className="brand-text">
             <div className="brand-title">MDCS</div>
             <div className="brand-sub">刮削整理服务</div>

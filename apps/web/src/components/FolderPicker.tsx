@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowLeftIcon, ChevronRightIcon, FolderIcon } from "@heroicons/react/24/solid";
 import { fetchIndexFolders } from "../api";
 import type { IndexFolder } from "../types";
+import { displayRelativePath, normalizeRelativePath } from "../lib/paths";
 import { Modal } from "./Modal";
 
 type Props = {
@@ -9,20 +11,42 @@ type Props = {
   usedBy?: Map<string, string>;
   currentLabel?: string;
   onError: (message: string) => void;
+  variant?: "default" | "inline";
+  placeholder?: string;
+  pickerTitle?: string;
 };
 
-export function FolderPicker({ value, onChange, usedBy, currentLabel, onError }: Props) {
+function displayPath(relative: string): string {
+  return displayRelativePath(relative);
+}
+
+export function FolderPicker({
+  value,
+  onChange,
+  usedBy,
+  currentLabel,
+  onError,
+  variant = "default",
+  placeholder = "未绑定",
+  pickerTitle = "选择目录",
+}: Props) {
   const [open, setOpen] = useState(false);
-  const [parent, setParent] = useState("");
+  const [browsePath, setBrowsePath] = useState("");
+  const [pendingPath, setPendingPath] = useState("");
   const [folders, setFolders] = useState<IndexFolder[]>([]);
   const [loading, setLoading] = useState(false);
+  const [filter, setFilter] = useState("");
 
-  async function load(nextParent: string) {
+  async function load(nextParent: string, opts?: { keepPending?: boolean }) {
     setLoading(true);
     try {
       const data = await fetchIndexFolders(nextParent);
-      setParent(data.parent);
+      const parent = data.parent ?? "";
+      setBrowsePath(parent);
       setFolders(data.folders);
+      if (!opts?.keepPending) {
+        setPendingPath(parent);
+      }
     } catch (e) {
       onError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -32,122 +56,154 @@ export function FolderPicker({ value, onChange, usedBy, currentLabel, onError }:
 
   useEffect(() => {
     if (!open) return;
-    const start = value.includes("/") ? value.slice(0, value.lastIndexOf("/")) : "";
-    void load(start);
+    setFilter("");
+    const norm = value.replace(/\\/g, "/").replace(/^\/+/, "");
+    const start = norm.includes("/") ? norm.slice(0, norm.lastIndexOf("/")) : norm;
+    setPendingPath(norm);
+    void load(start, { keepPending: Boolean(norm) });
   }, [open]);
 
-  const crumbs = parent ? parent.split("/") : [];
+  const filteredFolders = useMemo(() => {
+    const q = filter.trim().toLowerCase();
+    if (!q) return folders;
+    return folders.filter((f) => f.name.toLowerCase().includes(q));
+  }, [filter, folders]);
 
-  function goCrumb(index: number) {
-    if (index < 0) {
-      void load("");
-      return;
-    }
-    void load(crumbs.slice(0, index + 1).join("/"));
+  const parentPath = browsePath.includes("/")
+    ? browsePath.slice(0, browsePath.lastIndexOf("/"))
+    : "";
+
+  function enterFolder(folder: IndexFolder) {
+    setPendingPath(folder.relative);
+    void load(folder.relative);
   }
 
-  function pick(relative: string) {
-    onChange(relative);
+  function goUp() {
+    void load(parentPath);
+    setPendingPath(parentPath);
+  }
+
+  function confirmPick() {
+    onChange(pendingPath.trim());
     setOpen(false);
   }
 
-  function clear() {
-    onChange("");
-    setOpen(false);
+  function openPicker() {
+    setOpen(true);
   }
 
   return (
-    <div className="folder-picker">
-      <div className="folder-picker-summary">
-        <span className={value ? "folder-path" : "folder-path is-empty"} title={value || undefined}>
-          {value || "未绑定"}
-        </span>
-        <button type="button" className="btn sm" onClick={() => setOpen(true)}>
-          选择目录
-        </button>
-      </div>
+    <div className={`folder-picker${variant === "inline" ? " folder-picker--inline" : ""}`}>
+      {variant === "inline" ? (
+        <div className="create-job-path-row">
+          <div
+            className={`create-job-path-value mono${value ? "" : " is-empty"}`}
+            title={value || undefined}
+          >
+            {value ? displayPath(value) : placeholder}
+          </div>
+          <button
+            type="button"
+            className="create-job-path-btn"
+            aria-label={pickerTitle}
+            onClick={openPicker}
+          >
+            <FolderIcon aria-hidden />
+          </button>
+        </div>
+      ) : (
+        <div className="folder-picker-summary">
+          <span className={value ? "folder-path" : "folder-path is-empty"} title={value || undefined}>
+            {value || placeholder}
+          </span>
+          <button type="button" className="btn sm" onClick={openPicker}>
+            选择目录
+          </button>
+        </div>
+      )}
 
       <Modal
         open={open}
-        title="选择目录"
-        subtitle="浏览项目下的文件夹并选用"
-        wide
+        variant="sheet"
+        title={pickerTitle}
+        padded
+        className="modal-folder-picker"
         onClose={() => setOpen(false)}
         footer={
           <>
-            {value ? (
-              <button type="button" className="btn ghost folder-clear" onClick={clear}>
-                清除绑定
-              </button>
-            ) : null}
-            <button type="button" className="btn" onClick={() => setOpen(false)}>
+            <button type="button" className="btn text" onClick={() => setOpen(false)}>
               取消
+            </button>
+            <button
+              type="button"
+              className="btn primary solid"
+              disabled={!pendingPath.trim()}
+              onClick={confirmPick}
+            >
+              确认
             </button>
           </>
         }
       >
-        <div className="folder-browser">
-          <div className="folder-crumbs">
-            <button type="button" className="crumb" onClick={() => goCrumb(-1)}>
-              项目根
-            </button>
-            {crumbs.map((part, i) => (
-              <span key={`${part}-${i}`}>
-                <span className="crumb-sep">/</span>
-                <button type="button" className="crumb" onClick={() => goCrumb(i)}>
-                  {part}
-                </button>
-              </span>
-            ))}
-          </div>
+        <div className="folder-picker-sheet">
+          <input
+            className="folder-picker-filter"
+            placeholder="文件名过滤"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          />
 
-          <div className="folder-list">
-            {parent ? (
-              <button type="button" className="folder-row" onClick={() => goCrumb(crumbs.length - 2)}>
-                返回上级
-              </button>
-            ) : null}
-
-            {parent ? (
+          <div className="folder-picker-list" role="listbox" aria-label={pickerTitle}>
+            {browsePath ? (
               <button
                 type="button"
-                className={`folder-row pick${value === parent ? " selected" : ""}`}
-                onClick={() => pick(parent)}
+                className="folder-picker-item folder-picker-item--up"
+                onClick={goUp}
+                title="返回上级"
               >
-                选用当前目录
+                <span className="folder-picker-up-icon" aria-hidden>
+                  <ArrowLeftIcon />
+                </span>
+                <span className="folder-picker-item-name">
+                  返回上级
+                  <em> · {browsePath.split("/").filter(Boolean).at(-1) || "项目根"}</em>
+                </span>
               </button>
             ) : null}
 
-            {loading ? <div className="folder-empty">读取中…</div> : null}
+            {loading ? <div className="folder-picker-empty">读取中…</div> : null}
 
-            {!loading && folders.length === 0 ? (
-              <div className="folder-empty">这一层没有子目录</div>
+            {!loading && filteredFolders.length === 0 ? (
+              <div className="folder-picker-empty">
+                {filter.trim() ? "没有匹配的目录" : "这一层没有子目录"}
+              </div>
             ) : null}
 
             {!loading
-              ? folders.map((f) => {
-                  const used = usedBy?.get(f.relative);
+              ? filteredFolders.map((f) => {
+                  const used = usedBy?.get(f.relative.replace(/\\/g, "/").replace(/^\/+/, ""));
                   const extra = used && used !== currentLabel ? ` · 已用于${used}` : "";
+                  const active = pendingPath === f.relative;
                   return (
-                    <div
+                    <button
                       key={f.relative}
-                      className={`folder-row${value === f.relative ? " selected" : ""}`}
+                      type="button"
+                      className={`folder-picker-item${active ? " is-active" : ""}`}
+                      onClick={() => enterFolder(f)}
                     >
-                      <button
-                        type="button"
-                        className="folder-enter"
-                        onClick={() => void load(f.relative)}
-                      >
+                      <ChevronRightIcon className="folder-picker-chevron" aria-hidden />
+                      <span className="folder-picker-item-name">
                         {f.name}
-                        {extra}
-                      </button>
-                      <button type="button" className="btn xs" onClick={() => pick(f.relative)}>
-                        选用
-                      </button>
-                    </div>
+                        {extra ? <em>{extra}</em> : null}
+                      </span>
+                    </button>
                   );
                 })
               : null}
+          </div>
+
+          <div className="folder-picker-current">
+            当前选择: <span className="mono">{displayPath(pendingPath)}</span>
           </div>
         </div>
       </Modal>

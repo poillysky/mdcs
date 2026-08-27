@@ -4,12 +4,286 @@
 
 ---
 
+## 2026-08-27 — Gfriends 头像择优（Digigra 优先）
+
+- **背景**：加藤ももか等头像抓到 AVDC 200×300  tight crop，观感「偏」。
+- **决策/结论**：源权重 Digigra/GRAPHIS > Minnano > AVDC；合并 minnano 现名/别名查候选；下载多张后按竖构图+分辨率打分择优；保存完整原图。
+- **待办/遗留**：已落盘旧头像需 `forceImage`/重新刮削才会换源。
+
+---
+
+## 2026-08-27 — 演员档案接 minnano + 头像完整显示
+
+- **背景**：档案页只有假「映射名」简介；Gfriends 误选全身图且本地又做人脸裁切导致头像偏。
+- **决策/结论**：
+  - 档案：`minnano-av.com` 搜详情 → 生日/出身/三围标签/出道简介/外链；头像仍 Gfriends（优先写真站，见同日 Digigra 条目）。
+  - 头像落盘不再方裁；前端 `object-fit: contain` 显示完整图。
+- **待办/遗留**：wiki 级长简介未接；已刮削演员需点「重新刮削」刷新。
+
+---
+
+## 2026-08-27 — 演员映射表简中空文件修复
+
+- **背景**：`enableActorMapping` 已开，但 `actors.zh-CN.json` 被写成 2 字节空文件，日文→中文实际不生效。
+- **决策/结论**：从 mdcx `actor_database.xlsx` 重导四语种 actors 表（各约 5.1 万 key）；`loadNamedMap` 目标语种空表时回退其他语种；`resolveActorMapInfo` 复用 `mapActors(zh-CN)`。
+- **待办/遗留**：已刮削入库的旧记录需重新刮削才会改名；改 maps 后需重启后端清内存缓存。
+
+---
+
+## 2026-08-27 — 演员本地档案刮削 + Emby 本地优先
+
+- **背景**：刮削缓存页原先只聚合作品 actors 字段；用户要真刮削演员档案，Emby 同步优先用本地、免二次刮。
+- **决策/结论**：
+  - SQLite `actor_profiles` + `data/actors/{name}/avatar.*`；`POST /api/actors/scrape`（maps 规范化 + Gfriends 头像，头像失败仍落档）。
+  - 列表/详情展示档案状态与头像；支持刮削选中/缺失。
+  - `runEmbyActorSync` 本地档案优先写回 Emby，缺才走 Gfriends/映射，网络结果回写本地；返回 `fromLocal`。
+- **待办/遗留**：百科类简介（wiki/minnano）未接；`actors.zh-CN.json` 仍为空需重导。
+
+---
+
+## 2026-08-26 — 封面日志相对路径 + data/covers 与片库路径澄清
+
+- **背景**：详情刮削日志显示 `封面已保存：'E:/Mdcs/data/covers/...'`；用户要求相对路径，并质疑为何不是片库目标目录。
+- **决策/结论**：
+  - `data/covers/{kind}/` 是刮削阶段缓存，不是片库；整理阶段才把裁剪后的 `poster.jpg` / `thumb.jpg` 写入目标目录。
+  - 日志文案改为「封面缓存已保存」+ 相对路径；整理补「海报/缩略图已写入」。
+  - `coverLocal` 持久化为项目相对路径；读写用 `toProjectRelativePath` / `resolveProjectPath`。
+  - 旧归档日志前端展示时净化绝对路径。
+- **待办/遗留**：无（重跑刮削+整理后日志会带片库海报路径）。
+
+---
+
+## 2026-08-24 — 小黄书（xiao_huang_shu）E2E 通过
+
+- **背景**：MDCX 无 crawler；xchina.co 全局代理 403；详情无 Referer 403；封面 `upload.xchina.io` undici/代理 403。
+- **决策/结论**：
+  - 搜索 `/search.html?keyword=` → `/video/id-*.html`；解析 JSON-LD `VideoObject`。
+  - 单源 `proxyUrl:"null"`；封面 curl 直连 + Referer=`https://xchina.co/`。
+  - 测通 `probeVia:curl` ~553ms；E2E `MDX-0006` 封面 53934 bytes · NFO 17/17。文档 `docs/sources/xiao_huang_shu.md`。
+- **待办/遗留**：下一站按 UI 国产组顺序（`mdtv`）。
+
+---
+
+## 2026-08-24 — 黄色仓库（hscangku）E2E 通过 + 单站报告
+
+- **背景**：门户 `hsck.net` 为 JS 跳转；搜索分页曾被当成详情；详情页封面常为广告 GIF。
+- **决策/结论**：
+  - 详情 href 仅认 `/v5/` 或 `/vodplay/`；门户解析 `strU` 跟镜像。
+  - 单源 `baseUrl=https://556822.xyz` + `proxyUrl:"null"`；封面优先搜索卡 `data-original`。
+  - E2E `MDX-0006`：封面 25546 bytes · NFO 9/9。文档 `docs/sources/hscangku.md`。
+- **待办/遗留**：镜像会变，需在卡片里改 `baseUrl`；下一站 `xiao_huang_shu`。
+
+---
+
+## 2026-08-24 — Madouqu 单源直链落地 + E2E 修复完成
+
+- **背景**：`madouqu` 在代理链路下出现 520/不稳定；切直连后可达，但 E2E 长时间 404 并误回落 Flare。用户要求该源单独走直链且不影响其他源。
+- **决策/结论**：
+  - `config/scrape.json` 为 `madouqu` 增加单源覆盖：`providerSettings.madouqu.proxyUrl = "null"`（仅该源禁用代理，全局代理保持原值）。
+  - 修复 `scripts/e2e-fixtures.ts`：`resolveE2eFixture()` 优先使用 fixture 的 `code`，避免被 `sourceRel` 文件名覆盖，`madouqu` 实测样例改为 `MDX-0006`。
+  - 修复封面链路：`fetchBuffer()` 支持 `proxyUrlOverride`；`downloadCover()` 透传源级 override，使封面下载与页面抓取一致走单源直连。
+  - 复测结果：`madouqu` E2E（`MDX-0006`）全流程通过（刮削/封面/转移/海报水印/NFO 15/15）。
+- **待办/遗留**：
+  - `hdouban` 下一站按同一规范执行（MDCX 对照 → 测通 → E2E → 文档）。
+
+---
+
+## 2026-08-24 — fd2ppv 凭证 + curl-impersonate 直链已通
+
+- **背景**：E2E 冷启动日志是 `curl-first`（无 cookie）→ 403 → Flare；用户指出本机已装 curl-impersonate，应能带 `cf_clearance`。
+- **决策/结论**：磁盘 `data/meta/cf-clearance.json` 有 `fd2ppv.cc` 后，复刮打出 **`clearance-curl-ok`**（102403b / ~1.8s），**未走 Flare**。冷启动无有效凭证才会过盾；过盾后落盘，后续走 impersonate+cookie。
+- **待办/遗留**：无。
+
+---
+
+## 2026-08-24 — 全源 impersonate curl（含 proxy_flare）
+
+- **背景**：凭证+curl 原先只给 `proxy_adaptive`；javdb/avmoo/fc2_hub 等 `viaFlare:true` 直接过盾。
+- **决策/结论**：有 curl-impersonate 时**所有源**先 curl（有 `cf_clearance` 则带 cookie+UA）；失败再 undici/Flare。SPA（`waitInSeconds`）空壳仍过盾。无 impersonate 时行为与改前一致。
+- **待办/遗留**：重启服务后看 `curl-first` / `clearance-curl-ok`；avmoo 类仍可能 `via=flare`。
+
+---
+
+## 2026-08-24 — curl-impersonate（凭证+curl / 飞牛 NAS）
+
+- **背景**：裸 `curl.exe` TLS ≠ Flare Chrome，`cf_clearance` 带不上；Windows `.bat` 包装 Node `spawn` 会 EINVAL。
+- **决策/结论**：
+  - 用 **lexiforest curl-impersonate v2.1.1**，`--impersonate chrome136`。
+  - 本机：`tools/curl-impersonate/curl-impersonate.exe`；用户环境变量 `SCRAPE_CURL_BIN` / `SCRAPE_CURL_IMPERSONATE`。
+  - 飞牛：Docker 镜像安装到 `/usr/local/bin/curl-impersonate`（amd64/arm64）。
+  - `download.ts` 自动发现 `tools/` 或 `/usr/local/bin`，`.bat` 改打 exe。
+- **待办/遗留**：飞牛需重新 `docker compose build`；本机重启 Cursor 后再跑带 clearance 的 scrape。
+
+---
+
+## 2026-08-24 — 对齐色花 Flare 会话生命周期
+
+- **背景**：fc2_hub 复测卡死；对照 sehua / mdcx：色花靠全局单会话 + flareMonitor 清孤儿；mdcx 根本不开 session。
+- **决策/结论**：
+  - 失败路径：清本地后 **异步 destroy**（短超时），再 no-session 直打。
+  - 新增 `flareMonitor.ts`：30s 清孤儿（`keepOwned`）；服务启动 `startScrapeNetworkRuntime()`。
+  - **测通强制 `noSessionRetry`**，禁止 probe `sessions.create`（复测：fc2_hub probe ~18s · sessions=0）。
+- **待办/遗留**：fc2_hub E2E 封面 storage 404；正式 E2E 待 Flare 稳定后再跑。
+
+---
+
+## 2026-08-24 — FlareSolverr 会话只开不关卡死修复
+
+- **背景**：fc2_hub E2E/脚本并行时日志出现多次 `flare session create`，远端 Chrome 残留导致 FS 卡死。
+- **决策/结论**：
+  - `ensureHostSession` 创建前先 `sessions.list` + destroy 孤儿。
+  - `destroySession` 打日志；`applyFlareSolverr` 换 URL 时真正 destroy。
+  - 进程 exit / SIGINT / SIGTERM / e2e 结束调用 `releaseFlareSession` + `recycleFlareSessions`。
+  - 紧急脚本：`npx tsx scripts/_flare-recycle.ts`（已清到 sessions=0）。
+- **待办/遗留**：fc2_hub 完整落地（封面 storage 404）另续。
+
+---
+
+## 2026-08-24 — 多源字段 parser 优化（fc2 / carib / avsox / miss_av）
+
+- **背景**：FC2 官方因中文 UI 标签（上架时间）漏采 premiered 等；用户问其它已测站是否同类问题。
+- **决策/结论**：
+  - **fc2**：多标签 premiered/runtime/JSON-LD 评分/og:video · E2E **13→23/30** · L1 6/6。
+  - **carib**：`parseCaribRating`（★★★★★）· website · trailer smovie 兜底 · E2E **22→26/30** · L1 13/13。
+  - **avsox/avmoo**：补 `website` · avsox 补 director 解析（值为 `-` 时跳过）。
+  - **miss_av**：简繁标签别名（女優/發行商/標籤等）。
+  - 新增 `scripts/_field-audit.ts`：对照 debug HTML 做漏采审计。
+- **待办/遗留**：avsox/miss_av 缺项多为源站无 plot/trailer；dmm votes 已接 GraphQL total。
+
+---
+
+- **背景**：无码组 #2；旧 parser 按 JavBus 系 HTML，现站已迁 **AIO Quasar SPA**（与 Avmoo 同族）。
+- **决策/结论**：
+  - 重构 `avsox.ts`：复用 `pickAvmooMoviePath` / `isAioThinShell` · 新增 `avsoxSearchQueries`（CARIB→010117-339）。
+  - 分组 **`uncensored`** · access **`proxy_flare`** · 测通 flare ~10s。
+  - L1 **6/6**；Live **CARIB-010117-339** ~36s ✅；e2e-fixtures 改无码样例。
+  - E2E **CARIB-010117-339** ✅：18/30 · NFO 20/20 · 封面 55KB · flare ~31s；e2e 过盾源 timeout 180s。
+- **待办/遗留**：无。
+
+---
+
+## 2026-08-24 — Caribbean (carib) 完整落地
+
+- **背景**：UI 无码组 Caribbean 卡片；`index.ts` 已注册但 `carib.ts` 缺失。
+- **决策/结论**：
+  - 实现 `carib.ts` + `carib.test.ts`（12/12）；直链 `/moviepages/{MMDDYY-NNN}/index.html`。
+  - 分组 **`uncensored`** · access **`proxy_adaptive`** · 测通 `probeVia: curl` ~561ms。
+  - EUC-JP：`fetchViaCurl` 改读 HTML meta charset（修 download.ts 硬编码 UTF-8）。
+  - 演员限 `li.movie-spec` 出演行；genres 仅 `itemprop=genre`；premiered 番号 MMDDYY 兜底。
+  - E2E **CARIB-010117-339**：22/30 字段 · NFO 24/24 · 封面 104KB · extrafanart 30 · 无码水印。
+- **待办/遗留**：无。
+
+---
+
+## 2026-08-24 — access 两档：proxy 并入 adaptive
+
+- **背景**：`proxy` 与 `proxy_adaptive` 取页入口相同，差只在遇盾是否回落 Flare；UI 三档易误导。
+- **决策/结论**：
+  - catalog 原 `proxy` **全部改为 `proxy_adaptive`**；`normalizeProviderAccess` 把遗留 `proxy`/`direct` 归一为 adaptive。
+  - 取页：自适应 = curl→短 Node，遇盾 Flare；仅 `proxy_flare` 强制过盾。
+  - UI 卡片只显示 **自适应 / 过盾**；同组排序 adaptive → flare。
+- **待办/遗留**：旧测通文档仍可能写三档，以本决策为准。
+
+---
+
+## 2026-08-24 — NJAV #18 完整落地（123AV 迁移）
+
+- **背景**：综合组 #18 stub；JavSP 参考 `references/JavSP/javsp/web/njav.py`；MDCX 无 njav。
+- **决策/结论**：
+  - **域名迁移**：`njav.tv` → **`123av.com/ja`**（旧域搜索页仅迁移提示，无业务 HTML）。
+  - **取数链**：JavSP 对齐 `/search?keyword={code}` → `/ja/v/{slug}`；解析新 DOM `watch__info-row`（旧 `detail-item` 作回退）。
+  - **分类**：`general` + **`proxy_adaptive`**（Flare 冷启动 → curl ~0.9s）。
+  - **封面**：`icdn.123av.me` · Referer=详情页 · E2E ~59KB。
+  - **E2E SONE-001**：19/30 字段 · NFO 21/21 · studio/series/runtime 齐。
+  - 文档：`docs/sources/njav.md` · `SOURCE-SINGLE-SITE-TEST.md` #18 ✅。
+- **待办/遗留**：plot 站点无；UI 需刷新见 implemented。
+
+---
+
+## 2026-08-24 — MissAV #17 完整落地 + UI 全局参数接线
+
+- **背景**：综合组 #17 stub；用户要求分类准确、完整 E2E；此前会话因 Agent 上下文截断多次未完成交接。
+- **决策/结论**：
+  - **Provider**：`miss_av.ts` — 直链 `/cn/{code}` → 搜索回退；解析 og + 详情区 `space-y-2`；fixture `data/_debug/missav-*`。
+  - **分类**：`group: general`（日/无/国产聚合）；**`access: proxy_adaptive`**（非 proxy_flare）— 冷启动 cookie-direct 403→Flare；clearance 复用后 **curl ~0.5s**。
+  - **封面**：fourhoi CDN 须 Referer=MissAV 详情页 → `imageReferer.ts` 增 `fourhoi.com` / `miss_av` 映射。
+  - **全局 UI→后端**（非单站）：`fetchPageWithOpts` / `fetchPageForSite` / `siteFetchOpts`（proxy/UA/cookie）；`resolveProviderRetry`→orchestrator；GET `/api/scrape/config` `loadScrapeConfig(true)`；avbase/mgstage/sevenmmtv/airav/airav_io 改统一取页。
+  - **E2E SONE-001**：25/30 字段 · 封面 ✅ · NFO 27/27 必过 · 通道 curl。
+  - 文档：`docs/sources/miss_av.md` · `SOURCE-SINGLE-SITE-TEST.md` #17 ✅。
+- **待办/遗留**：UI 下一项 **njav** #18；Agent 长任务易截断→一站一新对话 + MEMORY 交接。
+
+---
+
+## 2026-08-24 — JavLibrary #16 完整实战
+
+- **背景**：UI 有码组 #16；用户本机可开官方 `javlibrary.com/cn`；服务端镜像须 Flare。
+- **决策/结论**：
+  - 对齐 JavSP/MDCX：镜像 f101w/c97k · CN 单次搜索 · `div.video` 新详情链。
+  - 探针卡死根因：多域名串行 55s → 单镜像 Flare 优先，热 session ~4s。
+  - E2E SONE-001：26/26 NFO · 封面 142KB · 24/30 字段 · `probeVia: flare`。
+  - 分类：`av` + `proxy_adaptive`（镜像必 Flare；官方站浏览器或直连）。
+  - 文档：`docs/sources/javlibrary.md` · `SOURCE-SINGLE-SITE-TEST.md` #16 ✅。
+- **待办/遗留**：plot/series 站点无；可选 JA 详情补 titleZh（当前 CN 页亦为日文标题）。
+
+---
+
+## 2026-08-24 — 单站测试 §1.1 分类/链接核验规范
+
+- **背景**：JavDay 初按 MDCX/文档放有码组+强制过盾；与用户认知不符。
+- **决策/结论**：
+  - 每站 E2E 后**必做** §1.1「分类与链接核验」；MDCX/旧文档**仅参考**。
+  - `group` 看站点真实片种边界（跨品类 → `general`）；`access` 看 `probeVia`/刮削日志，不与分组绑定。
+  - JavDay：`general` + `proxy_adaptive`（实测 direct ~0.9s，非 flare）。
+  - 规范已写入 `docs/SOURCE-SINGLE-SITE-TEST.md` §1.1 + 报告模板。
+- **待办/遗留**：已测源（avmoo/avsex 等）可择机按 §1.1 复核 group/access。
+
+---
+
+## 2026-08-23 — AVSex 单站复测 + extrafanart 接线
+
+- **背景**：UI #14；实现已存在，补全剧照输出与测通稳定性。
+- **决策/结论**：
+  - `avsex.ts`：`parseAvsexDetailHtml` / scrape 输出 `extrafanartUrls`（live 12 张）。
+  - `probe.ts`：avsex 超时 55s、`strictTimeout` 首请求放宽；测通 ✅ flare 6409ms。
+  - E2E SONE-001：19/30 元数据 OK；`image.avsex.cc` CDN 403 → 封面/海报/剧照落盘失败（已知，cover 源保留 javbus）。
+- **待办/遗留**：CDN 封面 bypass；UI 顺序下一项 **javdb**（#13 未测）。
+
+---
+
+- **背景**：单站测试 #12，原为 stub；SONE-001 不在 MGStage，E2E 改用 ABP-001。
+- **决策/结论**：
+  - 新增 `mgstage.ts`：解析 `detail_data` 表格 + `#introduction` + `#sample-photo`；`adc=1` Cookie。
+  - 评分 4.2 + votes(4)；封面 `EnlargeImage`；搜索降级。
+  - E2E ABP-001：28/30 · extrafanart 8/8 · NFO 30/30；缺 director（站点无）、trailer（API 不稳定）。
+- **待办/遗留**：预告片 `sampleplayer/sampleRespons.php` 待出口/API 稳定；UI 顺序下一项 **javdb**。
+
+---
+
+- **背景**：单站测试 #11，原为 stub（E2E 报「源暂未实现」）。
+- **决策/结论**：
+  - 新增 `avbase.ts`：解析 Next.js `__NEXT_DATA__`（`/works/{CODE}` 详情 + `/works?q=` 搜索降级）。
+  - 对齐 MDCX #449：演员名过滤纯数字序号；FANZA product 优先；封面 ps→pl。
+  - `sourceMaster` `implemented: true`；注册 `index.ts`；`avbase.test.ts` 7/7。
+  - E2E SONE-001：26/30 · extrafanart 15/15 · NFO 28/28；缺 rating/votes（站点无）。
+- **待办/遗留**：UI 顺序下一项 **MGStage**（仍为 stub）。
+
+---
+
+- **背景**：用户要求未保留的 Scrap 残留一并清理。
+- **决策/结论**：
+  - 移除 `SCRAP_API_TOKEN` / `SCRAP_WEB_DIST` / `X-Scrap-Token` 向后兼容，仅保留 MDCS 环境变量与请求头。
+  - SQLite 库名 `scrap.db` → `mdcs.db`；启动时自动重命名旧库（含 `-wal`/`-shm`）。
+  - 前端 localStorage 仅 `mdcs.llm.*`；启动日志/导出文件名此前已统一为 `mdcs` 前缀。
+- **待办/遗留**：`config/scrape.json`、`/api/scrape` 等为刮削领域术语，非旧项目名，保持不变。
+
+---
+
 ## 2026-08-23 — 项目改名 MDCS
 
 - **背景**：用户要求项目从 Scrap 改名为 mdcs。
 - **决策/结论**：
   - npm 包名：`mdcs` / `mdcs-server` / `mdcs-web`；UI/文档/健康检查 `service: mdcs-server`。
-  - 环境变量主名 `MDCS_API_TOKEN` / `MDCS_WEB_DIST` / `X-Mdcs-Token`；保留 `SCRAP_*` / `X-Scrap-Token` 向后兼容。
+  - 环境变量：`MDCS_API_TOKEN` / `MDCS_WEB_DIST` / `X-Mdcs-Token`。
   - 文档与脚本路径统一为 `e:\mdcs`（工作区目录待用户手动重命名）。
 - **待办/遗留**：若 Cursor 工作区仍指向 `e:\Scrap`，需关闭后重开 `e:\mdcs`；GitHub 已推 `https://github.com/poillysky/mdcs`（main）。
 

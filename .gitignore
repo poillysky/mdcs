@@ -25,6 +25,9 @@ apps/web/node_modules/
 # 构建产物
 apps/web/dist/
 
+# 本机 curl-impersonate（Windows 安装脚本下载，勿提交）
+tools/curl-impersonate/
+
 # 临时
 _schema_*.txt
 

@@ -1,7 +1,32 @@
 # JavBus — 测试记录
 
 > UI 卡片顺序：**有码 AV 组 · 第 2 行第 2 卡**（Jav321 → **JavBus** → LibreDMM）  
-> 最后实测：2026-08-23 15:17 (UTC+8)（逐站复测 · 规范见 SOURCE-SINGLE-SITE-TEST.md）
+> 最后实测：2026-08-23 22:56 (UTC+8)（完整报告 · 规范见 SOURCE-SINGLE-SITE-TEST.md）
+
+---
+
+## 2026-08-23 完整报告（22:56 复跑）
+
+| 环节 | 结果 | 说明 |
+|------|------|------|
+| L1 单测 | ✅ **5/5** | 597ms |
+| 测通 | ✅ **498ms** | `probeVia: direct` |
+| Live + E2E | ✅ 全过 | 刮削 ~0.5s · 总 ~5.5s |
+| 封面 | ✅ **173806 B** | javbus pics/cover |
+| 海报 | ✅ **44098 B** | censored |
+| NFO | ✅ **23/23** 必过 | 刮削 **21/30** |
+
+报告：`media/片商目录/日本有码/SONE/SONE-001/_scrap/javbus/organized/e2e-report.json`
+
+### 字段亮点（SONE-001）
+
+- **actor / director / genre / series / studio / runtime** 齐全
+- **premiered** 2023-12-12 · **publisher/label** 有
+- **未采集**：plot / rating / trailer / website（站点不提供）
+
+### 结论
+
+**生产可用 ✅** — 百科级元数据补充源；简介/评分/预告需 dmm/javdb 补。本轮无代码修复。
 
 ---
 

@@ -1,7 +1,33 @@
 # R18.dev — 测试记录
 
 > UI 卡片顺序：**#7 有码 AV 组**（libredmm → **r18dev** → airav_io）  
-> 最后实测：2026-08-23 15:31 (UTC+8)（逐站复测 · 规范见 SOURCE-SINGLE-SITE-TEST.md）
+> 最后实测：2026-08-23 23:02 (UTC+8)（完整报告 · 规范见 SOURCE-SINGLE-SITE-TEST.md）
+
+---
+
+## 2026-08-23 完整报告（23:02 复跑）
+
+| 环节 | 结果 | 说明 |
+|------|------|------|
+| L1 单测 | ✅ **6/6** | 448ms |
+| 测通 | ✅ **1388ms** | `probeVia: direct` · API sone00001/json |
+| Live + E2E | ✅ 全过 | 刮削 ~2s · 总 ~12s |
+| 封面 | ✅ **166329 B** | DMM digital pl |
+| extrafanart | ✅ **15/15** | gallery 全下载 |
+| 海报 | ✅ **57208 B** | censored |
+| NFO | ✅ **25/25** 必过 | 刮削 **23/30** |
+
+报告：`media/片商目录/日本有码/SONE/SONE-001/_scrap/r18dev/organized/e2e-report.json`
+
+### 字段亮点（SONE-001）
+
+- actor / director / genre / series / studio / runtime / **trailer / website**
+- **extrafanart ×15** 全落盘
+- **未采集**：plot / rating（R18 JSON 不提供）
+
+### 结论
+
+**生产可用 ✅** — DMM 系 JSON 元数据+剧照+预告；本轮无代码修复。
 
 ---
 

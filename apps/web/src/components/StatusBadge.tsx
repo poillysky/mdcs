@@ -17,6 +17,9 @@ const STATUS_CLASS: Record<string, string> = {
   failed: "status-error",
   cancelled: "status-muted",
   skipped: "status-muted",
+  ready: "status-ok",
+  disabled: "status-muted",
+  unbound: "status-warn",
 };
 
 export function StatusBadge({ status, map }: Props) {

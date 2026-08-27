@@ -108,18 +108,15 @@
 
 | 建议 id | 名称 | 默认 URL | access | MDCX | 说明 |
 |---------|------|----------|--------|------|------|
-| fc2club | FC2Club | https://fc2club.top | proxy_flare | fc2club.py | 与 fd2ppv 部分重叠 |
 
 ### 国产 / 中文
 
 | 建议 id | 名称 | 默认 URL | access | MDCX | 说明 |
 |---------|------|----------|--------|------|------|
-| mdtv | MDTV | https://www.mdpjzip.xyz | proxy | mdtv.py | 麻豆系 |
-| love6 | Love6 | https://love6.tv | proxy | love6.py | |
+| madouqu | Madouqu | https://madouqu.com | proxy | madouqu.py | |
 | lulubar | LuluBar | https://lulubar.co | proxy | lulubar.py | |
 | hdouban | 好豆瓣 | https://ormtgu.com | proxy | hdouban.py | |
 | hscangku | 黄色仓库 | http://hsck.net | proxy | hscangku.py | |
-| cnmdb | CNMDB | https://cnmdb.net | proxy | cnmdb.py | |
 | mywife | Mywife | https://mywife.cc | proxy | mywife.py | 人妻系 |
 
 ### AIO 家族（tellme.pw 动态域）
@@ -214,7 +211,6 @@ avsox             T1  ✅
 avwiki            T5
 cableav           T2
 carib             T1  ✅
-cnmdb             T2
 dahlia            T2
 dmm               T1  ✅
 dmm_api           T3
@@ -222,7 +218,6 @@ faleno            T2
 fantastica        T2
 fc2               T1  ✅
 fc2_hub           T1  ✅
-fc2club           T2
 fd2ppv            T1  ✅
 freejavbt         T1  ✅
 getchu            T2
@@ -241,11 +236,9 @@ javdb_app         T3
 javlibrary        T1  stub
 kin8              T2
 libredmm          T1  ✅
-love6             T2
 lulubar           T2
 madou             T1  ✅
 madouqu           T1  ✅
-mdtv              T2
 mgstage           T1  stub
 miss_av           T1  stub
 missav_api        T3

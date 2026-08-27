@@ -174,7 +174,6 @@ export function MetadataSettingsPanel({ notify }: Props) {
             <SettingRow
               label="数据映射语言"
               hint="演员名、标签等静态映射所用语言"
-              layout="stack"
             >
               <select
                 className="org-select"

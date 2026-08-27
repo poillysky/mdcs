@@ -42,7 +42,7 @@ MDCS 是独立部署的本地刮削整理系统，面向 **20 万级** 媒体文
 ```text
 Browser -> apps/web (:3050)
               -> /api -> apps/server (:9210)
-                            -> SQLite (scrap.db)
+                            -> SQLite (mdcs.db)
                             -> config/libraries.json   # 七路径 + 整理
                             -> config/scrape.json      # 源链 + 命名 + 网络
                             -> data/meta + data/covers

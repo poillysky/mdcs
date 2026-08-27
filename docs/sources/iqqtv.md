@@ -1,7 +1,33 @@
 # iQQTV — 测试记录
 
 > UI 卡片顺序：**有码 AV 组 · 第 1 行第 3 卡**（DMM → FreeJavBT → **iQQTV**）  
-> 最后实测：2026-08-23 15:15 (UTC+8)（逐站复测 · 规范见 SOURCE-SINGLE-SITE-TEST.md）
+> 最后实测：2026-08-23 22:48 (UTC+8)（完整报告 · 规范见 SOURCE-SINGLE-SITE-TEST.md）
+
+---
+
+## 2026-08-23 完整报告（22:48 复跑）
+
+| 环节 | 结果 | 说明 |
+|------|------|------|
+| L1 单测 | ✅ **6/6** | 660ms |
+| 测通 | ✅ **15610ms** | `probeVia: direct` · mirror → iqq5.xyz |
+| Live + E2E | ✅ 全过 | 刮削 ~2.8s · 总 ~38s |
+| 封面 | ✅ **119386 B** | iqqk4.quest CDN |
+| 海报 | ✅ **45369 B** | censored |
+| NFO | ✅ **23/23** 必过 | 刮削 **21/30** |
+
+报告：`media/片商目录/日本有码/SONE/SONE-001/_scrap/iqqtv/organized/e2e-report.json`
+
+### 字段亮点（SONE-001）
+
+- **中文 title/plot/outline** + **originalplot**（JP 页补全）
+- **studio/maker**：S1 Style · **premiered**：2023-12-12
+- **actor**：三田真铃（无污染）
+- **未采集**：director / runtime / rating / trailer / publisher / label（站点不提供）
+
+### 结论
+
+**生产可用 ✅** — 中文元数据补充源；本轮无代码修复。
 
 ---
 

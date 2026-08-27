@@ -23,7 +23,8 @@ CREATE TABLE IF NOT EXISTS files (
   target_path TEXT,
   error TEXT,
   scraped_at INTEGER,
-  organized_at INTEGER
+  organized_at INTEGER,
+  job_id TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_files_kind_status ON files (kind, status);
@@ -59,3 +60,20 @@ CREATE TABLE IF NOT EXISTS scrape_cache (
 );
 
 CREATE INDEX IF NOT EXISTS idx_scrape_cache_scraped ON scrape_cache (scraped_at);
+
+CREATE TABLE IF NOT EXISTS actor_profiles (
+  name TEXT PRIMARY KEY,
+  mapped_name TEXT NOT NULL DEFAULT '',
+  avatar_path TEXT NOT NULL DEFAULT '',
+  backdrop_path TEXT NOT NULL DEFAULT '',
+  overview TEXT NOT NULL DEFAULT '',
+  birthday TEXT NOT NULL DEFAULT '',
+  birthplace TEXT NOT NULL DEFAULT '',
+  tags_json TEXT NOT NULL DEFAULT '[]',
+  provider_ids_json TEXT NOT NULL DEFAULT '{}',
+  sources_json TEXT NOT NULL DEFAULT '{}',
+  scraped_at INTEGER,
+  image_scraped_at INTEGER
+);
+
+CREATE INDEX IF NOT EXISTS idx_actor_profiles_scraped ON actor_profiles (scraped_at);

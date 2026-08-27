@@ -6,6 +6,8 @@ services:
     environment:
       PORT: "9210"
       HOST: "0.0.0.0"
+      SCRAPE_CURL_BIN: /usr/local/bin/curl-impersonate
+      SCRAPE_CURL_IMPERSONATE: chrome136
       # MDCS_API_TOKEN: "change-me"
     volumes:
       - ./config:/app/config

@@ -7,6 +7,7 @@ import { useJobEvents } from "./hooks/useJobEvents";
 import { matchRoute, normalizePath } from "./lib/routes";
 import type { NotifyFn, ToastItem } from "./lib/notify";
 import { DashboardPage } from "./pages/DashboardPage";
+import { KindTasksPage } from "./pages/KindTasksPage";
 import { JobsPage } from "./pages/JobsPage";
 import { RecordsPage } from "./pages/RecordsPage";
 import { ActorsPage } from "./pages/ActorsPage";
@@ -19,9 +20,13 @@ const TOAST_TTL = 4800;
 
 function usePathRoute() {
   const [path, setPath] = useState(() => normalizePath(window.location.pathname));
+  const [search, setSearch] = useState(() => window.location.search);
 
   useEffect(() => {
-    const onPop = () => setPath(normalizePath(window.location.pathname));
+    const onPop = () => {
+      setPath(normalizePath(window.location.pathname));
+      setSearch(window.location.search);
+    };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
@@ -35,13 +40,14 @@ function usePathRoute() {
       window.history.pushState({}, "", target);
     }
     setPath(normalized);
+    setSearch(url.search);
   }, []);
 
-  return { path, route: matchRoute(path), navigate };
+  return { path, search, route: matchRoute(path), navigate };
 }
 
 export function App() {
-  const { path, route, navigate } = usePathRoute();
+  const { path, search, route, navigate } = usePathRoute();
   const [health, setHealth] = useState<HealthInfo | null>(null);
   const [kinds, setKinds] = useState<KindRow[]>([]);
   const [jobs, setJobs] = useState<JobRow[]>([]);
@@ -90,7 +96,7 @@ export function App() {
         const [h, k, j, f, failedRes] = await Promise.all([
           fetchHealth(),
           fetchKinds(),
-          fetchJobs({ pageSize: 50 }),
+          fetchJobs({ pageSize: 200 }),
           fetchFiles({ pageSize: 100 }),
           fetchFiles({ status: "failed", pageSize: 1 }),
         ]);
@@ -117,7 +123,12 @@ export function App() {
 
   useEffect(() => {
     void refresh();
-    const interval = route === "tasks" ? 30000 : route === "records" ? 3000 : 15000;
+    const interval =
+      route === "tasks" || route === "kindTasks"
+        ? 30000
+        : route === "records"
+          ? 3000
+          : 15000;
     const t = setInterval(() => void refresh({ silent: true }), interval);
     return () => clearInterval(t);
   }, [refresh, route]);
@@ -141,12 +152,10 @@ export function App() {
       case "dashboard":
         return (
           <DashboardPage
-            health={health}
             jobs={jobs}
-            files={files}
+            kinds={kinds}
             fileFailedTotal={fileFailedTotal}
             onNavigate={navigate}
-            onRefresh={() => void refresh()}
           />
         );
       case "tasks":
@@ -155,13 +164,32 @@ export function App() {
             kinds={kinds}
             loading={loading}
             onChanged={() => void refresh()}
+            onNavigate={navigate}
+            notify={notify}
+          />
+        );
+      case "kindTasks":
+        return (
+          <KindTasksPage
+            kinds={kinds}
+            jobs={jobs}
+            loading={loading}
+            onChanged={() => void refresh()}
+            onNavigate={navigate}
             notify={notify}
           />
         );
       case "records":
-        return <RecordsPage kinds={kinds} notify={notify} />;
+        return <RecordsPage kinds={kinds} locationSearch={search} onNavigate={navigate} notify={notify} />;
       case "actors":
-        return <ActorsPage notify={notify} />;
+        return (
+          <ActorsPage
+            path={path}
+            locationSearch={search}
+            onNavigate={navigate}
+            notify={notify}
+          />
+        );
       case "files":
         return (
           <FilesPage

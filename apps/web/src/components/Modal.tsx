@@ -1,15 +1,19 @@
 import { useEffect, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { XMarkIcon } from "@heroicons/react/24/solid";
+import { X } from "lucide-react";
 import { lockBodyScroll } from "../lib/lockBodyScroll";
 
 type Props = {
   open: boolean;
   title: string;
   subtitle?: string;
+  icon?: ReactNode;
   wide?: boolean;
+  /** 卡片式弹窗：标题/正文/底栏同一白底，无分隔条 */
+  variant?: "default" | "sheet";
   /** 表单弹窗：正文区按设置页留白 */
   padded?: boolean;
+  className?: string;
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
@@ -19,8 +23,11 @@ export function Modal({
   open,
   title,
   subtitle,
+  icon,
   wide,
+  variant = "default",
   padded,
+  className,
   onClose,
   children,
   footer,
@@ -43,19 +50,22 @@ export function Modal({
   return createPortal(
     <div className="modal-overlay" onClick={onClose} role="presentation">
       <div
-        className={`modal${wide ? " modal-wide" : ""}${padded ? " modal-padded" : ""}`}
+        className={`modal${wide ? " modal-wide" : ""}${variant === "sheet" ? " modal-sheet" : ""}${padded ? " modal-padded" : ""}${className ? ` ${className}` : ""}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="modal-head">
-          <div className="modal-head-text">
-            <h2 id="modal-title">{title}</h2>
-            {subtitle ? <p>{subtitle}</p> : null}
+          <div className="modal-head-main">
+            {icon ? <div className="modal-head-icon">{icon}</div> : null}
+            <div className="modal-head-text">
+              <h2 id="modal-title">{title}</h2>
+              {subtitle ? <p>{subtitle}</p> : null}
+            </div>
           </div>
           <button type="button" className="modal-close" onClick={onClose} aria-label="关闭">
-            <XMarkIcon />
+            <X size={18} strokeWidth={2} aria-hidden />
           </button>
         </header>
         <div className="modal-body">{children}</div>

@@ -1,6 +1,6 @@
 # 数据源测试记录
 
-> 最后更新：2026-08-22  
+> 最后更新：2026-08-24  
 > **逐源文档**：[docs/sources/README.md](./sources/README.md)（测一个写一个）  
 > 环境：代理 `http://192.168.2.88:7893` · FlareSolverr `http://192.168.2.38:8191/v1`  
 > 相关：`docs/SOURCE-CATALOG-8REF.md`（连接/取数） · `docs/SOURCE-PROBE.md`（测通） · `docs/SOURCE-TEST-STRATEGY.md`（测试策略） · **`docs/SOURCE-MASTER-LIST.md`**（全站点 64 id）
@@ -41,6 +41,9 @@ E2E 默认从本地索引取 strm，定义见 `apps/server/scripts/e2e-fixtures.
 | fc2（PPV） | **FC2-PPV-3275049** | `media/本地索引/FC2/未分类/FC2PPV/FC2-PPV-3275049.strm` |
 | fc2（非 PPV） | **FC2-1545500** | `media/本地索引/FC2/未分类/FC2/FC2-1545500.strm` |
 | china | **MDX-0001** | `media/本地索引/国产无码/麻豆传媒/MDX/MDX-0001.strm` |
+| western | **PURETABOO.2026.07.14** | `media/_e2e/western/PURETABOO/PURETABOO.2026.07.14.strm`（ThePornDB） |
+| western | **WeLiveTogether.12.02.23** | `media/_e2e/western/WeLiveTogether/WeLiveTogether.12.02.23.strm`（AVHeat） |
+| fc2（PPV 统一） | **FC2-PPV-3275049** | `media/本地索引/FC2/未分类/FC2PPV/FC2-PPV-3275049.strm`（fc2_hub / fd2ppv） |
 
 查看全部映射：`npx tsx scripts/e2e-sone-source.ts --list`  
 换片：`--strm=media/本地索引/.../XXX.strm`
@@ -49,46 +52,27 @@ E2E 报告输出：`media/**/_scrap/{源}/organized/e2e-report.json`
 
 ---
 
-## 3. 总览（现行 36 源 · 综合+品类枢纽）
+## 3. 总览（现行 31 源）
 
-> 2026-08-23 精简：原 64 源中单厂/窄前缀与冗余 API 已移出 UI/代码。下表历史明细可作对照，以 `sourceMaster.ts` 为准。
+> 以 `sourceMaster.ts` + 磁盘 `e2e-report.json` 为准（2026-08-24 刷新）。
 
-| 源 | 分组 | 实现 | 索引样例 | 刮削 | E2E | 综合 |
-|----|------|------|----------|------|-----|------|
-| JavBus | AV | ✅ | SONE-001 | ✅ | ✅ | ✅ · [详情](./sources/javbus.md) |
-| JavDB | AV | ✅ | SONE-001 | ❌ | — | ❌ |
-| DMM | AV | ✅ | SONE-001 | ✅ | ✅ | ✅ · [详情](./sources/dmm.md) |
-| LibreDMM | AV | ✅ | SONE-001 | ✅ | ✅ | ✅ · [详情](./sources/libredmm.md) |
-| AirAV | AV | 🔧 | SONE-001 | — | — | — |
-| AirAV.io | AV | ✅ | SONE-001 | ❌ | — | ❌ |
-| AvSox | AV | ✅ | SONE-001 | ❌ | — | ❌ |
-| Avmoo | AV | 🔧 | SONE-001 | — | — | — |
-| Jav321 | AV | ✅ | SONE-001 | ✅ | ✅ | ✅ · [详情](./sources/jav321.md) |
-| JavLibrary | AV | 🔧 | SONE-001 | — | — | — |
-| MissAV | AV | 🔧 | SONE-001 | — | — | — |
-| AVBase | AV | 🔧 | SONE-001 | — | — | — |
-| MGStage | AV | 🔧 | SONE-001 | — | — | — |
-| Caribbean | AV | ✅ | CARIB-010117-339 | ✅ | ✅ | ✅ · [详情](./sources/carib.md) |
-| FC2 Hub | FC2 | ✅ | FC2-PPV-3275049 | ✅ | ⚠️ | ⚠️ · [详情](./sources/fc2_hub.md) |
-| FC2 | FC2 | ✅ | FC2-1545500 | ✅ | ✅ | ✅ · [详情](./sources/fc2.md) |
-| FC2-PPV | FC2 | ✅ | FC2-PPV-3275049 | ✅ | ✅ | ✅ · [详情](./sources/fd2ppv.md) |
-| Madou | 国产 | ✅ | MDX-0001 | ✅ | ⚠️ | ⚠️ |
-| Madouqu | 国产 | ✅ | MDX-0001 | ❌* | — | ❌ |
-| FreeJavBT | 备选 | ✅ | SONE-001 | ✅ | ⚠️ | ⚠️ |
-| 7MMTV | 备选 | 🔧 | SONE-001 | — | — | — |
-| iQQTV | 备选 | ✅ | SONE-001 | ✅ | ✅ | ✅ |
-| ThePornDB | 备选 | ✅ | SONE-001 | ❌ | — | ❌ |
-| 小黄书 | 备选 | 🔧 | MDX-0001 | — | — | — |
+| 源 | 分组 | E2E 样例 | E2E | 文档 |
+|----|------|----------|-----|------|
+| JavBus / DMM / LibreDMM / Jav321 / … | AV | SONE-001 | ✅ | 见 [sources/](./sources/) |
+| JavDB | AV | SONE-001 | ❌ 过盾 | — |
+| Avmoo / AvSox / AvBase / JavLibrary / MissAV / NJAV / … | AV/综合 | 各 fixture | ✅ | 见 sources |
+| Caribbean / AvSox | 无码 | CARIB-010117-339 | ✅ | [carib](./sources/carib.md) [avsox](./sources/avsox.md) |
+| FC2 Hub / FC2-PPV | FC2 | FC2-PPV-3275049 | ✅ | [fc2_hub](./sources/fc2_hub.md) [fd2ppv](./sources/fd2ppv.md) |
+| FC2 | FC2 | FC2-1545500 | ✅ | [fc2](./sources/fc2.md) |
+| Madou / Madouqu / 小黄书 / 黄色仓库 | 国产 | MDX-* | ✅ | 见 sources |
+| LuluBar | 综合 | SONE-001 | ✅ | [lulubar](./sources/lulubar.md) |
+| ThePornDB | 欧美 | PURETABOO.2026.07.14 | ✅ | [theporndb](./sources/theporndb.md) |
+| AVHeat | 欧美 | WeLiveTogether.12.02.23 | ✅ | [avheat](./sources/avheat.md) |
 
-\* Madouqu 对 SONE-001 刮削「未找到」；尚未用 MDX-0001 跑 E2E。
+**统计（2026-08-24）**
 
-**统计（截至 2026-08-22）**
-
-- 已实现 Provider：16 / 24  
-- 刮削实测：15 源（含失败）  
-- E2E 实测：10 源  
-- E2E 全项通过：5 源（JavBus、DMM、Caribbean、FC2、fd2ppv）  
-- E2E 部分通过：6 源  
+- Catalog：**31** 源，**31** 已实现  
+- 磁盘 E2E 报告：**30/31**（缺 **javdb**）
 
 ---
 
@@ -200,17 +184,18 @@ Provider stub；未测。
 
 ### 4.2 FC2 组
 
-#### FC2 Hub — ⚠️ 部分通过
+#### FC2 Hub — ✅ 通过（2026-08-24 · FC2-PPV-4962908）
 
 | 项目 | 结果 |
 |------|------|
-| 索引样例 | **FC2-PPV-3275049** |
-| 刮削 | ✅ ~124s（Flare 过 javten.com CF） |
-| 封面 | ❌ storage URL **HTTP 404** |
+| 索引样例 | **FC2-PPV-4962908**（推荐；旧样例 3275049 标签空/旧图易 404） |
+| L1 / 测通 | ✅ 13/13 · probe flare |
+| 刮削 | ✅ studio=`野菜` · genres 齐 · series=`FC2系列` · trailer |
+| 封面 | ✅ thumbnail CDN · 145KB · poster/thumb |
+| 剧照 | ✅ extrafanart ×3 |
 | 转移 | ✅ hardlink |
-| 水印 | 配置 uncensored（无 poster 文件可画） |
-| NFO | ⚠️ 缺 studio、actor、poster |
-| 报告 | `media/_e2e/fc2/FC2-PPV-3275049/_scrap/fc2_hub/organized/e2e-report.json` |
+| NFO | ✅ 已采集 **26/26** |
+| 详情 | [sources/fc2_hub.md](./sources/fc2_hub.md) |
 
 #### FC2 — ⚠️ 部分通过
 
@@ -225,13 +210,17 @@ Provider stub；未测。
 | NFO | ⚠️ 缺 **actor** |
 | 报告 | `media/_e2e/fc2/FC2-1545500/_scrap/fc2/organized/e2e-report.json` |
 
-#### FC2-PPV（fd2ppv）— — 未测 E2E
+#### FC2-PPV（fd2ppv）— ✅ 通过（2026-08-24）
 
 | 项目 | 结果 |
 |------|------|
-| 索引样例 | FC2-PPV-3275049（与 fc2_hub 同片） |
-| 刮削 SONE-001 | ❌ 番号格式无效（batch 脚本误用） |
-| E2E | 待跑 `--id=fd2ppv` |
+| 索引样例 | **FC2-PPV-3275049**（4962908 在 FD2 **无条目 404**） |
+| L1 / 测通 | ✅ 2/2 · probe **curl** ~2s · access=`proxy_adaptive` |
+| 刮削 | ✅ actor=`えりか` · studio · genres · premiered/runtime |
+| 封面 | ✅ xximgs.webp · ~3KB · poster/thumb |
+| 转移 | ✅ |
+| NFO | ✅ 已采集 **21/21** |
+| 详情 | [sources/fd2ppv.md](./sources/fd2ppv.md) |
 
 ---
 
@@ -287,13 +276,26 @@ Provider stub；未测。
 | NFO | ✅ 六项齐全 |
 | 报告 | `.../SONE-001/_scrap/iqqtv/organized/e2e-report.json` |
 
-#### ThePornDB — ❌ 未配置
+#### ThePornDB — ✅ 全通过（2026-08-24）
 
 | 项目 | 结果 |
 |------|------|
-| 刮削 | ❌ 需要 API Key（弹窗/配置未填） |
-| E2E | 未测 |
-| 待办 | 配置 Key 后重测 SONE-001 |
+| 刮削 | ✅ SONE-001（日番）· PURETABOO.2026.07.14（欧美 `--strm`） |
+| E2E | ✅ NFO 20/20 |
+| 备注 | UI 主站 `theporndb.net` · API `api.theporndb.net` · 欧美 `parse=` 搜索 |
+
+#### AVHeat — ✅ 全通过（2026-08-24）
+
+| 项目 | 结果 |
+|------|------|
+| 刮削 | ✅ ~30s（Flare wait=5s；偶发 session 重试） |
+| 样例 | **WeLiveTogether.12.02.23** · 标题 Office Play |
+| 封面 | ✅ 126236 bytes · netcdn |
+| 剧照 | ✅ extrafanart ×6 |
+| NFO | ✅ 已采集项 **20/20 必过** |
+| 报告 | `media/_e2e/western/WeLiveTogether.12.02.23/_scrap/avheat/organized/` |
+| 备注 | AIO **wav** 族；识别码 `Series.YY.MM.DD`；`RK.2012.02.23` 站内搜不到 |
+| 详情 | [sources/avheat.md](./sources/avheat.md) |
 
 #### 小黄书 — 🔧 未实现
 
@@ -313,9 +315,9 @@ Provider stub；索引样例暂用 MDX-0001；未测。
 | javdb | ❌ | — | 过盾超时 |
 | libredmm | ✅ | 1170ms | — |
 | airav_io | ❌ | 110s | 详情页不匹配 |
-| avsox | ❌ | 62s | 搜索无结果 |
+| avsox | ✅ | ~31s | E2E 18/30 · [详情](./sources/avsox.md) |
 | jav321 | ✅ | 1003ms | — |
-| carib | ❌ | — | 番号格式无效 ※ |
+| carib | ✅ | ~16s | E2E 22/30 · [详情](./sources/carib.md) |
 | fc2_hub / fc2 / fd2ppv | ❌ | — | 番号格式无效 ※ |
 | madou / madouqu | ❌ | — | 未找到 ※ |
 | freejavbt | ✅ | 869ms | — |
@@ -332,10 +334,7 @@ Provider stub；索引样例暂用 MDX-0001；未测。
 | P1 | fc2_hub 封面 | fancybox 优先已对齐 MDCX；失效 storage 链靠 fd2ppv 补 |
 | P2 | jav321 缺 actor/genre | SONE-001 精简页无 star/genre 链接；rating 已补 |
 | P2 | carib rating/trailer | 站点无结构化字段 |
-| P2 | Madouqu E2E | 用 MDX-0001 补跑 |
-| P2 | fd2ppv E2E | 同 FC2-PPV 样例补跑 |
-| P3 | ThePornDB | 配置 API Key 后 E2E |
-| P3 | 8× stub Provider | airav / avmoo / javlibrary / miss_av / avbase / mgstage / sevenmmtv / xiao_huang_shu |
+| P3 | AVHeat 索引覆盖 | 本地 `STUDIO.YYYY.MM.DD` 须映射站点 ID |
 | P3 | LibreDMM outlet | 文档化或优先正式作 CID |
 | P3 | 有码水印角标 | `markCensored=true` 重验 |
 
@@ -352,10 +351,12 @@ npx tsx scripts/e2e-sone-source.ts --list
 # 单源 E2E（日本有码）
 npx tsx scripts/e2e-sone-source.ts --id=javbus
 
-# 单源 E2E（加勒比 / FC2 / 国产）
+# 单源 E2E（加勒比 / FC2 / 国产 / 欧美）
 npx tsx scripts/e2e-sone-source.ts --id=carib
 npx tsx scripts/e2e-sone-source.ts --id=fc2
 npx tsx scripts/e2e-sone-source.ts --id=madou
+npx tsx scripts/e2e-sone-source.ts --id=avheat
+npx tsx scripts/e2e-sone-source.ts --id=theporndb
 
 # 仅刮削（batch，默认 SONE-001 多源）
 npx tsx scripts/scrape-sone-sources.ts --id=jav321
@@ -370,4 +371,6 @@ npx tsx scripts/e2e-sone-source.ts --id=fc2_hub --strm=media/本地索引/FC2/�
 
 | 日期 | 变更 |
 |------|------|
+| 2026-08-24 | E2E fixtures：FC2 组统一 3275049 · ThePornDB 改 western 样例 · 日志总览刷新 |
+| 2026-08-24 | ThePornDB E2E 闭环（SONE-001 + PURETABOO.2026.07.14） |
 | 2026-08-22 | 初版：10 源 E2E + 15 源刮削快照；索引样例 fixtures；plan.ts libraryRoot 修复 |

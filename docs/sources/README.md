@@ -8,12 +8,14 @@
 | 2 | **DMM** | [dmm.md](./dmm.md) | ✅ | 2026-08-22 |
 | 3 | **LibreDMM** | [libredmm.md](./libredmm.md) | ✅ | 2026-08-22 |
 | 4 | **Jav321** | [jav321.md](./jav321.md) | ✅ | 2026-08-22 |
-| 5 | **Caribbean** | [carib.md](./carib.md) | ✅ | 2026-08-22 |
-| 6 | **FC2 Hub** | [fc2_hub.md](./fc2_hub.md) | ⚠️ | 2026-08-22 |
+| 5 | **Caribbean** | [carib.md](./carib.md) | ✅ | 2026-08-24 |
+| — | **AvSox** | [avsox.md](./avsox.md) | ✅ | 2026-08-24 |
+| 6 | **FC2 Hub** | [fc2_hub.md](./fc2_hub.md) | ✅ | 2026-08-24 |
 | 7 | **FC2** | [fc2.md](./fc2.md) | ✅ | 2026-08-22 |
 | 8 | **FC2-PPV** | [fd2ppv.md](./fd2ppv.md) | ✅ | 2026-08-22 |
-| — | **AVSex** (T2) | [avsex.md](./avsex.md) | ⚠️ 封面403 | 2026-08-22 |
-| — | **iQQTV** | [iqqtv.md](./iqqtv.md) | ✅ | 2026-08-23 |
+| — | **LuluBar** | [lulubar.md](./lulubar.md) | ✅ | 2026-08-24 |
+| — | **ThePornDB** | [theporndb.md](./theporndb.md) | ✅ | 2026-08-24 |
+| — | **AVHeat** | [avheat.md](./avheat.md) | ✅ | 2026-08-24 |
 | … | 见 [SOURCE-E2E-TEST-LOG.md](../SOURCE-E2E-TEST-LOG.md) | | | |
 
 **命令**

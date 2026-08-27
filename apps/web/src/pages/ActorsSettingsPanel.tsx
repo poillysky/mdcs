@@ -159,7 +159,7 @@ export function ActorsSettingsPanel({ notify }: Props) {
       const result = await syncEmbyActors(a);
       notify(
         "ok",
-        `同步完成：元数据 ${result.updatedMeta} / 图片 ${result.updatedImage} / 跳过 ${result.skipped} / 失败 ${result.failed}（共 ${result.total}）`,
+        `同步完成：元数据 ${result.updatedMeta} / 图片 ${result.updatedImage} / 本地导入 ${result.fromLocal ?? 0} / 跳过 ${result.skipped} / 失败 ${result.failed}（共 ${result.total}）`,
       );
       if (result.errors?.length) {
         notify("error", result.errors.slice(0, 3).join("；"), "部分失败");

@@ -1,24 +1,34 @@
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import {
   createJob,
-  deletePreset,
   exportPresets,
   fetchOpsConfig,
   importPresets,
   savePreset,
   type KindRow,
 } from "../api";
+import { FolderPicker } from "./FolderPicker";
 import { JobAdvancedSettingsModal } from "./JobAdvancedSettingsModal";
 import { Modal } from "./Modal";
-import { JOB_MODE_LABELS } from "../lib/labels";
-import { defaultJobOptions, type JobOptions } from "../lib/jobOptions";
+import { ORGANIZE_MODE_LABELS, KIND_LABELS } from "../lib/labels";
 import { COPY } from "../lib/messages";
+import { defaultJobOptions, type JobOptions } from "../lib/jobOptions";
+import { normalizeRelativePath } from "../lib/paths";
 import type { NotifyFn } from "../lib/notify";
-import type { JobPreset, OpsConfig } from "../types";
+import type { OpsConfig } from "../types";
 
-const MODES = ["scan_only", "scrape_only", "full", "organize_only", "rescan"] as const;
+const ORGANIZE_MODES = ["hardlink", "softlink", "inplace", "copy", "move"] as const;
 
-type ReuseMode = "none" | "last" | "preset";
+/** 与七区任务页顺序一致 */
+const KIND_ORDER = [
+  "japan_censored",
+  "japan_gravure",
+  "japan_uncensored",
+  "japan_amateur",
+  "fc2",
+  "china",
+  "western",
+] as const;
 
 type Props = {
   open: boolean;
@@ -26,56 +36,153 @@ type Props = {
   loading: boolean;
   defaultMode?: string;
   defaultKindIds?: string[];
+  /** 从目录浏览带入的相对路径 */
+  contextFolder?: string;
   onClose: () => void;
   onCreated: () => void;
   notify: NotifyFn;
 };
 
-function applySnapshot(
-  snap: { kinds: string[]; mode: string; dryRun: boolean; options: Record<string, unknown> },
-  setters: {
-    setMode: (m: string) => void;
-    setSelected: (s: Set<string>) => void;
-    setDryRun: (v: boolean) => void;
-    setJobOptions: (o: JobOptions) => void;
-  },
-) {
-  setters.setMode(snap.mode || "scan_only");
-  setters.setSelected(new Set(snap.kinds?.length ? snap.kinds : ["*enabled"]));
-  setters.setDryRun(Boolean(snap.dryRun));
-  const opts = snap.options && typeof snap.options === "object" ? snap.options : {};
-  setters.setJobOptions({ ...defaultJobOptions(), ...(opts as JobOptions) });
+function FormBlock({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="create-job-block">
+      <div className="create-job-block-label">{label}</div>
+      {hint ? <p className="create-job-block-hint">{hint}</p> : null}
+      {children}
+    </div>
+  );
+}
+
+function normalizePath(path: string): string {
+  return normalizeRelativePath(path);
+}
+
+function findKindBySource(kinds: KindRow[], path: string): KindRow | undefined {
+  const norm = normalizePath(path);
+  if (!norm) return undefined;
+  const exact = kinds.find((k) => normalizePath(k.sourceRoot || "") === norm);
+  if (exact) return exact;
+  return kinds.find((k) => {
+    const root = normalizePath(k.sourceRoot || "");
+    return root && (norm === root || norm.startsWith(`${root}/`));
+  });
+}
+
+function buildJobOptions(
+  organizeMode: string,
+  libraryRoot: string,
+  base: JobOptions,
+): JobOptions {
+  return {
+    ...base,
+    useGlobal: { ...base.useGlobal, organize: false },
+    organize: {
+      ...base.organize,
+      organizeMode,
+      libraryRoot: libraryRoot.trim() || undefined,
+    },
+  };
 }
 
 export function CreateJobModal({
   open,
   kinds,
   loading,
-  defaultMode,
   defaultKindIds,
+  contextFolder,
   onClose,
   onCreated,
   notify,
 }: Props) {
-  const [mode, setMode] = useState<string>("scan_only");
-  const [selected, setSelected] = useState<Set<string>>(new Set(["*enabled"]));
+  const [sourcePath, setSourcePath] = useState("");
+  const [libraryPath, setLibraryPath] = useState("");
+  const [organizeMode, setOrganizeMode] = useState("hardlink");
+  const [selectedKindId, setSelectedKindId] = useState("");
   const [dryRun, setDryRun] = useState(false);
   const [creating, setCreating] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [jobOptions, setJobOptions] = useState<JobOptions>(defaultJobOptions());
-  const [reuse, setReuse] = useState<ReuseMode>("none");
-  const [presetId, setPresetId] = useState("");
+  const [reuseKey, setReuseKey] = useState("none");
   const [ops, setOps] = useState<OpsConfig | null>(null);
+
+  const reuseKinds = useMemo(() => {
+    const map = new Map(kinds.map((k) => [k.id, k]));
+    return KIND_ORDER.map((id) => map.get(id)).filter((k): k is KindRow => Boolean(k));
+  }, [kinds]);
+
+  const usedSources = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const k of kinds) {
+      if (k.sourceRoot?.trim()) map.set(normalizePath(k.sourceRoot), k.label);
+    }
+    return map;
+  }, [kinds]);
+
+  const usedLibraries = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const k of kinds) {
+      if (k.libraryRoot?.trim()) map.set(normalizePath(k.libraryRoot), k.label);
+    }
+    return map;
+  }, [kinds]);
+
+  const currentKind = kinds.find((k) => k.id === selectedKindId);
+
+  function applyKindDefaults(kind: KindRow, opts?: { keepLibrary?: boolean }) {
+    setSelectedKindId(kind.id);
+    if (kind.sourceRoot?.trim()) setSourcePath(normalizePath(kind.sourceRoot));
+    if (!opts?.keepLibrary && kind.libraryRoot?.trim()) {
+      setLibraryPath(normalizePath(kind.libraryRoot));
+    }
+    if (!opts?.keepLibrary) {
+      setOrganizeMode(kind.organizeMode || "hardlink");
+    }
+  }
+
+  function applyKindConfig(kind: KindRow) {
+    applyKindDefaults(kind);
+  }
 
   useEffect(() => {
     if (!open) return;
-    setMode(defaultMode ?? "scan_only");
-    setSelected(defaultKindIds?.length ? new Set(defaultKindIds) : new Set(["*enabled"]));
     setDryRun(false);
     setJobOptions(defaultJobOptions());
     setAdvancedOpen(false);
-    setReuse("none");
-    setPresetId("");
+    setReuseKey("none");
+
+    const kindFromContext =
+      defaultKindIds?.length === 1 ? kinds.find((k) => k.id === defaultKindIds[0]) : undefined;
+    const folderNorm = contextFolder ? normalizePath(contextFolder) : "";
+    const kindFromFolder = folderNorm ? findKindBySource(kinds, folderNorm) : undefined;
+    const kind =
+      kindFromContext ??
+      kindFromFolder ??
+      kinds.find((k) => k.enabled && k.sourceRoot?.trim());
+
+    if (kind) {
+      applyKindDefaults(kind);
+      setReuseKey(kind.id);
+    } else {
+      setSelectedKindId("");
+      setSourcePath(folderNorm);
+      setLibraryPath("");
+      setOrganizeMode("hardlink");
+      setReuseKey("none");
+    }
+
+    if (folderNorm && (!kind || normalizePath(kind.sourceRoot || "") !== folderNorm)) {
+      setSourcePath(folderNorm);
+      if (kindFromFolder) setSelectedKindId(kindFromFolder.id);
+    }
+
     void (async () => {
       try {
         const data = await fetchOpsConfig();
@@ -84,57 +191,60 @@ export function CreateJobModal({
         setOps(null);
       }
     })();
-  }, [open, defaultMode, defaultKindIds]);
+  }, [open, contextFolder, defaultKindIds, kinds]);
 
-  const allEnabled = selected.has("*enabled");
-  const presets = ops?.presets ?? [];
-  const lastJob = ops?.lastJob;
-
-  function toggleKind(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      next.delete("*enabled");
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      if (!next.size) next.add("*enabled");
-      return next;
-    });
+  function onSourcePathChange(path: string) {
+    const norm = normalizePath(path);
+    setSourcePath(norm);
+    const kind = findKindBySource(kinds, norm);
+    if (kind) {
+      applyKindDefaults(kind, { keepLibrary: true });
+      setReuseKey(kind.id);
+    } else {
+      setSelectedKindId("");
+      setReuseKey("none");
+    }
   }
 
-  function selectAllEnabled() {
-    setSelected(new Set(["*enabled"]));
+  function onLibraryPathChange(path: string) {
+    setLibraryPath(normalizePath(path));
+    setReuseKey("none");
   }
 
-  function onReuseChange(next: ReuseMode) {
-    setReuse(next);
+  function onOrganizeModeChange(next: string) {
+    setOrganizeMode(next);
+    setReuseKey("none");
+  }
+
+  function onReuseChange(next: string) {
+    setReuseKey(next);
     if (next === "none") return;
-    if (next === "last" && lastJob) {
-      applySnapshot(lastJob, { setMode, setSelected, setDryRun, setJobOptions });
-      return;
-    }
-    if (next === "preset") {
-      const p = presets.find((x) => x.id === presetId) || presets[0];
-      if (p) {
-        setPresetId(p.id);
-        applySnapshot(p, { setMode, setSelected, setDryRun, setJobOptions });
-      }
-    }
-  }
-
-  function onPresetPick(id: string) {
-    setPresetId(id);
-    const p = presets.find((x) => x.id === id);
-    if (p) applySnapshot(p, { setMode, setSelected, setDryRun, setJobOptions });
+    const kind = kinds.find((k) => k.id === next);
+    if (kind?.sourceRoot?.trim()) applyKindConfig(kind);
   }
 
   async function submit() {
-    const needsOrganize = mode === "full" || mode === "organize_only";
-    const overrideMove =
-      jobOptions.useGlobal?.organize === false && jobOptions.organize?.organizeMode === "move";
-    const anyKindMove = kinds.some((k) => k.enabled && k.organizeMode === "move");
-    const willMove =
-      needsOrganize &&
-      (overrideMove || (jobOptions.useGlobal?.organize !== false && anyKindMove));
+    const source = normalizePath(sourcePath);
+    if (!source) {
+      notify("error", "请选择刮削路径");
+      return;
+    }
+
+    let kind = findKindBySource(kinds, source);
+    if (!kind && selectedKindId) kind = kinds.find((k) => k.id === selectedKindId);
+    if (!kind) {
+      notify("error", "刮削路径未绑定分区，请在分区设置中绑定来源目录");
+      return;
+    }
+
+    const library = normalizePath(libraryPath);
+    if (!library) {
+      notify("error", "请选择整理目录");
+      return;
+    }
+
+    const options = buildJobOptions(organizeMode, library, jobOptions);
+    const willMove = organizeMode === "move";
     if (willMove && !dryRun) {
       const ok = window.confirm(
         "当前任务将使用「移动」整理：源文件会从 inbox 删除。确定继续？",
@@ -144,15 +254,13 @@ export function CreateJobModal({
 
     setCreating(true);
     try {
-      const kindsArg = allEnabled ? ["*enabled"] : [...selected];
-      const hasOverrides = Object.values(jobOptions.useGlobal ?? {}).some((v) => v === false);
       await createJob({
-        kinds: kindsArg,
-        mode,
+        kinds: [kind.id],
+        mode: "full",
         dryRun,
-        options: hasOverrides ? jobOptions : undefined,
+        options,
       });
-      notify("ok", `已提交「${JOB_MODE_LABELS[mode] ?? mode}」任务`);
+      notify("ok", "已提交手动任务");
       onCreated();
       onClose();
     } catch (e) {
@@ -163,18 +271,20 @@ export function CreateJobModal({
   }
 
   async function handleSavePreset() {
-    const name = window.prompt("预设名称", presets.find((p) => p.id === presetId)?.name || "");
+    if (!selectedKindId) {
+      notify("error", "请先选择已绑定分区的刮削路径");
+      return;
+    }
+    const name = window.prompt("预设名称", "");
     if (!name?.trim()) return;
     try {
-      const kindsArg = allEnabled ? ["*enabled"] : [...selected];
-      const hasOverrides = Object.values(jobOptions.useGlobal ?? {}).some((v) => v === false);
+      const options = buildJobOptions(organizeMode, libraryPath, jobOptions);
       const { config } = await savePreset({
-        id: presetId || undefined,
         name: name.trim(),
-        kinds: kindsArg,
-        mode,
+        kinds: [selectedKindId],
+        mode: "full",
         dryRun,
-        options: (hasOverrides ? jobOptions : {}) as Record<string, unknown>,
+        options: options as Record<string, unknown>,
       });
       setOps(config);
       notify("ok", "预设已保存");
@@ -183,14 +293,16 @@ export function CreateJobModal({
     }
   }
 
-  async function handleExport() {
+  async function handleExportPresets() {
     try {
       const data = await exportPresets();
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `scrap-presets-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `mdcs-presets-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
       notify("ok", `已导出 ${data.presets.length} 条预设`);
@@ -199,7 +311,7 @@ export function CreateJobModal({
     }
   }
 
-  async function handleImport() {
+  function handleImportPresets() {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "application/json,.json";
@@ -211,7 +323,7 @@ export function CreateJobModal({
         void (async () => {
           try {
             const parsed = JSON.parse(String(reader.result || "{}")) as {
-              presets?: JobPreset[];
+              presets?: import("../types").JobPreset[];
             };
             if (!Array.isArray(parsed.presets)) {
               notify("error", "JSON 中缺少 presets 数组");
@@ -236,136 +348,94 @@ export function CreateJobModal({
     input.click();
   }
 
-  async function handleDeletePreset() {
-    if (!presetId) return;
-    if (!window.confirm("删除当前选中的预设？")) return;
-    try {
-      const { config } = await deletePreset(presetId);
-      setOps(config);
-      setPresetId("");
-      setReuse("none");
-      notify("ok", "预设已删除");
-    } catch (e) {
-      notify("error", e, "删除失败");
-    }
-  }
-
   return (
     <>
       <Modal
         open={open}
-        title="创建任务"
+        variant="sheet"
+        title="创建手动任务"
+        subtitle="手动任务会在后台根据创建顺序依次执行"
+        padded
+        className="modal-create-job"
         onClose={onClose}
         footer={
           <>
-            <button type="button" className="btn ghost" onClick={onClose}>
+            <button type="button" className="btn text" onClick={onClose}>
               {COPY.cancel}
             </button>
-            <button type="button" className="btn" onClick={() => setAdvancedOpen(true)}>
+            <button type="button" className="btn text" onClick={() => setAdvancedOpen(true)}>
               高级设置
             </button>
             <button
               type="button"
-              className="btn primary"
+              className="btn primary solid"
               disabled={creating || loading}
               onClick={() => void submit()}
             >
-              {creating ? "提交中…" : COPY.createTask}
+              {creating ? "提交中…" : "创建"}
             </button>
           </>
         }
       >
-        <div className="form-grid">
-          <label className="span-2 field">
-            <span>配置复用</span>
+        <div className="create-job-form">
+          <FormBlock
+            label="刮削路径"
+            hint="指定目录时会扫描目录内全部视频文件进行刮削"
+          >
+            <FolderPicker
+              variant="inline"
+              pickerTitle="选择刮削路径"
+              value={sourcePath}
+              onChange={onSourcePathChange}
+              usedBy={usedSources}
+              currentLabel={currentKind?.label}
+              placeholder="选择刮削来源目录"
+              onError={(message) => notify("error", message)}
+            />
+          </FormBlock>
+
+          <FormBlock label="整理目录" hint="刮削整理结果的存放目录">
+            <FolderPicker
+              variant="inline"
+              pickerTitle="选择整理目录"
+              value={libraryPath}
+              onChange={onLibraryPathChange}
+              usedBy={usedLibraries}
+              currentLabel={currentKind?.label}
+              placeholder="选择整理目标目录"
+              onError={(message) => notify("error", message)}
+            />
+          </FormBlock>
+
+          <FormBlock label="整理模式">
             <select
-              value={reuse}
-              onChange={(e) => onReuseChange(e.target.value as ReuseMode)}
+              className="create-job-control"
+              value={organizeMode}
+              onChange={(e) => onOrganizeModeChange(e.target.value)}
             >
-              <option value="none">不复用</option>
-              <option value="last" disabled={!lastJob}>
-                复用上次{lastJob ? "" : "（尚无记录）"}
-              </option>
-              <option value="preset" disabled={!presets.length}>
-                复用预设{presets.length ? "" : "（暂无预设）"}
-              </option>
-            </select>
-          </label>
-
-          {reuse === "preset" ? (
-            <label className="span-2 field">
-              <span>选择预设</span>
-              <select value={presetId} onChange={(e) => onPresetPick(e.target.value)}>
-                {presets.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-
-          <label className="span-2 field">
-            <span>任务模式</span>
-            <select value={mode} onChange={(e) => setMode(e.target.value)}>
-              {MODES.map((m) => (
-                <option key={m} value={m}>
-                  {JOB_MODE_LABELS[m] ?? m}
+              {ORGANIZE_MODES.map((mode) => (
+                <option key={mode} value={mode}>
+                  {ORGANIZE_MODE_LABELS[mode] ?? mode}
                 </option>
               ))}
             </select>
-          </label>
+          </FormBlock>
 
-          <div className="span-2 field">
-            <span>目标分区</span>
-            <button type="button" className="btn sm ghost" onClick={selectAllEnabled}>
-              全部启用分区
-            </button>
-            <div className="chip-grid">
-              {kinds.map((k) => (
-                <button
-                  key={k.id}
-                  type="button"
-                  className={`chip${!allEnabled && selected.has(k.id) ? " active" : ""}${allEnabled ? " dim" : ""}`}
-                  disabled={!k.enabled}
-                  onClick={() => toggleKind(k.id)}
-                >
-                  {k.label}
-                </button>
+          <FormBlock label="配置复用" hint="从七区监控路径复制刮削目录、整理目录与整理模式">
+            <select
+              className="create-job-control"
+              value={reuseKey}
+              onChange={(e) => onReuseChange(e.target.value)}
+            >
+              <option value="none">不复用</option>
+              {reuseKinds.map((kind) => (
+                <option key={kind.id} value={kind.id} disabled={!kind.sourceRoot?.trim()}>
+                  {KIND_LABELS[kind.id] ?? kind.label}
+                  {!kind.sourceRoot?.trim() ? "（未绑定）" : ""}
+                </option>
               ))}
-            </div>
-            {allEnabled ? (
-              <p className="hint">将作用于所有已启用分区</p>
-            ) : (
-              <p className="hint">已选 {selected.size} 个分区</p>
-            )}
-          </div>
-
-          <label className="span-2 switch block">
-            <input
-              type="checkbox"
-              checked={dryRun}
-              onChange={(e) => setDryRun(e.target.checked)}
-            />
-            <span>试运行（dry-run，不写入文件）</span>
-          </label>
-
-          <div className="span-2 toolbar" style={{ gap: 8, flexWrap: "wrap" }}>
-            <button type="button" className="btn sm" onClick={() => void handleSavePreset()}>
-              保存为预设
-            </button>
-            <button type="button" className="btn sm ghost" onClick={() => void handleExport()}>
-              导出预设
-            </button>
-            <button type="button" className="btn sm ghost" onClick={() => void handleImport()}>
-              导入预设
-            </button>
-            {reuse === "preset" && presetId ? (
-              <button type="button" className="btn sm ghost" onClick={() => void handleDeletePreset()}>
-                删除预设
-              </button>
-            ) : null}
-          </div>
+            </select>
+          </FormBlock>
         </div>
       </Modal>
 
@@ -374,6 +444,10 @@ export function CreateJobModal({
         value={jobOptions}
         onChange={setJobOptions}
         onClose={() => setAdvancedOpen(false)}
+        notify={notify}
+        onSavePreset={() => void handleSavePreset()}
+        onExportPresets={() => void handleExportPresets()}
+        onImportPresets={handleImportPresets}
       />
     </>
   );

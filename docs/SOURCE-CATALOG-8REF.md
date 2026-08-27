@@ -70,7 +70,7 @@
 | **sevenmmtv** | proxy_adaptive | 7mmtv.sx 搜索 HTML | curl 常优 | 色花● mdcx●(mmtv) | stub |
 | **iqqtv** | proxy | `{base}/cn/search.php?kw=` → 详情；中文标题/简介 | 镜像 iqq5.xyz | 色花●(曾 direct) | ✅ |
 | **theporndb** | proxy + **api** | `GET api.theporndb.net/jav?q=` Bearer Key | 弹窗填 Key | 色花● mdcx● | ✅ |
-| **xiao_huang_shu** | proxy | xchina.co 搜索 HTML | — | 色花● | stub |
+| **xiao_huang_shu** | proxy_adaptive | xchina.co 搜索 HTML → `/video/id-`；封面 upload.xchina.io 须直连 | 单源 proxyUrl=null | 色花● | ✅ |
 
 ---
 
