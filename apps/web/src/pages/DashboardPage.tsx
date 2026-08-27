@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchDashboard, type DashboardWeekCompare } from "../api";
+import { Pagination } from "../components/ui/Pagination";
 import { kindLabel } from "../lib/labels";
 import type { FileRow, JobRow, KindRow } from "../types";
 
@@ -316,33 +317,14 @@ export function DashboardPage({
           </table>
         </div>
 
-        {activityPageCount > 1 || activityTotal > 0 ? (
-          <footer className="pagination dashboard-activity-pagination">
-            <span className="dashboard-activity-page-meta">
-              共 {activityTotal} 条
-              {activityPageCount > 1 ? ` · 第 ${activityPage}/${activityPageCount} 页` : ""}
-            </span>
-            <div className="dashboard-activity-page-controls">
-              <button
-                type="button"
-                className="btn sm ghost"
-                disabled={activityPage <= 1}
-                onClick={() => setActivityPage((p) => Math.max(1, p - 1))}
-              >
-                上一页
-              </button>
-              <span className="records-page-indicator">{activityPage}</span>
-              <button
-                type="button"
-                className="btn sm ghost"
-                disabled={activityPage >= activityPageCount}
-                onClick={() => setActivityPage((p) => p + 1)}
-              >
-                下一页
-              </button>
-            </div>
-          </footer>
-        ) : null}
+        <Pagination
+          page={activityPage}
+          pageCount={activityPageCount}
+          total={activityTotal}
+          onPageChange={setActivityPage}
+          className="pagination dashboard-activity-pagination"
+          metaClassName="dashboard-activity-page-meta"
+        />
       </section>
     </div>
   );

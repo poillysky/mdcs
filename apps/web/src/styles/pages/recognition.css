@@ -1,0 +1,133 @@
+/* ── 自定义识别（紧凑行式） ── */
+
+.rcogn-compact-body {
+  padding: 0 !important;
+}
+
+.rcogn-block {
+  padding: 16px 18px 18px;
+}
+
+.rcogn-block-divider {
+  height: 0;
+  margin: 0;
+  border: none;
+  border-top: 1px solid var(--border);
+}
+
+.rcogn-block-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.rcogn-block-desc {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.rcogn-block-note {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+.rcogn-compact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 40px;
+  margin-top: 14px;
+}
+
+.rcogn-compact-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+}
+
+.rcogn-compact-row.is-editing {
+  flex-wrap: wrap;
+}
+
+.rcogn-compact-label {
+  flex: 0 0 40px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.rcogn-compact-tags {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.rcogn-tag {
+  cursor: pointer;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+}
+
+.rcogn-tag:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.rcogn-compact-add-btn {
+  flex-shrink: 0;
+  min-width: 52px;
+  padding: 4px 12px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.rcogn-compact-add-btn:hover:not(:disabled) {
+  background: var(--surface-hover);
+  color: var(--text-secondary);
+}
+
+.rcogn-compact-add {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.rcogn-compact-input {
+  width: 108px;
+  min-height: 30px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+}
+
+@media (max-width: 720px) {
+  .rcogn-compact-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .rcogn-block {
+    padding: 14px 14px 16px;
+  }
+}
+

@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import { IosHomeHint } from "./components/IosHomeHint";
 import { applyDisplayModeClass, installIosNoPinchZoom } from "./lib/displayMode";
-import "./styles.css";
+import "./styles/index.css";
 
 applyDisplayModeClass();
 installIosNoPinchZoom();

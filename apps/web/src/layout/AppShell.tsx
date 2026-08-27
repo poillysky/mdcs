@@ -5,7 +5,7 @@ import { lockBodyScroll } from "../lib/lockBodyScroll";
 import { NAV_ITEMS } from "../lib/routes";
 import type { RouteId } from "../lib/routes";
 
-/** 与 styles.css 中 960px 断点对齐：>960 为桌面 */
+/** 与 styles 中 960px 断点对齐：>960 为桌面 */
 const DESKTOP_MQ = "(min-width: 961px)";
 const WIDE_KEY = "mdcs.wideMode";
 

@@ -1,0 +1,43 @@
+/* ── Tags & chips ── */
+
+.tag {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--secondary-soft);
+  border: 1px solid transparent;
+  font-size: 12px;
+  color: var(--secondary);
+}
+
+.tag.sm {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.chip {
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.chip.active {
+  background: var(--accent-soft);
+  border-color: var(--border);
+  color: var(--accent);
+}
+
+.chip.dim {
+  opacity: 0.5;
+}
+

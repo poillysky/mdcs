@@ -94,7 +94,7 @@
 | 债 | 说明 |
 |----|------|
 | 前端组件未组件化 | 大量页面直写 `className="btn …"`，复用与三态验收靠 CSS，难做 Storybook |
-| 样式单文件过大 | `styles.css` 约 1.2 万行，按域拆分可降低冲突 |
+| 样式单文件过大 | ~~`styles.css` 约 1.2 万行~~ → 已拆为 `styles/` 多模块 + `index.css`（2026-08-27） |
 | 路由文档缺口 | ~~七区任务未成章~~ DESIGN §4.1 已补 `/kind-tasks` |
 | 配置双写风险 | 命名 `subtitleAddChsSuffix` 等字段同步到 `download` — 已有 hint，改 UI 时须双写 |
 | `data/` 运行时产物 | DB、maps、covers 在 `.gitignore`；新环境需跑任务或导入 maps |

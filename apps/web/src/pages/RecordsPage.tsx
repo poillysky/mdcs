@@ -1,10 +1,8 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowPathIcon,
   ChevronDownIcon,
   Cog6ToothIcon,
-  EllipsisVerticalIcon,
   MagnifyingGlassIcon,
   StopIcon,
   TrashIcon,
@@ -17,6 +15,7 @@ import {
   type RecordsBatchRetryMode,
 } from "../components/RecordsBatchActionModal";
 import type { RecordTaskActionOptions } from "../components/RecordTaskActionModal";
+import { Pagination } from "../components/ui/Pagination";
 import {
   fetchFileDetail,
   fetchFiles,
@@ -29,7 +28,7 @@ import {
   stopFiles,
   updateFileMeta,
 } from "../api";
-import { FILE_STATUS_LABELS, kindLabel, ORGANIZE_MODE_LABELS } from "../lib/labels";
+import { kindLabel } from "../lib/labels";
 import { COPY } from "../lib/messages";
 import { formatJobSummaryLine, jobShortId } from "../lib/jobDisplay";
 import {
@@ -40,8 +39,27 @@ import {
   type RecordColumnKey,
 } from "../lib/recordsColumns";
 import type { NotifyFn } from "../lib/notify";
-import { displayRelativePath, formatRecordPaths, normalizeRelativePath } from "../lib/paths";
+import { displayRelativePath } from "../lib/paths";
 import type { FileRow, KindRow, ScrapeMetaView } from "../types";
+import { RecordsRowMenu } from "./records/RecordsRowMenu";
+import {
+  RECORDS_STATUS_OPTIONS,
+  RECORDS_TABLE_STATUS_LABELS,
+  formatRecordPathCells,
+  formatRecordTime,
+  isRecordsRowInteractiveTarget,
+  organizeModeForFile,
+  recordStatusClass,
+  triggerLabel,
+} from "./records/recordsDisplay";
+import {
+  RECORDS_PAGE_SIZE,
+  buildRecordsPath,
+  parseRecordsSearch,
+  recordsListQuery,
+  resolveRecordsKind,
+  resolveScopedKind,
+} from "./records/recordsScope";
 
 type Props = {
   kinds: KindRow[];
@@ -49,339 +67,6 @@ type Props = {
   onNavigate: (path: string) => void;
   notify: NotifyFn;
 };
-
-const PAGE_SIZE = 30;
-
-type RecordsUrlScope = {
-  jobId: string;
-  kind: string;
-  sourceRoot: string;
-  status: string;
-  q: string;
-  page: number;
-  detailId: number | null;
-};
-
-function normalizeScopePath(path: string): string {
-  return normalizeRelativePath(path);
-}
-
-function parseRecordsSearch(search: string): RecordsUrlScope {
-  const raw = search.startsWith("?") ? search.slice(1) : search;
-  const params = new URLSearchParams(raw);
-  const jobId = params.get("jobId")?.trim() ?? "";
-  const idRaw = params.get("id")?.trim() ?? "";
-  const parsedId = idRaw ? parseInt(idRaw, 10) : NaN;
-  const detailId = Number.isFinite(parsedId) && parsedId > 0 ? parsedId : null;
-  return {
-    jobId,
-    kind: jobId ? "" : (params.get("kind")?.trim() ?? ""),
-    sourceRoot: jobId ? "" : (params.get("sourceRoot")?.trim() ?? ""),
-    status: jobId ? "" : (params.get("status") ?? ""),
-    q: jobId ? "" : (params.get("q") ?? ""),
-    page: Math.max(1, parseInt(params.get("page") ?? "1", 10) || 1),
-    detailId,
-  };
-}
-
-function buildRecordsPath(search: string, detailId: number | null): string {
-  const raw = search.startsWith("?") ? search.slice(1) : search;
-  const params = new URLSearchParams(raw);
-  if (detailId != null) {
-    params.set("id", String(detailId));
-  } else {
-    params.delete("id");
-  }
-  const q = params.toString();
-  return q ? `/records?${q}` : "/records";
-}
-
-function resolveScopedKind(kindId: string, sourceRoot: string, kinds: KindRow[]): string {
-  if (kindId) return kindId;
-  if (!sourceRoot) return "";
-  const norm = normalizeScopePath(sourceRoot);
-  const matched = kinds.find((k) => normalizeScopePath(k.sourceRoot || "") === norm);
-  return matched?.id ?? "";
-}
-
-function resolveRecordsKind(scope: RecordsUrlScope, kinds: KindRow[]): string {
-  if (scope.jobId) return "";
-  if (scope.kind) return scope.kind;
-  if (scope.sourceRoot) return resolveScopedKind("", scope.sourceRoot, kinds);
-  return "";
-}
-
-function recordsListQuery(
-  scope: RecordsUrlScope,
-  resolvedKind: string,
-  status: string,
-  q: string,
-  page: number,
-) {
-  return {
-    kind: scope.jobId ? undefined : resolvedKind || undefined,
-    sourceRoot: scope.jobId ? undefined : scope.sourceRoot || undefined,
-    jobId: scope.jobId || undefined,
-    status: scope.jobId ? undefined : status || undefined,
-    q: scope.jobId ? undefined : q.trim() || undefined,
-    page,
-    pageSize: PAGE_SIZE,
-  };
-}
-
-const RECORDS_STATUS_OPTIONS = [
-  { value: "", label: "全部" },
-  { value: "done", label: "成功" },
-  { value: "failed", label: "失败" },
-  { value: "skipped", label: "取消" },
-  { value: "pending", label: "等待中" },
-  { value: "scraping", label: "处理中" },
-  { value: "planned", label: "重新整理排队中" },
-  { value: "organizing", label: "重新整理中" },
-] as const;
-
-const RECORDS_TABLE_STATUS_LABELS: Record<string, string> = {
-  ...FILE_STATUS_LABELS,
-  done: "成功",
-  failed: "失败",
-  skipped: "取消",
-  pending: "等待中",
-  scraping: "处理中",
-  scraped: "处理中",
-  planned: "重新整理排队中",
-  organizing: "重新整理中",
-};
-
-function formatRecordTime(ms?: number | null): string {
-  if (!ms) return "—";
-  const d = new Date(ms);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-}
-
-function formatRecordPathCells(f: FileRow): { text: string; title: string } {
-  return formatRecordPaths(f.source_path, f.target_path ?? undefined);
-}
-
-function organizeModeForFile(f: FileRow, kinds: KindRow[]): string {
-  const k = kinds.find((row) => row.id === f.kind);
-  if (!k) return "—";
-  return ORGANIZE_MODE_LABELS[k.organizeMode] ?? k.organizeMode;
-}
-
-function triggerLabel(f: FileRow, kinds: KindRow[]): string {
-  const k = kinds.find((row) => row.id === f.kind);
-  if (k?.enabled && k.sourceRoot?.trim()) return "监控";
-  return "手动";
-}
-
-function recordStatusClass(status: string): string {
-  if (status === "done") return "records-pill records-pill--success";
-  if (status === "failed") return "records-pill records-pill--error";
-  if (status === "pending" || status === "scraping" || status === "organizing" || status === "planned") {
-    return "records-pill records-pill--processing";
-  }
-  return "records-pill records-pill--muted";
-}
-
-function isRecordsRowInteractiveTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  return Boolean(
-    target.closest(
-      'input, button, a, label, .records-actions-menu, .records-actions-dropdown, .records-col-check, .records-col-op',
-    ),
-  );
-}
-
-function isFileStopable(status: string): boolean {
-  return (
-    status === "pending" ||
-    status === "scraping" ||
-    status === "organizing" ||
-    status === "planned"
-  );
-}
-
-function isFileReorganizable(file: FileRow): boolean {
-  return Boolean(file.code?.trim());
-}
-
-function isFileRetryable(status: string): boolean {
-  return status === "failed" || status === "skipped";
-}
-
-type RowMenuProps = {
-  file: FileRow;
-  busy?: boolean;
-  onView: () => void;
-  onRetry: () => void;
-  onStop: () => void;
-  onReorganize: () => void;
-  onDelete: () => void;
-};
-
-const RECORDS_DROPDOWN_GAP = 4;
-const RECORDS_VIEWPORT_PAD = 8;
-
-type DropdownPos = {
-  top: number;
-  left: number;
-};
-
-type RowMenuAction = "view" | "retry" | "stop" | "reorganize" | "delete";
-
-function RecordsRowMenu({
-  file,
-  busy,
-  onView,
-  onRetry,
-  onStop,
-  onReorganize,
-  onDelete,
-}: RowMenuProps) {
-  const [open, setOpen] = useState(false);
-  const [dropdownPos, setDropdownPos] = useState<DropdownPos | null>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const canStop = isFileStopable(file.status);
-  const canReorganize = isFileReorganizable(file);
-  const canRetry = isFileRetryable(file.status);
-
-  const items: Array<{
-    id: RowMenuAction;
-    label: string;
-    disabled?: boolean;
-    title?: string;
-  }> = [
-    { id: "view", label: "查看", disabled: busy },
-    { id: "retry", label: "重试", disabled: !canRetry || busy, title: canRetry ? undefined : "仅失败或已取消记录可重试" },
-    {
-      id: "stop",
-      label: "终止",
-      disabled: !canStop || busy,
-      title: canStop ? undefined : "无进行中的任务",
-    },
-    {
-      id: "reorganize",
-      label: "重新整理",
-      disabled: !canReorganize || busy,
-      title: canReorganize ? undefined : "需有番号",
-    },
-    { id: "delete", label: "删除", disabled: busy },
-  ];
-
-  function run(action: RowMenuAction) {
-    setOpen(false);
-    if (action === "view") onView();
-    if (action === "retry") onRetry();
-    if (action === "stop") onStop();
-    if (action === "reorganize") onReorganize();
-    if (action === "delete") onDelete();
-  }
-
-  function updateDropdownPos() {
-    const trigger = triggerRef.current;
-    if (!trigger) return;
-    const rect = trigger.getBoundingClientRect();
-    const width = dropdownRef.current?.offsetWidth ?? 128;
-    const height = dropdownRef.current?.offsetHeight ?? 200;
-    const left = Math.min(
-      Math.max(RECORDS_VIEWPORT_PAD, rect.right - width),
-      window.innerWidth - width - RECORDS_VIEWPORT_PAD,
-    );
-    const spaceBelow = window.innerHeight - rect.bottom - RECORDS_DROPDOWN_GAP;
-    const spaceAbove = rect.top - RECORDS_DROPDOWN_GAP;
-    const showAbove = spaceBelow < height && spaceAbove > spaceBelow;
-    const top = showAbove
-      ? rect.top - height - RECORDS_DROPDOWN_GAP
-      : rect.bottom + RECORDS_DROPDOWN_GAP;
-    setDropdownPos({ top, left });
-  }
-
-  useLayoutEffect(() => {
-    if (!open) {
-      setDropdownPos(null);
-      return;
-    }
-    updateDropdownPos();
-    const raf = requestAnimationFrame(updateDropdownPos);
-    window.addEventListener("resize", updateDropdownPos);
-    window.addEventListener("scroll", updateDropdownPos, true);
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("resize", updateDropdownPos);
-      window.removeEventListener("scroll", updateDropdownPos, true);
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    function onDocClick(e: MouseEvent) {
-      const target = e.target as Node;
-      if (triggerRef.current?.contains(target)) return;
-      if (dropdownRef.current?.contains(target)) return;
-      setOpen(false);
-    }
-    function onEsc(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("mousedown", onDocClick);
-    document.addEventListener("keydown", onEsc);
-    return () => {
-      document.removeEventListener("mousedown", onDocClick);
-      document.removeEventListener("keydown", onEsc);
-    };
-  }, [open]);
-
-  const dropdownMenu =
-    open && dropdownPos
-      ? createPortal(
-          <div
-            ref={dropdownRef}
-            className="records-actions-dropdown is-portal"
-            role="menu"
-            style={{
-              top: `${dropdownPos.top}px`,
-              left: `${dropdownPos.left}px`,
-            }}
-          >
-            {items.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                role="menuitem"
-                className="records-actions-item"
-                disabled={item.disabled}
-                title={item.title}
-                onClick={() => run(item.id)}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>,
-          document.body,
-        )
-      : null;
-
-  return (
-    <>
-      <div className={`records-actions-menu${open ? " is-open" : ""}`}>
-        <button
-          ref={triggerRef}
-          type="button"
-          className="records-actions-trigger"
-          aria-label="操作"
-          aria-expanded={open}
-          onClick={() => setOpen((v) => !v)}
-        >
-          <EllipsisVerticalIcon aria-hidden />
-        </button>
-      </div>
-      {dropdownMenu}
-    </>
-  );
-}
 
 export function RecordsPage({ kinds, locationSearch, onNavigate, notify }: Props) {
   const urlScope = useMemo(() => parseRecordsSearch(locationSearch), [locationSearch]);
@@ -515,7 +200,7 @@ export function RecordsPage({ kinds, locationSearch, onNavigate, notify }: Props
     setSelected(new Set());
   }, [page, selectAllMatching]);
 
-  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(total / RECORDS_PAGE_SIZE));
   const idsOnPage = useMemo(() => files.map((f) => f.id), [files]);
   const selectedCount = selectAllMatching ? total : selected.size;
   const allSelected =
@@ -1134,27 +819,13 @@ export function RecordsPage({ kinds, locationSearch, onNavigate, notify }: Props
           </table>
         </div>
 
-        {pageCount > 1 || total > 0 ? (
-          <div className="pagination records-pagination">
-            <button
-              type="button"
-              className="btn sm ghost"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >
-              上一页
-            </button>
-            <span className="records-page-indicator">{page}</span>
-            <button
-              type="button"
-              className="btn sm ghost"
-              disabled={page >= pageCount}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              下一页
-            </button>
-          </div>
-        ) : null}
+        <Pagination
+          page={page}
+          pageCount={pageCount}
+          total={total}
+          onPageChange={setPage}
+          className="pagination records-pagination"
+        />
       </section>
 
       <RecordsBatchActionModal

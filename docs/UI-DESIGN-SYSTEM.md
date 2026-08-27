@@ -334,7 +334,7 @@ MDCS **不以**独立 React `Button`/`Input` 组件库为标准；视觉与交�
 
 ## 11. 与旧实现迁移说明
 
-`apps/web/src/styles.css` 已按本文 Token 完成**浅色极简迁移**（2026-08-21）：
+`apps/web/src/styles/index.css`（按域拆分为 `styles/` 多模块）已按本文 Token 完成**浅色极简迁移**（2026-08-21；2026-08-27 模块化）：
 
 1. `:root` 使用本文 §3–§5 Token（含旧变量别名）
 2. 已去除径向渐变底、霓虹 glow、厚阴影、紫蓝渐变按钮

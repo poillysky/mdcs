@@ -1,0 +1,114 @@
+/* 刮削记录 */
+.records-detail-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 960px) {
+  .records-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.records-field-row {
+  display: grid;
+  grid-template-columns: 88px 1fr auto;
+  gap: 10px;
+  align-items: start;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.records-field-label {
+  color: var(--text-muted);
+}
+
+.records-field-value {
+  word-break: break-word;
+}
+
+.records-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.records-run {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.records-run.highlight {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.records-run.fail {
+  border-color: var(--border);
+}
+
+.tag.sm.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+button.linkish {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.source-order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.source-order-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.priority-edit {
+  width: 100%;
+  margin-top: 6px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+}
+
+.code-block {
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+.btn.sm {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+

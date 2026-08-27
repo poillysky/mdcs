@@ -1,0 +1,205 @@
+/* ── 七区任务页 ── */
+
+.kind-tasks-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.kind-tasks-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.kind-tasks-head-left {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.kind-tasks-title {
+  margin: 0;
+  font-size: 22px;
+  line-height: 32px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--text);
+}
+
+.kind-tasks-summary {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--text-muted);
+}
+
+.kind-tasks-summary strong {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.kind-tasks-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.kind-tasks-table col.jobs-col-op {
+  width: 132px;
+}
+
+.kind-tasks-table thead .jobs-col-op,
+.kind-tasks-table tbody .jobs-col-op {
+  box-sizing: border-box;
+  width: 132px;
+  min-width: 132px;
+  max-width: 132px;
+  padding-left: 4px;
+  padding-right: 4px;
+  overflow: visible;
+  text-align: center;
+}
+
+.kind-tasks-table .kind-tasks-run {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: auto;
+  min-width: 0;
+  min-height: 28px;
+  height: 28px;
+  padding: 0 9px;
+  border-radius: calc(var(--radius) - 1px);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  box-shadow: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.kind-tasks-op-btns {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.kind-tasks-table .kind-tasks-pause {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: auto;
+  min-width: 0;
+  min-height: 28px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: calc(var(--radius) - 1px);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  box-shadow: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.kind-tasks-col-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+.kind-tasks-table thead .kind-tasks-col-name,
+.kind-tasks-table tbody .kind-tasks-col-name {
+  box-sizing: border-box;
+  min-width: 88px;
+  padding-left: 10px;
+  padding-right: 8px;
+  vertical-align: middle;
+}
+
+.kind-tasks-name {
+  display: inline;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.kind-tasks-col-status,
+.kind-tasks-table thead .kind-tasks-col-status,
+.kind-tasks-table tbody .kind-tasks-col-status {
+  box-sizing: border-box;
+  width: 96px;
+  min-width: 96px;
+  max-width: 96px;
+  padding-left: 4px;
+  padding-right: 4px;
+  text-align: center;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.kind-tasks-row-off {
+  opacity: 0.68;
+  background: var(--bg-subtle);
+}
+
+.kind-tasks-row-off .kind-tasks-name,
+.kind-tasks-row-off .jobs-path-cell,
+.kind-tasks-row-off .kind-tasks-index-stats {
+  color: var(--text-muted);
+}
+
+.kind-tasks-index-stats {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.kind-tasks-run {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.kind-tasks-pause {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.kind-tasks-run-icon {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.kind-tasks-pause-icon {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.kind-tasks-row-off .kind-tasks-run,
+.kind-tasks-row-off .kind-tasks-pause {
+  opacity: 0.45;
+}
+
+@media (max-width: 900px) {
+  .kind-tasks-title {
+    font-size: 20px;
+    line-height: 28px;
+  }
+}
+

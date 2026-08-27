@@ -1,0 +1,127 @@
+/* ── Buttons ── */
+
+button,
+.btn {
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 8px 16px;
+  min-height: 36px;
+  font-size: 13px;
+  font-family: inherit;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease),
+    color var(--dur) var(--ease), box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+button:hover:not(:disabled),
+.btn:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+}
+
+button:active:not(:disabled),
+.btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+button:disabled,
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.btn.primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: var(--accent-text);
+  filter: none;
+}
+
+.btn.ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-muted);
+}
+
+.btn.ghost:hover:not(:disabled) {
+  background: var(--surface-hover);
+  color: var(--text-secondary);
+}
+
+.btn.text {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text);
+  font-weight: 500;
+  min-width: 0;
+  padding: 8px 12px;
+}
+
+.btn.text:hover:not(:disabled) {
+  background: transparent;
+  color: var(--text);
+  opacity: 0.72;
+}
+
+.btn.primary.solid {
+  background: #18181b;
+  border-color: #18181b;
+  color: #ffffff;
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 10px 28px;
+  min-width: 88px;
+}
+
+.btn.primary.solid:hover:not(:disabled) {
+  background: #27272a;
+  border-color: #27272a;
+  color: #ffffff;
+}
+
+.btn.danger {
+  border-color: var(--border);
+  color: var(--error);
+  background: var(--error-soft);
+}
+
+.btn.warn {
+  background: var(--warn);
+  border-color: var(--warn);
+  color: #fff;
+  font-weight: 600;
+}
+
+.btn.warn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--warn) 86%, #18181b);
+  border-color: color-mix(in srgb, var(--warn) 86%, #18181b);
+  color: #fff;
+  filter: none;
+}
+
+.btn.block {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.btn.sm {
+  padding: 6px 12px;
+  min-height: 32px;
+  font-size: 12px;
+}
+
+.btn.xs {
+  padding: 4px 10px;
+  min-height: 28px;
+  font-size: 12px;
+}
+

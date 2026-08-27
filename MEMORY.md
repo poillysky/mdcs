@@ -4,6 +4,18 @@
 
 ---
 
+## 2026-08-27 — 模块化重构 P0–P4
+
+- **背景**：超大文件拆模块，提取通用逻辑，行为不变的纯重构。
+- **决策/结论**：
+  - P0：`styles.css` → `styles/` 多模块 + `index.css`
+  - P1：前端 `api/`、`types/` 按域拆分
+  - P2：`RecordDetailView` → `recordDetail/`；`NamingSettingsPanel` → `naming/`；`KindSettingsModal` drafts → `kindSettings/`
+  - P3：`api/files.ts` → `api/files/` 路由模块；原文件 re-export
+  - P4：`Pagination` 组件；`SettingRow` 已有共用
+- **验证**：web/server typecheck、web build、server tests 402 pass
+- **待办/遗留**：无（文档路径已同步；已 commit/push）
+
 ## 2026-08-27 — Dashboard 聚合 API + 活动分页 + 任务来源
 
 - **背景**：主界面「建议后续（可选）」三项：聚合接口、活动服务端排序分页、真实来源字段。

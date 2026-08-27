@@ -1,0 +1,256 @@
+/* ── Responsive ── */
+
+@media (max-width: 960px) {
+  /* 文档流顶栏：随页面滚动，不 fixed */
+  .mobile-topbar {
+    display: flex;
+    align-items: center;
+    margin: 0 0 12px;
+  }
+
+  .mobile-nav-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text-muted);
+    box-shadow: var(--shadow-sm);
+    transition: background var(--dur) var(--ease), color var(--dur) var(--ease),
+      border-color var(--dur) var(--ease);
+  }
+
+  .mobile-nav-toggle:hover {
+    background: var(--surface-hover);
+    color: var(--text-secondary);
+    border-color: var(--border-strong);
+  }
+
+  .mobile-nav-toggle.is-open {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-color: var(--border);
+  }
+
+  .mobile-nav-toggle-icon {
+    width: 22px;
+    height: 22px;
+    display: block;
+    flex-shrink: 0;
+  }
+
+  .nav-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    border: none;
+    padding: 0;
+    margin: 0;
+    background: rgba(24, 24, 27, 0.36);
+    cursor: pointer;
+  }
+
+  .sidebar {
+    z-index: 60;
+    width: min(280px, 86vw);
+    padding: calc(12px + var(--safe-top)) 12px calc(12px + var(--safe-bottom))
+      calc(12px + var(--safe-left));
+    transform: translateX(-105%);
+    transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+    box-shadow: none;
+    pointer-events: none;
+  }
+
+  .sidebar.open {
+    width: min(280px, 86vw);
+    transform: translateX(0);
+    box-shadow: var(--shadow);
+    pointer-events: auto;
+  }
+
+  .sidebar .brand-text,
+  .sidebar .nav-label,
+  .sidebar .nav-group-label {
+    opacity: 1;
+  }
+
+  .sidebar .nav-group-label {
+    height: auto;
+    margin: 16px 12px 6px;
+  }
+
+  .main {
+    margin-left: 0;
+    padding: calc(12px + var(--safe-top)) calc(16px + var(--safe-right)) calc(28px + var(--safe-bottom))
+      calc(16px + var(--safe-left));
+  }
+
+  .settings-tabs {
+    margin-bottom: 12px;
+  }
+
+  .split-layout,
+  .live-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-card.wide {
+    grid-column: span 1;
+  }
+
+  .toast-stack {
+    top: auto;
+    bottom: calc(16px + var(--safe-bottom));
+    right: calc(16px + var(--safe-right));
+    left: calc(16px + var(--safe-left));
+    width: auto;
+  }
+
+  /* 移动端 / iOS：控件可读可点（见 docs/UI-IOS.md） */
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px;
+    min-height: 44px;
+    padding: 10px 12px;
+  }
+
+  textarea {
+    min-height: 88px;
+    font-size: 16px;
+  }
+
+  select {
+    -webkit-appearance: none;
+    appearance: none;
+    background-color: var(--surface);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+    padding-right: 36px;
+  }
+
+  button:not(.nav-item):not(.modal-close):not(.chip):not(.settings-tab):not(.kind-path-tab):not(.ios-home-hint-dismiss):not(.prov-modal-tab):not(.kind-settings-tab):not(.advanced-job-tab):not(.records-icon-btn):not(.records-menu-trigger):not(.jobs-actions-trigger):not(.records-actions-trigger):not(.actors-scan-btn),
+  .btn {
+    min-height: 44px;
+    font-size: 15px;
+    padding: 10px 16px;
+  }
+
+  .btn.sm {
+    min-height: 40px;
+    font-size: 14px;
+    padding: 8px 14px;
+  }
+
+  .nav-item {
+    min-height: 44px;
+    padding: 12px;
+    font-size: 15px;
+  }
+
+  .settings-tab,
+  .kind-path-tab,
+  .subnav-item {
+    min-height: 40px;
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+
+  .org-select {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    font-size: 16px;
+    padding: 10px 40px 10px 12px;
+    background-size: 16px;
+    background-position: right 12px center;
+  }
+
+  .mon-inline-note {
+    height: 44px;
+    min-height: 44px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+
+  .org-row-hint,
+  .hint,
+  .org-section-desc {
+    font-size: 13px;
+    line-height: 20px;
+  }
+
+  .org-row {
+    padding: 12px 14px;
+  }
+
+  .org-row-label {
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  .settings-panel {
+    margin-bottom: calc(24px + var(--safe-bottom));
+  }
+
+  .switch input[type="checkbox"] {
+    min-height: 0 !important;
+    height: 18px !important;
+    padding: 0 !important;
+    font-size: 0;
+  }
+
+  .nfo-check input[type="checkbox"] {
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    font-size: 0;
+    opacity: 0;
+  }
+
+  .switch {
+    min-height: 0;
+  }
+
+  .switch.block {
+    min-height: 44px;
+  }
+
+  .table-wrap {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* iOS 专属加固（含宽屏 iPad） */
+html.is-ios input:not([type="checkbox"]):not([type="radio"]),
+html.is-ios select,
+html.is-ios textarea {
+  font-size: 16px;
+}
+
+html.is-ios select {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+html.is-standalone body {
+  overscroll-behavior-y: none;
+}
+
+html.is-standalone .sidebar {
+  /* 透传状态栏时侧栏顶区已含 safe-top */
+  background-clip: padding-box;
+}
+

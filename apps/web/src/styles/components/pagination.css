@@ -1,0 +1,15 @@
+.pagination-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.pagination .pagination-controls:only-child {
+  margin-left: 0;
+}
+
+.records-pagination.pagination,
+.dashboard-activity-pagination.pagination {
+  justify-content: space-between;
+}

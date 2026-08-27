@@ -1,0 +1,218 @@
+/* ── Create job modal ── */
+
+.modal-create-job .create-job-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.create-job-block-label {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 22px;
+  color: var(--text);
+}
+
+.create-job-block-hint {
+  margin: 4px 0 10px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-muted);
+}
+
+.create-job-control {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #e4e4e7;
+  background: #ffffff;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.create-job-control:focus {
+  border-color: #a1a1aa;
+  box-shadow: none;
+}
+
+.folder-picker--inline {
+  width: 100%;
+}
+
+.create-job-path-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+}
+
+.create-job-path-value {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #e4e4e7;
+  background: #ffffff;
+  font-size: 13px;
+  line-height: 22px;
+  color: var(--text);
+  word-break: break-all;
+  display: flex;
+  align-items: center;
+}
+
+.create-job-path-value.is-empty {
+  color: var(--text-dim);
+}
+
+.create-job-path-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  min-height: 44px !important;
+  padding: 0 !important;
+  border: none;
+  border-radius: 10px;
+  background: #18181b;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease);
+}
+
+.create-job-path-btn svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.create-job-path-btn:hover:not(:disabled) {
+  background: #27272a;
+}
+
+.modal-create-job .modal-foot {
+  justify-content: flex-end;
+  align-items: center;
+  gap: 16px;
+}
+
+.modal-advanced-job {
+  width: min(960px, 100%);
+  height: min(86dvh, 800px);
+  max-height: min(92dvh, 920px);
+}
+
+.modal-advanced-job.modal-sheet .modal-body,
+.modal-kind-settings.modal-sheet .modal-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.modal-kind-settings .kind-settings.advanced-job-modal,
+.modal-advanced-job .advanced-job-modal {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.modal-kind-settings .advanced-job-tabs,
+.modal-advanced-job .advanced-job-tabs,
+.modal-advanced-job .advanced-job-row,
+.modal-kind-settings .advanced-job-row {
+  flex-shrink: 0;
+}
+
+.modal-kind-settings .kind-settings-body,
+.modal-advanced-job .advanced-job-panel {
+  flex: 1 1 0;
+  min-height: min(42dvh, 380px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 嵌入高级设置时铺满弹窗宽度，去掉设置页统一上限与整页 min-height */
+.modal-advanced-job .download-settings,
+.modal-advanced-job .naming-settings,
+.modal-advanced-job .watermark-settings,
+.modal-advanced-job .metadata-settings,
+.modal-advanced-job .nfo-settings,
+.modal-advanced-job .organize-settings,
+.modal-kind-settings .download-settings,
+.modal-kind-settings .naming-settings,
+.modal-kind-settings .watermark-settings,
+.modal-kind-settings .metadata-settings,
+.modal-kind-settings .nfo-settings,
+.modal-kind-settings .organize-settings,
+.modal-kind-settings .advanced-job-settings {
+  max-width: none;
+  min-height: 0;
+  width: 100%;
+}
+
+.modal-advanced-job .modal-foot {
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.modal-kind-settings {
+  width: min(960px, 100%);
+  height: min(86dvh, 800px);
+  max-height: min(92dvh, 920px);
+}
+
+.modal-kind-settings .modal-head,
+.modal-advanced-job .modal-head {
+  flex-shrink: 0;
+}
+
+.modal-kind-settings .modal-foot {
+  justify-content: flex-end;
+  align-items: center;
+  gap: 16px;
+}
+
+.modal-kind-settings .set-section-sub {
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--text-muted);
+}
+
+.advanced-job-foot-left,
+.advanced-job-foot-right {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.advanced-job-foot-left .btn.text {
+  padding: 8px 4px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.advanced-job-foot-left .btn.text:hover:not(:disabled) {
+  color: var(--text);
+  opacity: 1;
+}
+
+.advanced-job-foot-right {
+  margin-left: auto;
+  gap: 16px;
+}
+
+.advanced-job-foot-right .btn.primary.solid {
+  min-width: 96px;
+}
+
