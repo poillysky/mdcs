@@ -12,7 +12,8 @@
 
 - [x] `runPool` / orchestrator 单源异常隔离
 - [x] `POST /api/scrape/providers/probe` 探活；失败冷却 15 分钟跳过
-- [x] 未实现源为 stub，不拖死任务
+- [x] catalog 32 源均已实现；单源挂不拖死任务
+- [x] `npm test` 全绿（402/402；njav pick 链内联 fixture，2026-08-27）
 
 ## S6.4 压测
 

@@ -7,6 +7,7 @@ import type { RouteId } from "../lib/routes";
 
 /** 与 styles.css 中 960px 断点对齐：>960 为桌面 */
 const DESKTOP_MQ = "(min-width: 961px)";
+const WIDE_KEY = "mdcs.wideMode";
 
 type Props = {
   route: RouteId;
@@ -17,6 +18,14 @@ type Props = {
 function getIsDesktop() {
   if (typeof window === "undefined" || !window.matchMedia) return true;
   return window.matchMedia(DESKTOP_MQ).matches;
+}
+
+function readWideMode(): boolean {
+  try {
+    return localStorage.getItem(WIDE_KEY) === "1";
+  } catch {
+    return false;
+  }
 }
 
 function NavButton({
@@ -51,6 +60,7 @@ function NavButton({
 export function AppShell({ route, onNavigate, children }: Props) {
   const [isDesktop, setIsDesktop] = useState(getIsDesktop);
   const [open, setOpen] = useState(getIsDesktop);
+  const [wide, setWide] = useState(readWideMode);
   const mainItems = NAV_ITEMS.filter((n) => !n.group);
   const systemItems = NAV_ITEMS.filter((n) => n.group === "system");
 
@@ -71,13 +81,24 @@ export function AppShell({ route, onNavigate, children }: Props) {
     return lockBodyScroll();
   }, [isDesktop, open]);
 
+  useEffect(() => {
+    document.documentElement.classList.toggle("is-wide", wide);
+    try {
+      localStorage.setItem(WIDE_KEY, wide ? "1" : "0");
+    } catch {
+      /* private mode */
+    }
+  }, [wide]);
+
   function go(path: string) {
     onNavigate(path);
     if (!isDesktop) setOpen(false);
   }
 
   return (
-    <div className={`app-shell${open ? " nav-open" : ""}${isDesktop ? " is-desktop" : " is-mobile"}`}>
+    <div
+      className={`app-shell${open ? " nav-open" : ""}${isDesktop ? " is-desktop" : " is-mobile"}${wide ? " is-wide" : ""}`}
+    >
       {!isDesktop && open ? (
         <button
           type="button"
@@ -120,6 +141,18 @@ export function AppShell({ route, onNavigate, children }: Props) {
             />
           ))}
         </nav>
+
+        <div className="sidebar-foot">
+          <button
+            type="button"
+            className={`nav-item nav-pref${wide ? " active" : ""}`}
+            title={wide ? "关闭宽屏模式" : "开启宽屏模式"}
+            aria-pressed={wide}
+            onClick={() => setWide((v) => !v)}
+          >
+            <span className="nav-label">{wide ? "宽屏模式 · 开" : "宽屏模式 · 关"}</span>
+          </button>
+        </div>
       </aside>
 
       <main className="main">

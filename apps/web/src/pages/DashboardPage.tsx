@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { fetchActors, fetchFiles, fetchScrapeConfig } from "../api";
+import { fetchDashboard, type DashboardWeekCompare } from "../api";
+import { kindLabel } from "../lib/labels";
 import type { FileRow, JobRow, KindRow } from "../types";
 
 type Props = {
@@ -8,6 +9,8 @@ type Props = {
   fileFailedTotal: number;
   onNavigate: (path: string) => void;
 };
+
+const ACTIVITY_PAGE_SIZE = 20;
 
 function dashboardGreeting(now = new Date()): string {
   const hour = now.getHours();
@@ -57,35 +60,31 @@ function fileAddedAt(file: FileRow): number | null {
   return file.organized_at ?? file.scraped_at ?? file.file_mtime ?? null;
 }
 
-function countDoneInRange(files: FileRow[], startMs: number, endMs: number): number {
-  return files.filter((f) => {
-    const ts = fileAddedAt(f);
-    return ts != null && ts >= startMs && ts < endMs;
-  }).length;
-}
-
-function weekCompareFromDoneFiles(files: FileRow[]): { text: string; tone: "up" | "down" | "flat" } | null {
-  if (!files.length) return null;
-  const now = Date.now();
-  const week = 7 * 24 * 60 * 60 * 1000;
-  const thisWeek = countDoneInRange(files, now - week, now);
-  const lastWeek = countDoneInRange(files, now - 2 * week, now - week);
-  if (lastWeek <= 0) {
-    if (thisWeek <= 0) return null;
-    return { text: `+${thisWeek} 对比上周`, tone: "up" };
+function triggerLabel(source?: string | null): string {
+  switch (source) {
+    case "monitor":
+      return "监控";
+    case "qb":
+      return "qB";
+    case "manual":
+      return "手动";
+    default:
+      return "—";
   }
-  const pct = ((thisWeek - lastWeek) / lastWeek) * 100;
-  const sign = pct > 0 ? "+" : "";
-  return {
-    text: `${sign}${pct.toFixed(2)}% 对比上周`,
-    tone: pct > 0 ? "up" : pct < 0 ? "down" : "flat",
-  };
 }
 
-function triggerLabel(file: FileRow, kinds: KindRow[]): string {
-  const kind = kinds.find((row) => row.id === file.kind);
-  if (kind?.enabled && kind.sourceRoot?.trim()) return "监控";
-  return "手动";
+function triggerPillClass(source?: string | null): string {
+  const base = "records-pill";
+  switch (source) {
+    case "monitor":
+      return `${base} records-pill--trigger records-pill--source-monitor`;
+    case "qb":
+      return `${base} records-pill--trigger records-pill--source-qb`;
+    case "manual":
+      return `${base} records-pill--source-manual`;
+    default:
+      return `${base} records-pill--muted`;
+  }
 }
 
 function displayTitle(file: FileRow): string {
@@ -96,6 +95,13 @@ function displayActors(file: FileRow): string {
   return file.actors?.trim() || "—";
 }
 
+function displayYear(file: FileRow): string {
+  const raw = file.premiered?.trim();
+  if (!raw) return "—";
+  const y = raw.slice(0, 4);
+  return /^\d{4}$/.test(y) ? y : "—";
+}
+
 export function DashboardPage({
   jobs,
   kinds,
@@ -104,60 +110,56 @@ export function DashboardPage({
 }: Props) {
   const [scrapeMax, setScrapeMax] = useState(5);
   const [actorTotal, setActorTotal] = useState(0);
-  const [doneFiles, setDoneFiles] = useState<FileRow[]>([]);
-  const [recentAdded, setRecentAdded] = useState(0);
+  const [recentAdded7d, setRecentAdded7d] = useState(0);
+  const [weekCompare, setWeekCompare] = useState<DashboardWeekCompare | null>(null);
+  const [activityFiles, setActivityFiles] = useState<FileRow[]>([]);
+  const [activityTotal, setActivityTotal] = useState(0);
+  const [activityPage, setActivityPage] = useState(1);
+  const [activityKind, setActivityKind] = useState("");
 
   useEffect(() => {
     let cancelled = false;
-    void fetchScrapeConfig()
-      .then((data) => {
-        if (cancelled) return;
-        const fast = data.config.exportFastConcurrency ?? 3;
-        const slow = data.config.exportSlowConcurrency ?? 2;
-        setScrapeMax(Math.max(1, fast + slow));
+
+    function loadDashboardData() {
+      void fetchDashboard({
+        page: activityPage,
+        pageSize: ACTIVITY_PAGE_SIZE,
+        kind: activityKind || undefined,
       })
-      .catch(() => {
-        if (!cancelled) setScrapeMax(5);
-      });
-    void fetchActors({ pageSize: 1 })
-      .then((data) => {
-        if (!cancelled) setActorTotal(data.total);
-      })
-      .catch(() => {
-        if (!cancelled) setActorTotal(0);
-      });
-    void fetchFiles({ status: "done", pageSize: 500 })
-      .then((data) => {
-        if (cancelled) return;
-        const rows = data.files ?? [];
-        setDoneFiles(rows);
-        const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-        setRecentAdded(countDoneInRange(rows, weekAgo, Date.now()));
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setDoneFiles([]);
-          setRecentAdded(0);
-        }
-      });
+        .then((data) => {
+          if (cancelled) return;
+          setScrapeMax(data.scrapeMax);
+          setActorTotal(data.actorTotal);
+          setRecentAdded7d(data.recentAdded7d);
+          setWeekCompare(data.weekCompare);
+          setActivityFiles(data.activity.files ?? []);
+          setActivityTotal(data.activity.total);
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setScrapeMax(5);
+            setActorTotal(0);
+            setRecentAdded7d(0);
+            setWeekCompare(null);
+            setActivityFiles([]);
+            setActivityTotal(0);
+          }
+        });
+    }
+
+    loadDashboardData();
+    const timer = setInterval(loadDashboardData, 15000);
     return () => {
       cancelled = true;
+      clearInterval(timer);
     };
-  }, [kinds]);
+  }, [activityPage, activityKind]);
 
   const kindStats = useMemo(() => aggregateKindStats(kinds), [kinds]);
   const scrapeActive = kindStats.scraping + kindStats.organizing;
   const manualActive = jobs.filter((j) => j.status === "running" || j.status === "queued").length;
   const manualMax = 1;
-  const ingestCompare = useMemo(() => weekCompareFromDoneFiles(doneFiles), [doneFiles]);
-
-  const recentActivity = useMemo(
-    () =>
-      [...doneFiles]
-        .sort((a, b) => (fileAddedAt(b) ?? 0) - (fileAddedAt(a) ?? 0) || b.id - a.id)
-        .slice(0, 20),
-    [doneFiles],
-  );
+  const activityPageCount = Math.max(1, Math.ceil(activityTotal / ACTIVITY_PAGE_SIZE));
 
   const successTotal = kindStats.done;
   const failedTotal = Math.max(kindStats.failed, fileFailedTotal);
@@ -172,7 +174,7 @@ export function DashboardPage({
           <button
             type="button"
             className="dashboard-stat-card"
-            onClick={() => onNavigate("/records?status=scraping")}
+            onClick={() => onNavigate("/tasks")}
           >
             <div className="dashboard-stat-label">刮削线程</div>
             <div className="dashboard-stat-value">
@@ -188,7 +190,11 @@ export function DashboardPage({
             </div>
           </button>
 
-          <div className="dashboard-stat-card">
+          <button
+            type="button"
+            className="dashboard-stat-card"
+            onClick={() => onNavigate("/tasks")}
+          >
             <div className="dashboard-stat-label">手动任务线程</div>
             <div className="dashboard-stat-value">
               {Math.min(manualActive, manualMax)}/{manualMax}{" "}
@@ -196,7 +202,7 @@ export function DashboardPage({
                 {manualActive > 0 ? "忙碌" : "空闲"}
               </span>
             </div>
-          </div>
+          </button>
 
           <button
             type="button"
@@ -205,11 +211,11 @@ export function DashboardPage({
           >
             <div className="dashboard-stat-label">入库记录</div>
             <div className="dashboard-stat-value">
-              {recentAdded}{" "}
-              <span className="dashboard-stat-suffix">最近新增</span>
+              {successTotal}{" "}
+              <span className="dashboard-stat-suffix">总计</span>
             </div>
-            <div className={`dashboard-stat-compare is-${ingestCompare?.tone ?? "flat"}`}>
-              {ingestCompare?.text ?? "暂无对比数据"}
+            <div className={`dashboard-stat-compare is-${weekCompare?.tone ?? "flat"}`}>
+              {weekCompare?.text ?? (recentAdded7d > 0 ? `近 7 日 +${recentAdded7d}` : "暂无对比数据")}
             </div>
           </button>
 
@@ -228,16 +234,33 @@ export function DashboardPage({
       </section>
 
       <section className="dashboard-activity panel">
-        <header className="dashboard-activity-head">
-          <h2 className="dashboard-section-title">最近活动</h2>
+        <header className="panel-head dashboard-activity-head">
+          <h2>最近活动</h2>
+          <select
+            className="input sm dashboard-activity-kind"
+            value={activityKind}
+            aria-label="按分类筛选"
+            onChange={(e) => {
+              setActivityKind(e.target.value);
+              setActivityPage(1);
+            }}
+          >
+            <option value="">全部分类</option>
+            {kinds.map((kind) => (
+              <option key={kind.id} value={kind.id}>
+                {kindLabel(kind.id)}
+              </option>
+            ))}
+          </select>
         </header>
         <div className="records-table-wrap dashboard-activity-table-wrap">
           <table className="records-table data-table dashboard-activity-table">
             <colgroup>
               <col className="records-col-index" />
               <col className="records-col-code" />
-              <col />
+              <col className="dashboard-col-title-col" />
               <col className="records-col-actors" />
+              <col className="records-col-kind" />
               <col className="records-col-trigger" />
               <col className="records-col-duration" />
               <col className="records-col-time" />
@@ -248,14 +271,15 @@ export function DashboardPage({
                 <th className="records-col-code">番号</th>
                 <th className="dashboard-col-title">标题</th>
                 <th className="records-col-actors">演员</th>
+                <th className="records-col-kind">分类</th>
                 <th className="records-col-trigger">来源</th>
                 <th className="records-col-duration">年份</th>
                 <th className="records-col-time">添加日期</th>
               </tr>
             </thead>
             <tbody>
-              {recentActivity.length ? (
-                recentActivity.map((file) => (
+              {activityFiles.length ? (
+                activityFiles.map((file) => (
                   <tr
                     key={file.id}
                     className="records-row-clickable"
@@ -269,18 +293,21 @@ export function DashboardPage({
                     <td className="records-col-actors" title={displayActors(file)}>
                       {displayActors(file)}
                     </td>
+                    <td className="records-col-kind">
+                      <span className="records-pill records-pill--kind">{kindLabel(file.kind)}</span>
+                    </td>
                     <td className="records-col-trigger">
-                      <span className="records-pill records-pill--trigger">
-                        {triggerLabel(file, kinds)}
+                      <span className={triggerPillClass(file.triggerSource)}>
+                        {triggerLabel(file.triggerSource)}
                       </span>
                     </td>
-                    <td className="records-col-duration">—</td>
+                    <td className="records-col-duration">{displayYear(file)}</td>
                     <td className="records-col-time">{formatDashboardTime(fileAddedAt(file))}</td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} className="empty">
+                  <td colSpan={8} className="empty">
                     刮削成功后会显示在这里
                   </td>
                 </tr>
@@ -288,6 +315,34 @@ export function DashboardPage({
             </tbody>
           </table>
         </div>
+
+        {activityPageCount > 1 || activityTotal > 0 ? (
+          <footer className="pagination dashboard-activity-pagination">
+            <span className="dashboard-activity-page-meta">
+              共 {activityTotal} 条
+              {activityPageCount > 1 ? ` · 第 ${activityPage}/${activityPageCount} 页` : ""}
+            </span>
+            <div className="dashboard-activity-page-controls">
+              <button
+                type="button"
+                className="btn sm ghost"
+                disabled={activityPage <= 1}
+                onClick={() => setActivityPage((p) => Math.max(1, p - 1))}
+              >
+                上一页
+              </button>
+              <span className="records-page-indicator">{activityPage}</span>
+              <button
+                type="button"
+                className="btn sm ghost"
+                disabled={activityPage >= activityPageCount}
+                onClick={() => setActivityPage((p) => p + 1)}
+              >
+                下一页
+              </button>
+            </div>
+          </footer>
+        ) : null}
       </section>
     </div>
   );

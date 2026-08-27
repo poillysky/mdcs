@@ -11,5 +11,6 @@
 | [`references/MDC-NG-UI.md`](references/MDC-NG-UI.md) | MDC-NG UI 原始对照 |
 | [`SETTINGS-MDCX-ALIGNMENT.md`](SETTINGS-MDCX-ALIGNMENT.md) | **设置参数 · MDCX/MDC-NG 对齐分析**（目录/NFO/封面） |
 | [`SETTINGS-CONFIG-AUDIT.md`](SETTINGS-CONFIG-AUDIT.md) | **设置 UI 落地审计**（哪些配置真正生效） |
+| [`FRAMEWORK-AUDIT.md`](FRAMEWORK-AUDIT.md) | **框架缺陷与技术债**（v1.0 后体检、单测、文档漂移） |
 
 代码参考（只读）：仓库根目录 `references/`（8 个开源项目）。

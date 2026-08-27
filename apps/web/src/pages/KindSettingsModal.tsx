@@ -1,32 +1,39 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchKinds, fetchScrapeConfig, saveScrapeConfig, updateKind, type KindRow } from "../api";
+import {
+  AdvancedSettingsShell,
+} from "../components/advancedSettings/AdvancedSettingsShell";
+import {
+  OrganizeFields,
+  Panel,
+  seedOrganize,
+} from "../components/advancedSettings/fields";
 import { FolderPicker } from "../components/FolderPicker";
 import { KindSourcesSettingsView } from "../components/KindSourcesSettingsView";
-import { Modal } from "../components/Modal";
 import { SettingRow } from "../components/SettingRow";
+import { DownloadSettingsPanel } from "./DownloadSettingsPanel";
+import { MetadataSettingsPanel } from "./MetadataSettingsPanel";
+import { NamingSettingsPanel } from "./NamingSettingsPanel";
+import { NfoSettingsPanel } from "./NfoSettingsPanel";
+import { WatermarkSettingsPanel } from "./WatermarkSettingsPanel";
+import {
+  JOB_ADVANCED_TABS,
+  applyJobDownload,
+  applyJobMetadata,
+  applyJobNaming,
+  applyJobNfo,
+  applyJobWatermark,
+  scrapeToJobDownload,
+  scrapeToJobMetadata,
+  scrapeToJobNaming,
+  scrapeToJobNfo,
+  scrapeToJobWatermark,
+  type JobOptionsTab,
+  type JobWatermarkOptions,
+} from "../lib/jobOptions";
 import type { NotifyFn } from "../lib/notify";
 import { displayRelativePath, normalizeRelativePath } from "../lib/paths";
 import type { OrganizeConfig, ProviderCatalogRow, ScrapeConfig } from "../types";
-
-type TabId = "organize" | "download" | "naming" | "watermark" | "metadata" | "nfo" | "sources";
-
-const TABS: { id: TabId; label: string }[] = [
-  { id: "organize", label: "整理" },
-  { id: "download", label: "下载" },
-  { id: "naming", label: "命名" },
-  { id: "watermark", label: "水印" },
-  { id: "metadata", label: "元数据" },
-  { id: "nfo", label: "NFO" },
-  { id: "sources", label: "数据源" },
-];
-
-const ORGANIZE_MODES = [
-  { value: "hardlink", label: "硬链接" },
-  { value: "softlink", label: "软链接" },
-  { value: "inplace", label: "原地整理" },
-  { value: "copy", label: "复制" },
-  { value: "move", label: "移动" },
-] as const;
 
 type KindDraft = {
   enabled: boolean;
@@ -64,6 +71,9 @@ function defaultDownload(cfg: ScrapeConfig): NonNullable<ScrapeConfig["download"
     skipAmazon: true,
     subtitleLibraryPath: "",
     subtitleAddChsSuffix: false,
+    cropRatio: "full",
+    cropIndependentPoster: false,
+    preferCropResult: true,
     ...cfg.download,
   };
 }
@@ -141,23 +151,6 @@ function ensureProfile(cfg: ScrapeConfig, kindId: string): ProfileDraft {
   };
 }
 
-function GlobalToggle({
-  checked,
-  onChange,
-}: {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <label className="advanced-job-row">
-      <span>使用全局配置</span>
-      <span className="switch">
-        <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-      </span>
-    </label>
-  );
-}
-
 export function KindSettingsModal({
   open,
   kind,
@@ -167,10 +160,11 @@ export function KindSettingsModal({
   onClose,
   onSaved,
 }: Props) {
-  const [tab, setTab] = useState<TabId>("organize");
+  const [tab, setTab] = useState<JobOptionsTab>("organize");
   const [kindDraft, setKindDraft] = useState<KindDraft | null>(null);
   const [kindBaseline, setKindBaseline] = useState<KindDraft | null>(null);
   const [scrape, setScrape] = useState<ScrapeConfig | null>(null);
+  const [organize, setOrganize] = useState<OrganizeConfig | null>(null);
   const [catalog, setCatalog] = useState<ProviderCatalogRow[]>([]);
   const [profile, setProfile] = useState<ProfileDraft | null>(null);
   const [profileBaseline, setProfileBaseline] = useState<string>("");
@@ -188,6 +182,7 @@ export function KindSettingsModal({
         setScrape(scrapeData.config);
         setScrapeBaseline(JSON.stringify(scrapeData.config));
         setCatalog(scrapeData.catalog ?? []);
+        setOrganize(kindsData.organize);
         const fresh = kindsData.kinds.find((k) => k.id === kind.id) ?? kind;
         const kd = toKindDraft(fresh, kindsData.organize);
         setKindDraft(kd);
@@ -221,24 +216,47 @@ export function KindSettingsModal({
 
   function patchUseGlobal(key: keyof NonNullable<ProfileDraft["useGlobal"]>, value: boolean) {
     setProfile((prev) => {
-      if (!prev) return prev;
+      if (!prev || !scrape) return prev;
       let next: ProfileDraft = {
         ...prev,
         useGlobal: { ...prev.useGlobal, [key]: value },
       };
-      // 切到专属命名时，用当前全局模板作初值，避免空白
-      if (key === "naming" && value === false && scrape?.naming) {
-        next = {
-          ...next,
-          directoryTemplate: scrape.naming.directoryTemplate || next.directoryTemplate,
-          fileNameTemplate: scrape.naming.fileNameTemplate || next.fileNameTemplate,
-          nameSuffixTemplate:
-            scrape.naming.nameSuffixTemplate ?? next.nameSuffixTemplate ?? "",
-          posterCrop: scrape.naming.posterCrop || next.posterCrop,
-        };
+      if (!value) {
+        if (key === "naming") {
+          next = {
+            ...next,
+            directoryTemplate: scrape.naming?.directoryTemplate || next.directoryTemplate,
+            fileNameTemplate: scrape.naming?.fileNameTemplate || next.fileNameTemplate,
+            nameSuffixTemplate: scrape.naming?.nameSuffixTemplate ?? next.nameSuffixTemplate ?? "",
+            posterCrop: scrape.naming?.posterCrop || next.posterCrop,
+          };
+        }
+        if (key === "download") {
+          next.download = { ...defaultDownload(scrape), ...prev.download };
+        }
+        if (key === "watermark") {
+          next.watermark = { ...defaultWatermark(scrape), ...prev.watermark };
+        }
+        if (key === "metadata") {
+          next.metadata = { ...defaultMetadata(scrape), ...prev.metadata };
+        }
       }
       return next;
     });
+  }
+
+  function tabUsesGlobal(): boolean {
+    if (!kindDraft || !profile) return true;
+    if (tab === "organize") return kindDraft.useGlobalOrganize;
+    return profile.useGlobal?.[tab] !== false;
+  }
+
+  function setTabUsesGlobal(value: boolean) {
+    if (tab === "organize") {
+      patchKind({ useGlobalOrganize: value });
+      return;
+    }
+    patchUseGlobal(tab, value);
   }
 
   function close() {
@@ -304,6 +322,7 @@ export function KindSettingsModal({
       setKindBaseline({ ...kindDraft });
       notify("ok", `「${kindDraft.label}」分区设置已保存`);
       onSaved();
+      onClose();
     } catch (e) {
       notify("error", e, "保存失败");
     } finally {
@@ -316,14 +335,181 @@ export function KindSettingsModal({
       ? displayRelativePath(kind?.sourceRoot || kind?.sourceAbs || "")
       : kind?.label || "";
 
+  const usingGlobal = tabUsesGlobal();
+
+  function renderFields() {
+    if (!kindDraft || !profile || !scrape || !organize) return null;
+
+    const pathHeader = (
+      <Panel title="分区路径">
+        <SettingRow label="来源目录" layout="stack">
+          <FolderPicker
+            variant="inline"
+            pickerTitle="选择刮削路径"
+            value={kindDraft.sourceRoot}
+            onChange={(relative) => patchKind({ sourceRoot: relative })}
+            usedBy={usedSources}
+            currentLabel={kindDraft.label}
+            onError={(msg) => notify("error", msg, "读取目录失败")}
+          />
+        </SettingRow>
+        <SettingRow label="整理目录" layout="stack">
+          <FolderPicker
+            variant="inline"
+            pickerTitle="选择整理目录"
+            value={kindDraft.libraryRoot}
+            onChange={(relative) => patchKind({ libraryRoot: relative })}
+            usedBy={usedLibraries}
+            currentLabel={kindDraft.label}
+            onError={(msg) => notify("error", msg, "读取目录失败")}
+          />
+        </SettingRow>
+      </Panel>
+    );
+
+    if (tab === "organize") {
+      if (usingGlobal) {
+        return <div className="advanced-job-settings">{pathHeader}</div>;
+      }
+      return (
+        <OrganizeFields
+          variant="kind"
+          header={pathHeader}
+          value={seedOrganize(organize, {
+            organizeMode: kindDraft.organizeMode,
+            organizeFallback: kindDraft.organizeFallback,
+            metadataDir: kindDraft.metadataDir,
+            deleteMetadataOnFail: kindDraft.deleteMetadataOnFail,
+          })}
+          onChange={(org) =>
+            patchKind({
+              organizeMode: org.organizeMode || kindDraft.organizeMode,
+              organizeFallback: org.organizeFallback || kindDraft.organizeFallback,
+              metadataDir: org.metadataDir ?? "",
+              deleteMetadataOnFail: Boolean(org.deleteMetadataOnFail),
+            })
+          }
+          notify={notify}
+        />
+      );
+    }
+
+    if (usingGlobal) return null;
+
+    switch (tab) {
+      case "download":
+        return (
+          <DownloadSettingsPanel
+            notify={notify}
+            embedded
+            value={applyJobDownload(scrape, profile.download)}
+            onChange={(next) => {
+              patchProfile({ download: scrapeToJobDownload(next) });
+              setScrape((prev) =>
+                prev ? { ...prev, kindProfiles: next.kindProfiles } : prev,
+              );
+            }}
+          />
+        );
+      case "naming":
+        return (
+          <NamingSettingsPanel
+            notify={notify}
+            embedded
+            value={applyJobNaming(scrape, {
+              directoryTemplate: profile.directoryTemplate,
+              fileNameTemplate: profile.fileNameTemplate,
+              nameSuffixTemplate: profile.nameSuffixTemplate,
+              posterCrop: profile.posterCrop,
+            })}
+            onChange={(next) => {
+              const naming = scrapeToJobNaming(next);
+              patchProfile({
+                directoryTemplate: naming.directoryTemplate || profile.directoryTemplate,
+                fileNameTemplate: naming.fileNameTemplate || profile.fileNameTemplate,
+                nameSuffixTemplate: naming.nameSuffixTemplate ?? profile.nameSuffixTemplate,
+                posterCrop: naming.posterCrop || profile.posterCrop,
+              });
+              setScrape(next);
+            }}
+          />
+        );
+      case "watermark":
+        return (
+          <WatermarkSettingsPanel
+            notify={notify}
+            embedded
+            value={applyJobWatermark(scrape, profile.watermark as JobWatermarkOptions | undefined)}
+            onChange={(next) =>
+              patchProfile({ watermark: scrapeToJobWatermark(next) })
+            }
+          />
+        );
+      case "metadata":
+        return (
+          <MetadataSettingsPanel
+            notify={notify}
+            embedded
+            value={applyJobMetadata(scrape, profile.metadata)}
+            onChange={(next) =>
+              patchProfile({ metadata: scrapeToJobMetadata(next) })
+            }
+          />
+        );
+      case "nfo":
+        return (
+          <NfoSettingsPanel
+            notify={notify}
+            embedded
+            value={applyJobNfo(scrape, { mergeStrategy: profile.nfoMergeStrategy })}
+            onChange={(next) => {
+              const nfo = scrapeToJobNfo(next);
+              patchProfile({
+                nfoMergeStrategy:
+                  nfo.mergeStrategy === "prefer_nfo" || nfo.mergeStrategy === "prefer_scraped"
+                    ? nfo.mergeStrategy
+                    : profile.nfoMergeStrategy,
+              });
+              setScrape(next);
+            }}
+          />
+        );
+      case "sources":
+        return (
+          <KindSourcesSettingsView
+            kindLabel={kindDraft.label || kind?.label || "分区"}
+            scrape={scrape}
+            catalog={catalog}
+            profile={{
+              metaSources: profile.metaSources,
+              coverSources: profile.coverSources,
+              fieldPriority: profile.fieldPriority,
+            }}
+            onScrapeChange={(next, nextCatalog) => {
+              setScrape(next);
+              if (nextCatalog) setCatalog(nextCatalog);
+            }}
+            onProfileChange={(patch) => patchProfile(patch)}
+            notify={notify}
+          />
+        );
+      default:
+        return null;
+    }
+  }
+
   return (
-    <Modal
+    <AdvancedSettingsShell
       open={open && !!kind}
-      variant="sheet"
-      padded
-      className="modal-kind-settings"
       title="监控目录设置"
       subtitle={titlePath || undefined}
+      className="modal-kind-settings"
+      tabs={[...JOB_ADVANCED_TABS]}
+      tab={tab}
+      onTabChange={setTab}
+      useGlobal={usingGlobal}
+      onUseGlobalChange={setTabUsesGlobal}
+      loading={loading || !kindDraft || !profile || !scrape}
       onClose={close}
       footer={
         <>
@@ -341,356 +527,7 @@ export function KindSettingsModal({
         </>
       }
     >
-      <div className="kind-settings advanced-job-modal">
-        <div className="advanced-job-tabs" role="tablist" aria-label="分区设置分类">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={tab === t.id}
-              className={`advanced-job-tab${tab === t.id ? " is-active" : ""}`}
-              onClick={() => setTab(t.id)}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        {loading || !kindDraft || !profile || !scrape ? (
-          <div className="empty-block">加载配置…</div>
-        ) : (
-          <div className="kind-settings-body advanced-job-panel">
-            {tab === "organize" ? (
-              <>
-                <GlobalToggle
-                  checked={kindDraft.useGlobalOrganize}
-                  onChange={(v) => patchKind({ useGlobalOrganize: v })}
-                />
-                <SettingRow label="整理目录" layout="stack">
-                  <FolderPicker
-                    variant="inline"
-                    pickerTitle="选择整理目录"
-                    value={kindDraft.libraryRoot}
-                    onChange={(relative) => patchKind({ libraryRoot: relative })}
-                    usedBy={usedLibraries}
-                    currentLabel={kindDraft.label}
-                    onError={(msg) => notify("error", msg, "读取目录失败")}
-                  />
-                </SettingRow>
-                <SettingRow label="来源目录" layout="stack">
-                  <FolderPicker
-                    variant="inline"
-                    pickerTitle="选择刮削路径"
-                    value={kindDraft.sourceRoot}
-                    onChange={(relative) => patchKind({ sourceRoot: relative })}
-                    usedBy={usedSources}
-                    currentLabel={kindDraft.label}
-                    onError={(msg) => notify("error", msg, "读取目录失败")}
-                  />
-                </SettingRow>
-                {!kindDraft.useGlobalOrganize ? (
-                  <>
-                    <SettingRow label="整理模式">
-                      <select
-                        className="org-select"
-                        value={kindDraft.organizeMode}
-                        onChange={(e) => patchKind({ organizeMode: e.target.value })}
-                      >
-                        {ORGANIZE_MODES.map((m) => (
-                          <option key={m.value} value={m.value}>
-                            {m.label}
-                          </option>
-                        ))}
-                      </select>
-                    </SettingRow>
-                    {kindDraft.organizeMode === "hardlink" ||
-                    kindDraft.organizeMode === "softlink" ? (
-                      <SettingRow
-                        label="硬链/软链失败降级"
-                        hint="跨盘或权限失败时：复制继续，或直接失败"
-                      >
-                        <select
-                          className="org-select"
-                          value={kindDraft.organizeFallback}
-                          onChange={(e) => patchKind({ organizeFallback: e.target.value })}
-                        >
-                          <option value="copy">降级为复制</option>
-                          <option value="fail">直接失败</option>
-                        </select>
-                      </SettingRow>
-                    ) : null}
-                    <SettingRow
-                      label="元数据目录"
-                      hint="可选，视频以外的文件整理到另外的目录"
-                      layout="stack"
-                    >
-                      <FolderPicker
-                        variant="inline"
-                        pickerTitle="选择元数据目录"
-                        value={kindDraft.metadataDir}
-                        onChange={(relative) => patchKind({ metadataDir: relative })}
-                        currentLabel={kindDraft.label}
-                        onError={(msg) => notify("error", msg, "读取目录失败")}
-                      />
-                    </SettingRow>
-                    <SettingRow label="刮削出错时删除元数据目录">
-                      <label className="switch">
-                        <input
-                          type="checkbox"
-                          checked={kindDraft.deleteMetadataOnFail}
-                          onChange={(e) => patchKind({ deleteMetadataOnFail: e.target.checked })}
-                        />
-                        <span />
-                      </label>
-                    </SettingRow>
-                  </>
-                ) : null}
-              </>
-            ) : null}
-
-            {tab === "download" ? (
-              <>
-                <GlobalToggle
-                  checked={profile.useGlobal?.download !== false}
-                  onChange={(v) => patchUseGlobal("download", v)}
-                />
-                {profile.useGlobal?.download === false ? (
-                  <>
-                    {(
-                      [
-                        ["downloadPoster", "下载海报"],
-                        ["downloadThumb", "下载缩略图"],
-                        ["downloadFanart", "下载剧照"],
-                        ["amazonHdPoster", "Amazon 高清海报"],
-                        ["tenhowHdPoster", "Tenhow 高清海报"],
-                        ["amazonStrictMode", "Amazon 严格模式"],
-                        ["preferHighResPoster", "DMM 优先高清"],
-                      ] as const
-                    ).map(([key, label]) => (
-                      <SettingRow key={key} label={label}>
-                        <label className="switch">
-                          <input
-                            type="checkbox"
-                            checked={Boolean(profile.download?.[key])}
-                            onChange={(e) => {
-                              const checked = e.target.checked;
-                              const download = { ...profile.download, [key]: checked };
-                              if (key === "amazonHdPoster") download.skipAmazon = !checked;
-                              patchProfile({ download });
-                            }}
-                          />
-                          <span />
-                        </label>
-                      </SettingRow>
-                    ))}
-                  </>
-                ) : null}
-              </>
-            ) : null}
-
-            {tab === "naming" ? (
-              <>
-                <GlobalToggle
-                  checked={profile.useGlobal?.naming !== false}
-                  onChange={(v) => patchUseGlobal("naming", v)}
-                />
-                {profile.useGlobal?.naming !== false ? (
-                  <p className="set-section-sub">
-                    已使用「设置 → 命名」全局规则；下方分区模板仅在关闭「使用全局」后生效。
-                  </p>
-                ) : null}
-                {profile.useGlobal?.naming === false ? (
-                  <>
-                    <SettingRow label="目录模板" layout="stack">
-                      <input
-                        className="org-input"
-                        value={profile.directoryTemplate}
-                        onChange={(e) => patchProfile({ directoryTemplate: e.target.value })}
-                      />
-                    </SettingRow>
-                    <SettingRow label="文件名模板" layout="stack">
-                      <input
-                        className="org-input"
-                        value={profile.fileNameTemplate ?? "{number}"}
-                        onChange={(e) => patchProfile({ fileNameTemplate: e.target.value })}
-                      />
-                    </SettingRow>
-                    <SettingRow label="文件名后缀" layout="stack">
-                      <input
-                        className="org-input"
-                        value={profile.nameSuffixTemplate ?? ""}
-                        onChange={(e) => patchProfile({ nameSuffixTemplate: e.target.value })}
-                        placeholder="如 -{mosaic}"
-                      />
-                    </SettingRow>
-                    <SettingRow label="海报裁剪">
-                      <select
-                        className="org-select"
-                        value={profile.posterCrop}
-                        onChange={(e) => patchProfile({ posterCrop: e.target.value })}
-                      >
-                        <option value="right">右裁</option>
-                        <option value="none">不裁</option>
-                        <option value="face">人脸（失败居中）</option>
-                      </select>
-                    </SettingRow>
-                  </>
-                ) : null}
-              </>
-            ) : null}
-
-            {tab === "watermark" ? (
-              <>
-                <GlobalToggle
-                  checked={profile.useGlobal?.watermark !== false}
-                  onChange={(v) => patchUseGlobal("watermark", v)}
-                />
-                {profile.useGlobal?.watermark === false ? (
-                  <>
-                    <SettingRow label="启用水印">
-                      <label className="switch">
-                        <input
-                          type="checkbox"
-                          checked={Boolean(profile.watermark?.enabled)}
-                          onChange={(e) =>
-                            patchProfile({
-                              watermark: { ...profile.watermark, enabled: e.target.checked },
-                            })
-                          }
-                        />
-                        <span />
-                      </label>
-                    </SettingRow>
-                    <SettingRow label="位置">
-                      <select
-                        className="org-select"
-                        value={profile.watermark?.position || "top-right"}
-                        onChange={(e) =>
-                          patchProfile({
-                            watermark: { ...profile.watermark, position: e.target.value },
-                          })
-                        }
-                      >
-                        <option value="top-left">左上</option>
-                        <option value="top-right">右上</option>
-                        <option value="bottom-left">左下</option>
-                        <option value="bottom-right">右下</option>
-                      </select>
-                    </SettingRow>
-                    <SettingRow label="缩放 %">
-                      <input
-                        className="org-input"
-                        type="number"
-                        min={4}
-                        max={40}
-                        value={profile.watermark?.scalePercent ?? 12}
-                        onChange={(e) =>
-                          patchProfile({
-                            watermark: {
-                              ...profile.watermark,
-                              scalePercent: Number(e.target.value) || 12,
-                            },
-                          })
-                        }
-                      />
-                    </SettingRow>
-                  </>
-                ) : null}
-              </>
-            ) : null}
-
-            {tab === "metadata" ? (
-              <>
-                <GlobalToggle
-                  checked={profile.useGlobal?.metadata !== false}
-                  onChange={(v) => patchUseGlobal("metadata", v)}
-                />
-                {profile.useGlobal?.metadata === false ? (
-                  <>
-                    {(
-                      [
-                        ["strictMode", "严格字段模式"],
-                        ["requireCover", "必须有封面"],
-                        ["trimPlot", "裁剪简介空白"],
-                        ["autoTranslateTitle", "自动翻译标题"],
-                        ["autoTranslateOutline", "自动翻译简介"],
-                      ] as const
-                    ).map(([key, label]) => (
-                      <SettingRow key={key} label={label}>
-                        <label className="switch">
-                          <input
-                            type="checkbox"
-                            checked={Boolean(profile.metadata?.[key])}
-                            onChange={(e) =>
-                              patchProfile({
-                                metadata: { ...profile.metadata, [key]: e.target.checked },
-                              })
-                            }
-                          />
-                          <span />
-                        </label>
-                      </SettingRow>
-                    ))}
-                  </>
-                ) : null}
-              </>
-            ) : null}
-
-            {tab === "nfo" ? (
-              <>
-                <GlobalToggle
-                  checked={profile.useGlobal?.nfo !== false}
-                  onChange={(v) => patchUseGlobal("nfo", v)}
-                />
-                {profile.useGlobal?.nfo === false ? (
-                  <SettingRow label="合并策略" hint="重刮/重整理时的字段优先级">
-                    <select
-                      className="org-select"
-                      value={profile.nfoMergeStrategy || "prefer_scraped"}
-                      onChange={(e) =>
-                        patchProfile({
-                          nfoMergeStrategy: e.target.value as ProfileDraft["nfoMergeStrategy"],
-                        })
-                      }
-                    >
-                      <option value="prefer_scraped">刮削结果覆盖</option>
-                      <option value="prefer_nfo">本地非空优先</option>
-                    </select>
-                  </SettingRow>
-                ) : null}
-              </>
-            ) : null}
-
-            {tab === "sources" ? (
-              <>
-                <GlobalToggle
-                  checked={profile.useGlobal?.sources !== false}
-                  onChange={(v) => patchUseGlobal("sources", v)}
-                />
-                {profile.useGlobal?.sources === false && scrape ? (
-                  <KindSourcesSettingsView
-                    kindLabel={kindDraft?.label || kind?.label || "分区"}
-                    scrape={scrape}
-                    catalog={catalog}
-                    profile={{
-                      metaSources: profile.metaSources,
-                      coverSources: profile.coverSources,
-                      fieldPriority: profile.fieldPriority,
-                    }}
-                    onScrapeChange={(next, nextCatalog) => {
-                      setScrape(next);
-                      if (nextCatalog) setCatalog(nextCatalog);
-                    }}
-                    onProfileChange={(patch) => patchProfile(patch)}
-                    notify={notify}
-                  />
-                ) : null}
-              </>
-            ) : null}
-          </div>
-        )}
-      </div>
-    </Modal>
+      {renderFields()}
+    </AdvancedSettingsShell>
   );
 }

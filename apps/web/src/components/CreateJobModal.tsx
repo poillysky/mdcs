@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
   createJob,
   exportPresets,
@@ -112,6 +112,10 @@ export function CreateJobModal({
   const [jobOptions, setJobOptions] = useState<JobOptions>(defaultJobOptions());
   const [reuseKey, setReuseKey] = useState("none");
   const [ops, setOps] = useState<OpsConfig | null>(null);
+  // App 定时 refresh 会换新 kinds 引用；初始化只应在弹窗打开时跑，避免把高级设置关掉
+  const kindsRef = useRef(kinds);
+  kindsRef.current = kinds;
+  const defaultKindIdsKey = (defaultKindIds ?? []).join(",");
 
   const reuseKinds = useMemo(() => {
     const map = new Map(kinds.map((k) => [k.id, k]));
@@ -153,19 +157,21 @@ export function CreateJobModal({
 
   useEffect(() => {
     if (!open) return;
+    const kindsNow = kindsRef.current;
+    const kindIds = defaultKindIdsKey ? defaultKindIdsKey.split(",") : [];
     setDryRun(false);
     setJobOptions(defaultJobOptions());
     setAdvancedOpen(false);
     setReuseKey("none");
 
     const kindFromContext =
-      defaultKindIds?.length === 1 ? kinds.find((k) => k.id === defaultKindIds[0]) : undefined;
+      kindIds.length === 1 ? kindsNow.find((k) => k.id === kindIds[0]) : undefined;
     const folderNorm = contextFolder ? normalizePath(contextFolder) : "";
-    const kindFromFolder = folderNorm ? findKindBySource(kinds, folderNorm) : undefined;
+    const kindFromFolder = folderNorm ? findKindBySource(kindsNow, folderNorm) : undefined;
     const kind =
       kindFromContext ??
       kindFromFolder ??
-      kinds.find((k) => k.enabled && k.sourceRoot?.trim());
+      kindsNow.find((k) => k.enabled && k.sourceRoot?.trim());
 
     if (kind) {
       applyKindDefaults(kind);
@@ -191,7 +197,7 @@ export function CreateJobModal({
         setOps(null);
       }
     })();
-  }, [open, contextFolder, defaultKindIds, kinds]);
+  }, [open, contextFolder, defaultKindIdsKey]);
 
   function onSourcePathChange(path: string) {
     const norm = normalizePath(path);
@@ -357,7 +363,14 @@ export function CreateJobModal({
         subtitle="手动任务会在后台根据创建顺序依次执行"
         padded
         className="modal-create-job"
-        onClose={onClose}
+        onClose={() => {
+          // 嵌套弹窗：Esc / 点遮罩只关上层高级设置，不连带关掉创建任务
+          if (advancedOpen) {
+            setAdvancedOpen(false);
+            return;
+          }
+          onClose();
+        }}
         footer={
           <>
             <button type="button" className="btn text" onClick={onClose}>

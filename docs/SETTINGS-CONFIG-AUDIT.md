@@ -181,7 +181,7 @@
 | 任务高级设置 | 仅有 `skipAmazon` per-job，无 per-job Tenhow/Amazon 高清开关 |
 | NFO include 不可 per-kind | 有意为之，避免 Emby 元数据碎片化 |
 | Amazon/Tenhow vs MDCX | 无 ASIN Excel 缓存、封面条码、标题置信度匹配等（见 §7） |
-| `ops.qb`（qBittorrent） | schema 有、后端有，**设置页无 UI**（改 JSON） |
+| `ops.qb`（qBittorrent） | schema + 后端有，**设置页无 UI**（改 `config/ops.json`） |
 | 任务预设 `presets` | 在「创建任务」弹窗管理，不在设置 Tab |
 
 ---
@@ -203,9 +203,9 @@
 
 - [ ] Amazon ASIN Excel 缓存 / 条码识图
 - [ ] Amazon 标题置信度 / 演员组匹配
-- [ ] 水印样式 UI 多目录扫描（下拉不止 default）
+- [x] 水印样式 UI 多目录扫描（`GET /api/scrape/watermark/styles`）
 - [ ] 刮削任务级 `amazonHdPoster` / `tenhowHdPoster` override
-- [ ] `ops.qb` 设置页 UI
+- [ ] `ops.qb` 设置页 UI（当前改 JSON）
 - [ ] 整理阶段可选重跑高清海报
 
 ---

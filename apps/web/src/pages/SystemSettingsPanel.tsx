@@ -26,9 +26,16 @@ function readLlmLocal(field: keyof typeof LLM_LS): string {
 }
 
 function syncLlmLocal(llm: { baseUrl: string; apiKey: string; model: string }) {
-  localStorage.setItem(LLM_LS.baseUrl, llm.baseUrl || "");
-  localStorage.setItem(LLM_LS.apiKey, llm.apiKey || "");
-  localStorage.setItem(LLM_LS.model, llm.model || DEFAULT_LLM.model);
+  const pairs: Array<[string, string]> = [
+    [LLM_LS.baseUrl, llm.baseUrl || ""],
+    [LLM_LS.apiKey, llm.apiKey || ""],
+    [LLM_LS.model, llm.model || DEFAULT_LLM.model],
+    // 兼容命名助手旧键 scrap.llm.*
+    ["scrap.llm.baseUrl", llm.baseUrl || ""],
+    ["scrap.llm.apiKey", llm.apiKey || ""],
+    ["scrap.llm.model", llm.model || DEFAULT_LLM.model],
+  ];
+  for (const [k, v] of pairs) localStorage.setItem(k, v);
 }
 
 function Section({
@@ -195,6 +202,20 @@ export function SystemSettingsPanel({ notify }: Props) {
             title="OpenAI 相关配置"
             hint="兼容 OpenAI API 的接口（官方 / DeepSeek / 本地中转等）；供元数据翻译与命名助手使用"
           >
+            <SettingRow
+              label="Base URL"
+              hint="兼容 OpenAI 规范的接口，如 https://api.deepseek.com"
+              layout="stack"
+            >
+              <input
+                className="org-input"
+                value={llm.baseUrl}
+                onChange={(e) => patchLlm({ baseUrl: e.target.value })}
+                placeholder="默认使用 OpenAI 官方接口"
+                spellCheck={false}
+                autoComplete="off"
+              />
+            </SettingRow>
             <SettingRow label="API Key" hint="API 密钥，sk-xxx" layout="stack">
               <div className="actors-key-row">
                 <input
@@ -214,20 +235,6 @@ export function SystemSettingsPanel({ notify }: Props) {
                   {showKey ? "隐藏" : "显示"}
                 </button>
               </div>
-            </SettingRow>
-            <SettingRow
-              label="Base URL"
-              hint="兼容 OpenAI 规范的接口，如 https://api.deepseek.com"
-              layout="stack"
-            >
-              <input
-                className="org-input"
-                value={llm.baseUrl}
-                onChange={(e) => patchLlm({ baseUrl: e.target.value })}
-                placeholder="默认使用 OpenAI 官方接口"
-                spellCheck={false}
-                autoComplete="off"
-              />
             </SettingRow>
             <SettingRow
               label="Model"

@@ -31,11 +31,14 @@ tools/curl-impersonate/
 # 临时
 _schema_*.txt
 
-# 常见视频
+# 常见视频（勿写全局 *.ts，会误伤 TypeScript 源码）
 *.mp4
 *.mkv
 *.avi
 *.wmv
 *.mov
-*.ts
 *.m2ts
+inbox/**/*.ts
+library/**/*.ts
+media/**/*.ts
+data/**/*.ts

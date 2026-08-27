@@ -1,9 +1,9 @@
 # 数据源测试记录
 
-> 最后更新：2026-08-24  
+> 最后更新：2026-08-27  
 > **逐源文档**：[docs/sources/README.md](./sources/README.md)（测一个写一个）  
 > 环境：代理 `http://192.168.2.88:7893` · FlareSolverr `http://192.168.2.38:8191/v1`  
-> 相关：`docs/SOURCE-CATALOG-8REF.md`（连接/取数） · `docs/SOURCE-PROBE.md`（测通） · `docs/SOURCE-TEST-STRATEGY.md`（测试策略） · **`docs/SOURCE-MASTER-LIST.md`**（全站点 64 id）
+> 相关：`docs/SOURCE-CATALOG-8REF.md`（连接/取数） · `docs/SOURCE-PROBE.md`（测通） · `docs/SOURCE-TEST-STRATEGY.md`（测试策略） · **`docs/SOURCE-MASTER-LIST.md`**（全站点对照；现行 32 源见 `sourceMaster.ts`） · [FRAMEWORK-AUDIT.md](./FRAMEWORK-AUDIT.md)
 
 ---
 
@@ -297,9 +297,12 @@ Provider stub；未测。
 | 备注 | AIO **wav** 族；识别码 `Series.YY.MM.DD`；`RK.2012.02.23` 站内搜不到 |
 | 详情 | [sources/avheat.md](./sources/avheat.md) |
 
-#### 小黄书 — 🔧 未实现
+#### 小黄书 — ✅ 已实现
 
-Provider stub；索引样例暂用 MDX-0001；未测。
+| 项 | 结果 |
+|----|------|
+| 刮削 / E2E | ✅ 2026-08-24（MDX-0006；单源须 `proxyUrl: null` 直连） |
+| 详情 | [sources/xiao_huang_shu.md](./sources/xiao_huang_shu.md) |
 
 ---
 
@@ -328,15 +331,16 @@ Provider stub；索引样例暂用 MDX-0001；未测。
 
 ## 6. 已知问题与待办
 
-| 优先级 | 项 | 说明 |
-|--------|-----|------|
-| P1 | JavDB 过盾 | 换出口或接 mdcx App API |
-| P1 | fc2_hub 封面 | fancybox 优先已对齐 MDCX；失效 storage 链靠 fd2ppv 补 |
-| P2 | jav321 缺 actor/genre | SONE-001 精简页无 star/genre 链接；rating 已补 |
-| P2 | carib rating/trailer | 站点无结构化字段 |
-| P3 | AVHeat 索引覆盖 | 本地 `STUDIO.YYYY.MM.DD` 须映射站点 ID |
-| P3 | LibreDMM outlet | 文档化或优先正式作 CID |
-| P3 | 有码水印角标 | `markCensored=true` 重验 |
+| 优先级 | 项 | 说明 | 状态 |
+|--------|-----|------|------|
+| P1 | JavDB 过盾 | 批量易超时；换出口 / 稳 Flare；可选后续接 mdcx App API | 开放（非框架阻断） |
+| P1 | fc2_hub 封面 | fancybox 优先已对齐 MDCX；失效 storage 链靠多源合并补图 | 开放（站点限制） |
+| P2 | jav321 缺 actor/genre | SONE-001 精简页无 star/genre 链接；rating 已补 | 站点限制 |
+| P2 | carib rating/trailer | 站点无结构化字段 | 站点限制 |
+| P2 | theporndb 缺 Key | UI 卡片显示「缺 Key」徽章；填控制台 Token 后可用 | ✅ UI 提示已加 |
+| P3 | AVHeat 索引覆盖 | 本地 `STUDIO.YYYY.MM.DD` 须映射站点 ID | 开放 |
+| P3 | LibreDMM outlet | 文档化或优先正式作 CID | 开放 |
+| P3 | 有码水印角标 | `markCensored=true` 重验 | 配置项 |
 
 ---
 

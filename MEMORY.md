@@ -4,6 +4,35 @@
 
 ---
 
+## 2026-08-27 — Dashboard 聚合 API + 活动分页 + 任务来源
+
+- **背景**：主界面「建议后续（可选）」三项：聚合接口、活动服务端排序分页、真实来源字段。
+- **决策/结论**：
+  - `GET /api/dashboard` 一次返回 scrapeMax、actorTotal、周对比、recentActivity（分页/分类筛选）。
+  - `jobs.trigger_source`（manual|monitor|qb）；监控/qB 建任务写入；files 列表 join 得 `triggerSource`。
+  - 活动按 `COALESCE(organized_at, scraped_at, file_mtime) DESC` 排序；前端改 `fetchDashboard`，去掉 3 次独立 fetch。
+- **待办/遗留**：历史任务/无 job_id 的文件来源显示「—」；Records 页仍按 id 排序（未改）。
+
+---
+
+- **背景**：按 FRAMEWORK-AUDIT 优先级继续修缺陷与改善项。
+- **决策/结论**：
+  - 宽屏模式落地（侧栏开关 + `mdcs.wideMode`）；暗色主题明确不做。
+  - 水印样式扫描 API；theporndb「缺 Key」徽章；LLM `mdcs.llm.*`/`scrap.llm.*` 双写。
+  - DESIGN / SOURCE-* / UI-DESIGN-SYSTEM / ROADMAP S1.3–1.6 文档对齐。
+  - qB 设置 Tab 曾加后按用户要求删除（后端钩子仍保留，改 `ops.json`）。
+- **待办/遗留**：JavDB 过盾、fc2_hub 封面属源站开放项；S4.14 revert / Amazon ASIN 仍为 P3 backlog。
+
+---
+
+## 2026-08-27 — 框架审计文档（v1.0 后体检）
+
+- **背景**：用户要求对照文档检查框架是否还有缺陷/bug。
+- **决策/结论**：新增 `docs/FRAMEWORK-AUDIT.md`；typecheck 通过；`npm test` 401/402（njav 搜索 fixture 404）；32 Provider 全实现；ROADMAP §1 / S6-ACCEPTANCE 同步更新。
+- **待办/遗留**：JavDB/fc2_hub 等见 SOURCE-E2E §6；S1.6 主题宽屏与 DESIGN 规格二选一。
+
+---
+
 ## 2026-08-27 — Gfriends 头像择优（Digigra 优先）
 
 - **背景**：加藤ももか等头像抓到 AVDC 200×300  tight crop，观感「偏」。

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
-import { fetchScrapeConfig, saveScrapeConfig } from "../api";
+import { fetchScrapeConfig, fetchWatermarkStyles, saveScrapeConfig } from "../api";
 import { FolderPicker } from "../components/FolderPicker";
 import { SettingRow } from "../components/SettingRow";
 import type { NotifyFn } from "../lib/notify";
@@ -7,6 +7,9 @@ import type { ScrapeConfig } from "../types";
 
 type Props = {
   notify: NotifyFn;
+  embedded?: boolean;
+  value?: ScrapeConfig;
+  onChange?: (next: ScrapeConfig) => void;
 };
 
 type Wm = NonNullable<ScrapeConfig["watermark"]>;
@@ -252,13 +255,41 @@ function placeStyle(mark: PreviewMark, index: number, w: Wm, marks: PreviewMark[
   };
 }
 
-export function WatermarkSettingsPanel({ notify }: Props) {
-  const [config, setConfig] = useState<ScrapeConfig | null>(null);
-  const [loading, setLoading] = useState(true);
+export function WatermarkSettingsPanel({
+  notify,
+  embedded = false,
+  value,
+  onChange,
+}: Props) {
+  const controlled = embedded && Boolean(value) && Boolean(onChange);
+  const [config, setConfig] = useState<ScrapeConfig | null>(
+    value ? { ...value, watermark: { ...DEFAULT, ...value.watermark } } : null,
+  );
+  const [loading, setLoading] = useState(!controlled);
   const [saving, setSaving] = useState(false);
   const [showAllPreview, setShowAllPreview] = useState(false);
+  const [styleOptions, setStyleOptions] = useState<string[]>(["default"]);
 
   useEffect(() => {
+    void (async () => {
+      try {
+        const data = await fetchWatermarkStyles();
+        const list = data.styles?.length ? data.styles : ["default"];
+        setStyleOptions(list);
+      } catch {
+        setStyleOptions(["default"]);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!controlled) return;
+    setConfig(value ? { ...value, watermark: { ...DEFAULT, ...value.watermark } } : null);
+    setLoading(false);
+  }, [controlled, value]);
+
+  useEffect(() => {
+    if (controlled) return;
     void (async () => {
       setLoading(true);
       try {
@@ -273,7 +304,12 @@ export function WatermarkSettingsPanel({ notify }: Props) {
         setLoading(false);
       }
     })();
-  }, [notify]);
+  }, [controlled, notify]);
+
+  function commit(next: ScrapeConfig) {
+    setConfig(next);
+    if (controlled) onChange?.(next);
+  }
 
   function patch(partial: Partial<Wm>) {
     if (!config) return;
@@ -286,7 +322,7 @@ export function WatermarkSettingsPanel({ notify }: Props) {
     if (partial.startPosition != null) {
       next.position = asCorner(partial.startPosition);
     }
-    setConfig({ ...config, watermark: next });
+    commit({ ...config, watermark: next });
   }
 
   async function save() {
@@ -304,6 +340,14 @@ export function WatermarkSettingsPanel({ notify }: Props) {
   }
 
   const w = useMemo(() => ({ ...DEFAULT, ...config?.watermark }), [config]);
+  const styleSelectOptions = useMemo(() => {
+    const set = new Set(styleOptions);
+    if (w.style) set.add(w.style);
+    if (w.style4k) set.add(w.style4k);
+    const list = [...set];
+    list.sort((a, b) => (a === "default" ? -1 : b === "default" ? 1 : a.localeCompare(b)));
+    return list;
+  }, [styleOptions, w.style, w.style4k]);
   const previewMarks = useMemo(
     () => (w.enabled ? buildPreviewMarks(w, showAllPreview) : []),
     [w, showAllPreview],
@@ -338,7 +382,11 @@ export function WatermarkSettingsPanel({ notify }: Props) {
                 value={w.style || "default"}
                 onChange={(e) => patch({ style: e.target.value })}
               >
-                <option value="default">默认</option>
+                {styleSelectOptions.map((id) => (
+                  <option key={id} value={id}>
+                    {id === "default" ? "默认" : id}
+                  </option>
+                ))}
               </select>
             </SettingRow>
             <SettingRow label="水印样式 (4K, 8K)" hint="分辨率角标 PNG 目录，默认与基本样式相同">
@@ -347,7 +395,11 @@ export function WatermarkSettingsPanel({ notify }: Props) {
                 value={w.style4k || "default"}
                 onChange={(e) => patch({ style4k: e.target.value })}
               >
-                <option value="default">默认</option>
+                {styleSelectOptions.map((id) => (
+                  <option key={`4k-${id}`} value={id}>
+                    {id === "default" ? "默认" : id}
+                  </option>
+                ))}
               </select>
             </SettingRow>
             <SettingRow label="自定义水印" hint="目录内 PNG：youma / wuma / umr / leak / sub / 4k / 8k" layout="stack">
@@ -557,11 +609,13 @@ export function WatermarkSettingsPanel({ notify }: Props) {
         </div>
       </section>
 
-      <div className="page-save-row">
-        <button type="button" className="btn primary" disabled={saving} onClick={() => void save()}>
-          {saving ? "保存中…" : "保存修改"}
-        </button>
-      </div>
+      {!embedded ? (
+        <div className="page-save-row">
+          <button type="button" className="btn primary" disabled={saving} onClick={() => void save()}>
+            {saving ? "保存中…" : "保存修改"}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

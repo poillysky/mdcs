@@ -7,6 +7,9 @@ import type { ScrapeConfig } from "../types";
 
 type Props = {
   notify: NotifyFn;
+  embedded?: boolean;
+  value?: ScrapeConfig;
+  onChange?: (next: ScrapeConfig) => void;
 };
 
 const DEFAULT_DOWNLOAD: NonNullable<ScrapeConfig["download"]> = {
@@ -25,27 +28,51 @@ const DEFAULT_DOWNLOAD: NonNullable<ScrapeConfig["download"]> = {
   preferCropResult: true,
 };
 
-export function DownloadSettingsPanel({ notify }: Props) {
-  const [config, setConfig] = useState<ScrapeConfig | null>(null);
-  const [loading, setLoading] = useState(true);
+function withDownloadDefaults(cfg: ScrapeConfig): ScrapeConfig {
+  return {
+    ...cfg,
+    download: { ...DEFAULT_DOWNLOAD, ...cfg.download },
+  };
+}
+
+export function DownloadSettingsPanel({
+  notify,
+  embedded = false,
+  value,
+  onChange,
+}: Props) {
+  const controlled = embedded && Boolean(value) && Boolean(onChange);
+  const [config, setConfig] = useState<ScrapeConfig | null>(
+    value ? withDownloadDefaults(value) : null,
+  );
+  const [loading, setLoading] = useState(!controlled);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    if (!controlled) return;
+    setConfig(value ? withDownloadDefaults(value) : null);
+    setLoading(false);
+  }, [controlled, value]);
+
+  useEffect(() => {
+    if (controlled) return;
     void (async () => {
       setLoading(true);
       try {
         const data = await fetchScrapeConfig();
-        setConfig({
-          ...data.config,
-          download: { ...DEFAULT_DOWNLOAD, ...data.config.download },
-        });
+        setConfig(withDownloadDefaults(data.config));
       } catch (e) {
         notify("error", e, "加载下载配置失败");
       } finally {
         setLoading(false);
       }
     })();
-  }, [notify]);
+  }, [controlled, notify]);
+
+  function commit(next: ScrapeConfig) {
+    setConfig(next);
+    if (controlled) onChange?.(next);
+  }
 
   function patchDownload(partial: Partial<NonNullable<ScrapeConfig["download"]>>) {
     if (!config) return;
@@ -56,7 +83,7 @@ export function DownloadSettingsPanel({ notify }: Props) {
     } else if (typeof partial.skipAmazon === "boolean") {
       next.amazonHdPoster = !partial.skipAmazon;
     }
-    setConfig({
+    commit({
       ...config,
       download: next,
     });
@@ -145,7 +172,7 @@ export function DownloadSettingsPanel({ notify }: Props) {
             <select
               className="org-select"
               value={config.coverDownloadStrategy || "priority"}
-              onChange={(e) => setConfig({ ...config, coverDownloadStrategy: e.target.value })}
+              onChange={(e) => commit({ ...config, coverDownloadStrategy: e.target.value })}
             >
               <option value="priority">按字段优先级</option>
               <option value="size">按图片质量（较慢）</option>
@@ -266,7 +293,7 @@ export function DownloadSettingsPanel({ notify }: Props) {
                   onChange={(e) => {
                     const posterCrop = e.target.value;
                     const prev = config.kindProfiles[row.id];
-                    setConfig({
+                    commit({
                       ...config,
                       kindProfiles: {
                         ...config.kindProfiles,
@@ -359,11 +386,13 @@ export function DownloadSettingsPanel({ notify }: Props) {
         </div>
       </section>
 
-      <div className="page-save-row">
-        <button type="button" className="btn primary" disabled={saving} onClick={() => void save()}>
-          {saving ? "保存中…" : "保存下载配置"}
-        </button>
-      </div>
+      {!embedded ? (
+        <div className="page-save-row">
+          <button type="button" className="btn primary" disabled={saving} onClick={() => void save()}>
+            {saving ? "保存中…" : "保存下载配置"}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

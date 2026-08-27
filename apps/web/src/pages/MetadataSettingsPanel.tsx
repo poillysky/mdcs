@@ -7,6 +7,9 @@ import type { ScrapeConfig } from "../types";
 
 type Props = {
   notify: NotifyFn;
+  embedded?: boolean;
+  value?: ScrapeConfig;
+  onChange?: (next: ScrapeConfig) => void;
 };
 
 type Meta = NonNullable<ScrapeConfig["metadata"]>;
@@ -68,12 +71,27 @@ function Switch({
   );
 }
 
-export function MetadataSettingsPanel({ notify }: Props) {
-  const [config, setConfig] = useState<ScrapeConfig | null>(null);
-  const [loading, setLoading] = useState(true);
+export function MetadataSettingsPanel({
+  notify,
+  embedded = false,
+  value,
+  onChange,
+}: Props) {
+  const controlled = embedded && Boolean(value) && Boolean(onChange);
+  const [config, setConfig] = useState<ScrapeConfig | null>(
+    value ? { ...value, metadata: { ...DEFAULT, ...value.metadata } } : null,
+  );
+  const [loading, setLoading] = useState(!controlled);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    if (!controlled) return;
+    setConfig(value ? { ...value, metadata: { ...DEFAULT, ...value.metadata } } : null);
+    setLoading(false);
+  }, [controlled, value]);
+
+  useEffect(() => {
+    if (controlled) return;
     void (async () => {
       setLoading(true);
       try {
@@ -88,11 +106,16 @@ export function MetadataSettingsPanel({ notify }: Props) {
         setLoading(false);
       }
     })();
-  }, [notify]);
+  }, [controlled, notify]);
+
+  function commit(next: ScrapeConfig) {
+    setConfig(next);
+    if (controlled) onChange?.(next);
+  }
 
   function patch(partial: Partial<Meta>) {
     if (!config) return;
-    setConfig({
+    commit({
       ...config,
       metadata: { ...DEFAULT, ...config.metadata, ...partial },
     });
@@ -229,11 +252,13 @@ export function MetadataSettingsPanel({ notify }: Props) {
           </Section>
         </div>
       </section>
-      <div className="page-save-row">
-        <button type="button" className="btn primary" disabled={saving} onClick={() => void save()}>
-          {saving ? "保存中…" : COPY.save}
-        </button>
-      </div>
+      {!embedded ? (
+        <div className="page-save-row">
+          <button type="button" className="btn primary" disabled={saving} onClick={() => void save()}>
+            {saving ? "保存中…" : COPY.save}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

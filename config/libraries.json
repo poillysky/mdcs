@@ -75,38 +75,38 @@
     "japan_gravure": {
       "enabled": true,
       "label": "日本写真",
-      "sourceRoot": "",
-      "libraryRoot": ""
+      "sourceRoot": "media/本地索引/日本写真",
+      "libraryRoot": "media/片商目录/日本写真"
     },
     "japan_uncensored": {
       "enabled": true,
       "label": "日本无码",
-      "sourceRoot": "",
-      "libraryRoot": ""
+      "sourceRoot": "media/本地索引/日本无码",
+      "libraryRoot": "media/片商目录/日本无码"
     },
     "japan_amateur": {
       "enabled": true,
       "label": "日本素人",
-      "sourceRoot": "",
-      "libraryRoot": ""
+      "sourceRoot": "media/本地索引/日本素人",
+      "libraryRoot": "media/片商目录/日本素人"
     },
     "fc2": {
       "enabled": true,
       "label": "FC2",
-      "sourceRoot": "",
-      "libraryRoot": ""
+      "sourceRoot": "media/本地索引/FC2",
+      "libraryRoot": "media/片商目录/FC2"
     },
     "china": {
       "enabled": true,
       "label": "国产无码",
-      "sourceRoot": "",
-      "libraryRoot": ""
+      "sourceRoot": "media/本地索引/国产无码",
+      "libraryRoot": "media/片商目录/国产无码"
     },
     "western": {
       "enabled": true,
       "label": "欧美无码",
-      "sourceRoot": "",
-      "libraryRoot": ""
+      "sourceRoot": "media/本地索引/欧美无码",
+      "libraryRoot": "media/片商目录/欧美无码"
     }
   }
 }

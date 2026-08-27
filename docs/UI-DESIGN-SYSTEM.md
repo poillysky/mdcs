@@ -71,11 +71,29 @@
 
 移动端是结构重排，不是整体缩放。
 
-### 2.5 MDCS 壳层（本产品）
+### 2.5 壳层组件约定（S1.4）
+
+MDCS **不以**独立 React `Button`/`Input` 组件库为标准；视觉与交互统一靠：
+
+| 层 | 约定 |
+|----|------|
+| CSS 类 | `.btn` / `.btn.primary` / `.org-input` / `.org-select` / `.switch` / `.chip` / `.modal*` |
+| 布局组件 | `components/ui/PageHeader`、`EmptyState`；业务弹窗 `Modal` |
+| Token | `:root` CSS 变量（本文 §3）；禁止页面硬编码主色 |
+
+新增控件优先复用上表类名；确需封装时放 `components/`，样式仍走 Token。
+
+### 2.6 宽屏模式（S1.6）
+
+- 侧栏底「宽屏模式」开关；偏好键 `mdcs.wideMode`
+- 开启后 `.app-shell.is-wide .main { max-width: none }`
+- **不做暗色主题**（与本文浅色契约一致）
+
+### 2.7 MDCS 壳层（本产品）
 
 - 保留左侧导航 + 右侧主区 IA（见 WIREFRAMES）
 - 侧栏宽：**220px**；rail：**64px**
-- 主区：`PageHeader` → 工具栏 → 内容；内容容器居中且 `max-width: 1280px`
+- 主区：`PageHeader` → 工具栏 → 内容；内容容器居中且 `max-width: 1280px`（宽屏模式取消上限）
 
 ---
 

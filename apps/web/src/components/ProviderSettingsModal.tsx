@@ -232,7 +232,11 @@ export function ProviderSettingsModal({
               {needsApiKey ? (
                 <SettingRow
                   label="API Key"
-                  hint="从 ThePornDB 控制台复制 Token，保存后用于刮削和测通"
+                  hint={
+                    apiKey.trim()
+                      ? "从 ThePornDB 控制台复制 Token，保存后用于刮削和测通"
+                      : "未填写：欧美源刮削会报「需要 ThePornDB API Key」；请到控制台复制 Token"
+                  }
                   layout="stack"
                 >
                   <input
@@ -241,7 +245,7 @@ export function ProviderSettingsModal({
                     autoComplete="off"
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="Bearer Token"
+                    placeholder="Bearer Token（必填）"
                     spellCheck={false}
                   />
                 </SettingRow>

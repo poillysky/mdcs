@@ -26,16 +26,16 @@
 
 ---
 
-## 1. 当前地基快照（起点）
+## 1. 当前地基快照（v1.0 基线 · 2026-08-27）
 
-| 已有 | 缺口 |
-|------|------|
-| `apps/server` + `apps/web` 可启动 | UI 仍是旧四页，非 MDC IA |
-| 七区 `libraries.json` + 扫描/任务 API | Provider 仅 javbus 等 stub |
-| 基础 `identify.ts`（FC2/标准） | 无 JavSP 级识别、无双通道 |
-| `scrape.json` 有 kindProfiles 种子 | Organize / NFO / 水印未落地 |
-| Toast 中文化雏形 | 未统一走 UI-COPY |
-| 设计文档齐全 | **缺逐步可勾选的执行表**（本文） |
+| 已有 | 缺口 / 技术债 |
+|------|----------------|
+| `apps/server` + `apps/web` 可启动；MDC 侧栏 + 全路由 | S1.4 无统一 React 基础组件库（CSS `.btn` 为主） |
+| 七路径 + 扫描/任务/记录/文件/演员闭环 | S1.6 主题/宽屏：DESIGN 有、AppShell 未做 |
+| **32** Provider 全实现（`sourceMaster.ts`） | JavDB 过盾、fc2_hub 封面等源站风险（见 SOURCE-E2E §6） |
+| Organize / NFO / 水印 / 监控 / Webhook | S4.14 整理 revert 未做；`ops.qb` 无设置 UI |
+| 设置 11 Tab 参数落地 | LLM Key 仅 localStorage，不同步服务端 |
+| 设计 + 执行文档齐全 | 部分旧文档仍写「演员占位 / 16 stub」→ 见 [FRAMEWORK-AUDIT.md](./FRAMEWORK-AUDIT.md) |
 
 ---
 
@@ -108,10 +108,10 @@ S0 地基加固 ──► S1 UI 壳与导航 ──► S2 任务与文件闭环
 |----|------|--------|----------|------|
 | ✅ S1.1 | Shell 重构 | 按 WIREFRAMES §0：侧栏 + 顶栏 + Main | 路由切换不闪、Nav 顺序固定 | P0 |
 | ✅ S1.2 | 路由表 | `/` `/tasks` `/records` `/actors` `/files` `/sources` `/settings/:tab` | 旧四页路由废弃或 301 式重定向 | P0 |
-| S1.3 | 设计 Token | CSS 变量：色/间距/圆角/字号（PLAYBOOK） | 无页面私自硬编码主色散落 | P0 |
-| S1.4 | 基础组件 | Button / Input / Select / Switch / Tag / Badge / Modal / Toast / Empty / Skeleton | 状态三态齐全 | P0 |
+| ✅ S1.3 | 设计 Token | CSS 变量：色/间距/圆角/字号（PLAYBOOK） | 无页面私自硬编码主色散落 | P0 |
+| ✅ S1.4 | 基础组件 | CSS 类标准（`.btn`/`.org-input`…）+ PageHeader/Empty/Modal；见 UI-DESIGN-SYSTEM §2.5 | 状态三态齐全 | P0 |
 | ✅ S1.5 | PageHeader + Toolbar | 所有主页面套用同一布局组件 | 标题/主按钮位置一致 | P0 |
-| S1.6 | 主题与宽屏 | 切换主题、宽屏模式（可先简实现） | 刷新后偏好保留 | P2 |
+| ✅ S1.6 | 主题与宽屏 | 宽屏模式已落地；暗色主题按设计契约明确不做 | 刷新后偏好保留 | P2 |
 | ✅ S1.7 | 演员占位页 | 空状态按 COPY | 侧栏可进、不报错 | P1 |
 | ✅ S1.8 | 设置壳 | 11 Tab 壳 + 右下角保存条（内容可先占位） | Tab 切换保留未保存提示钩子 | P0 |
 

@@ -602,6 +602,16 @@ export function ScrapeConfigPanel({
                                     stub
                                   </span>
                                 ) : null}
+                                {row.needsApiKey &&
+                                row.id === "theporndb" &&
+                                !(config.theporndbApiKey || "").trim() ? (
+                                  <span
+                                    className="src-tag src-tag--needkey"
+                                    title="请在卡片设置中填写 ThePornDB API Key，否则欧美刮削会失败"
+                                  >
+                                    缺 Key
+                                  </span>
+                                ) : null}
                                 <span
                                   className={`src-dot src-dot--${row.enabled ? status : "off"}`}
                                   title={

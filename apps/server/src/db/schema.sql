@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS jobs (
   skipped INTEGER NOT NULL DEFAULT 0,
   message TEXT,
   options_json TEXT NOT NULL DEFAULT '{}',
+  trigger_source TEXT NOT NULL DEFAULT 'manual',
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );

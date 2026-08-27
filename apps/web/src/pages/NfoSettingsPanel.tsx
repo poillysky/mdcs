@@ -5,7 +5,12 @@ import { COPY } from "../lib/messages";
 import type { NotifyFn } from "../lib/notify";
 import type { ScrapeConfig } from "../types";
 
-type Props = { notify: NotifyFn };
+type Props = {
+  notify: NotifyFn;
+  embedded?: boolean;
+  value?: ScrapeConfig;
+  onChange?: (next: ScrapeConfig) => void;
+};
 type Nfo = NonNullable<ScrapeConfig["nfo"]>;
 type IncludeKey = keyof Nfo["include"];
 type TagExtraKey = keyof Nfo["tagExtras"];
@@ -144,12 +149,29 @@ function CheckGrid({
   );
 }
 
-export function NfoSettingsPanel({ notify }: Props) {
+export function NfoSettingsPanel({
+  notify,
+  embedded = false,
+  value,
+  onChange,
+}: Props) {
+  const controlled = embedded && Boolean(value) && Boolean(onChange);
   const [config, setConfig] = useState<ScrapeConfig | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!controlled);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    if (!controlled || !value) return;
+    const nfo = mergeNfo(value.nfo);
+    if (!value.nfo && value.nfoMergeStrategy) {
+      nfo.mergeStrategy = value.nfoMergeStrategy;
+    }
+    setConfig({ ...value, nfo });
+    setLoading(false);
+  }, [controlled, value]);
+
+  useEffect(() => {
+    if (controlled) return;
     void (async () => {
       setLoading(true);
       try {
@@ -165,12 +187,17 @@ export function NfoSettingsPanel({ notify }: Props) {
         setLoading(false);
       }
     })();
-  }, [notify]);
+  }, [controlled, notify]);
+
+  function commit(next: ScrapeConfig) {
+    setConfig(next);
+    if (controlled) onChange?.(next);
+  }
 
   function patchNfo(partial: Partial<Nfo>) {
     if (!config) return;
     const nfo = mergeNfo({ ...config.nfo, ...partial });
-    setConfig({
+    commit({
       ...config,
       nfo,
       nfoMergeStrategy: nfo.mergeStrategy,
@@ -423,11 +450,13 @@ export function NfoSettingsPanel({ notify }: Props) {
           </Section>
         </div>
       </section>
-      <div className="page-save-row">
-        <button type="button" className="btn primary" disabled={saving} onClick={() => void save()}>
-          {saving ? "保存中…" : COPY.save}
-        </button>
-      </div>
+      {!embedded ? (
+        <div className="page-save-row">
+          <button type="button" className="btn primary" disabled={saving} onClick={() => void save()}>
+            {saving ? "保存中…" : COPY.save}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

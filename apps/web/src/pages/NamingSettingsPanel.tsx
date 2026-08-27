@@ -9,6 +9,9 @@ import type { ScrapeConfig } from "../types";
 
 type Props = {
   notify: NotifyFn;
+  embedded?: boolean;
+  value?: ScrapeConfig;
+  onChange?: (next: ScrapeConfig) => void;
 };
 
 type Naming = NonNullable<ScrapeConfig["naming"]>;
@@ -222,9 +225,15 @@ function Panel({
   );
 }
 
-export function NamingSettingsPanel({ notify }: Props) {
+export function NamingSettingsPanel({
+  notify,
+  embedded = false,
+  value,
+  onChange,
+}: Props) {
+  const controlled = embedded && Boolean(value) && Boolean(onChange);
   const [config, setConfig] = useState<ScrapeConfig | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!controlled);
   const [saving, setSaving] = useState(false);
   const [fieldTab, setFieldTab] = useState<FieldTab>("category");
   const [syntaxOpen, setSyntaxOpen] = useState(false);
@@ -237,6 +246,20 @@ export function NamingSettingsPanel({ notify }: Props) {
   const fileImportRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (!controlled || !value) return;
+    const mergedNaming = {
+      ...DEFAULT_NAMING,
+      ...value.naming,
+      subtitleAddChsSuffix: Boolean(
+        value.naming?.subtitleAddChsSuffix ?? value.download?.subtitleAddChsSuffix,
+      ),
+    };
+    setConfig({ ...value, naming: mergedNaming });
+    setLoading(false);
+  }, [controlled, value]);
+
+  useEffect(() => {
+    if (controlled) return;
     void (async () => {
       setLoading(true);
       try {
@@ -259,13 +282,18 @@ export function NamingSettingsPanel({ notify }: Props) {
         setLoading(false);
       }
     })();
-  }, [notify]);
+  }, [controlled, notify]);
 
   const naming = config ? ({ ...DEFAULT_NAMING, ...config.naming } as Naming) : null;
 
+  function commit(next: ScrapeConfig) {
+    setConfig(next);
+    if (controlled) onChange?.(next);
+  }
+
   function patchNaming(next: Partial<Naming>) {
     if (!config || !naming) return;
-    setConfig({
+    commit({
       ...config,
       naming: { ...naming, ...next },
     });
@@ -854,7 +882,7 @@ export function NamingSettingsPanel({ notify }: Props) {
                       checked={Boolean(naming.subtitleAddChsSuffix)}
                       onChange={(e) => {
                         const on = e.target.checked;
-                        setConfig({
+                        commit({
                           ...config,
                           naming: { ...naming, subtitleAddChsSuffix: on },
                           download: {
@@ -977,14 +1005,16 @@ export function NamingSettingsPanel({ notify }: Props) {
             <button type="button" className="btn" onClick={() => setTestOpen(true)}>
               命名测试
             </button>
-            <button
-              type="button"
-              className="btn primary"
-              disabled={saving}
-              onClick={() => void save()}
-            >
-              {saving ? "保存中…" : "保存配置"}
-            </button>
+            {!embedded ? (
+              <button
+                type="button"
+                className="btn primary"
+                disabled={saving}
+                onClick={() => void save()}
+              >
+                {saving ? "保存中…" : "保存配置"}
+              </button>
+            ) : null}
           </div>
       </div>
 

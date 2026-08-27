@@ -1,8 +1,9 @@
 # 数据源主清单（全站点）
 
-> 版本：2026-08-23  
+> 版本：2026-08-23（**统计已过期**，现行以 `sourceMaster.ts` 为准：32 源全实现）  
 > 用途：**MDCS / 色花 / MDCX / JavSP 四方对照**（历史全量表仍可作参考）。  
-> **现行 UI catalog**：`sourceMaster.ts` **36 源**（综合站 + 品类枢纽；已实现 17）。2026-08-23 已清除单厂/窄前缀与主站冗余 API。  
+> **现行 UI catalog**：`sourceMaster.ts` **32 源**（综合站 + 品类枢纽；**已实现 32**）。2026-08-23 起清除单厂/窄前缀与主站冗余 API；2026-08-24 后陆续补齐 njav/r18dev/avsex/hscangku 等。  
+> **最新体检**：[FRAMEWORK-AUDIT.md](./FRAMEWORK-AUDIT.md)  
 > 相关：[SOURCE-CATALOG-8REF.md](./SOURCE-CATALOG-8REF.md) · [SOURCE-TEST-STRATEGY.md](./SOURCE-TEST-STRATEGY.md) · [catalog.ts](../apps/server/src/scrape/providers/catalog.ts)
 
 ---
@@ -11,7 +12,7 @@
 
 | 层级 | 含义 | UI 卡片 | 实现优先级 |
 |------|------|---------|------------|
-| **T1** | MDCS 当前 catalog（色花对齐 24 源） | ✅ 显示 | 进行中（16/24 已实现） |
+| **T1** | MDCS 当前 catalog（综合站 + 品类枢纽） | ✅ 显示 | **32/32 已实现**（以 `sourceMaster.ts` 为准） |
 | **T2** | MDCX 有爬虫、MDCS 未收录 | ❌ 暂不显示 | 按需求 backlog |
 | **T3** | API 变体 / 同站多通道 | ❌ 合并到主源或高级设置 | 随主源接入 |
 | **T4** | 无码官方子站（MDCX `official`） | ❌ | carib 已覆盖加勒比；其余按需 |
@@ -31,7 +32,9 @@
 
 ---
 
-## 2. Tier 1 — MDCS UI Catalog（24 源）
+## 2. Tier 1 — MDCS UI Catalog（历史 24 源表 · 已过期）
+
+> **注意**：下表为 2026-08-23 快照（含 stub 标注）。现行 catalog 见 `apps/server/src/scrape/providers/sourceMaster.ts`：**32 源全实现**（含 njav、r18dev、avsex、hscangku、lulubar、javday 等）。请以代码与 [FRAMEWORK-AUDIT.md](./FRAMEWORK-AUDIT.md) 为准。
 
 按 UI 分组顺序（`catalog.ts` → `PROVIDER_GROUP_ORDER`）。
 
@@ -81,7 +84,7 @@
 | theporndb | ThePornDB | https://api.theporndb.net | proxy | ✅ | ✅ | theporndb |
 | xiao_huang_shu | 小黄书 | https://xchina.co | proxy | stub | ✅ | — |
 
-**T1 统计**：24 源 · 16 已实现 · 8 stub
+**T1 统计（历史）**：24 源 · 16 已实现 · 8 stub → **现行：32/32 已实现**
 
 ---
 
