@@ -1,0 +1,1636 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src='/js/jquery-3.6.0.min.js' type="e4ad4a09661f3eee6a2b3c1c-text/javascript"></script>
+    <script src='/js/bootstrap.min.js' type="e4ad4a09661f3eee6a2b3c1c-text/javascript"></script>
+    <script defer data-domain="lulubar.net" src="https://plausible.dduu360.com/js/script.js" type="e4ad4a09661f3eee6a2b3c1c-text/javascript"></script>
+
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/globalStyle.css">
+        <title>撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片</title>
+    <script type="e4ad4a09661f3eee6a2b3c1c-text/javascript">
+        (function(f,b){if(!b.__SV){var e,g,i,h;window.mixpanel=b;b._i=[];b.init=function(e,f,c){function g(a,d){var b=d.split(".");2==b.length&&(a=a[b[0]],d=b[1]);a[d]=function(){a.push([d].concat(Array.prototype.slice.call(arguments,0)))}}var a=b;"undefined"!==typeof c?a=b[c]=[]:c="mixpanel";a.people=a.people||[];a.toString=function(a){var d="mixpanel";"mixpanel"!==c&&(d+="."+c);a||(d+=" (stub)");return d};a.people.toString=function(){return a.toString(1)+".people (stub)"};i="disable time_event track track_pageview track_links track_forms track_with_groups add_group set_group remove_group register register_once alias unregister identify name_tag set_config reset opt_in_tracking opt_out_tracking has_opted_in_tracking has_opted_out_tracking clear_opt_in_out_tracking start_batch_senders people.set people.set_once people.unset people.increment people.append people.union people.track_charge people.clear_charges people.delete_user people.remove".split(" ");
+            for(h=0;h<i.length;h++)g(a,i[h]);var j="set set_once union unset remove delete".split(" ");a.get_group=function(){function b(c){d[c]=function(){call2_args=arguments;call2=[c].concat(Array.prototype.slice.call(call2_args,0));a.push([e,call2])}}for(var d={},e=["get_group"].concat(Array.prototype.slice.call(arguments,0)),c=0;c<j.length;c++)b(j[c]);return d};b._i.push([e,f,c])};b.__SV=1.2;e=f.createElement("script");e.type="text/javascript";e.async=!0;e.src="undefined"!==typeof MIXPANEL_CUSTOM_LIB_URL?
+            MIXPANEL_CUSTOM_LIB_URL:"file:"===f.location.protocol&&"//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js".match(/^\/\//)?"https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js":"//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js";g=f.getElementsByTagName("script")[0];g.parentNode.insertBefore(e,g)}})(document,window.mixpanel||[]);
+        mixpanel.init('392b49f8a2cd03912faf6b0c228af07d', {debug: true});
+    </script>
+    <script src="/js/ua-parser.min.js" type="e4ad4a09661f3eee6a2b3c1c-text/javascript"></script>
+    <script src="/js/cookies.js" type="e4ad4a09661f3eee6a2b3c1c-text/javascript"></script>
+    <script type="e4ad4a09661f3eee6a2b3c1c-text/javascript">
+        var parser = new UAParser();
+        var browserName = parser.setUA(window.navigator.userAgent).getBrowser().name;
+        var osName = parser.setUA(window.navigator.userAgent).getOS().name;
+        var alertUrl = '/service/ChromeSetup.exe';
+        docCookies.setItem('browserName',browserName);
+        docCookies.setItem('osName',osName);
+        if(osName == 'Android'){
+            alertUrl = 'https://play.google.com/store/apps/details?id=com.android.chrome';
+        }
+        if (osName == 'iOS' || osName == 'Mac OS'){
+            alertUrl = 'https://apps.apple.com/cn/app/google-chrome/id535886823';
+        }
+        $(document).ready(function() {
+            //IE提示
+            if(browserName == 'IE') {
+                let modal = '<div class="modal d-block" style="background-color: rgba(0,0,0,0.8)" tabindex="-1" role="dialog">'+
+                    '<div class="modal-dialog" role="document">'+
+                        '<div class="modal-content">'+
+                            '<div class="modal-header">'+
+                                '<h5 class="modal-title">不再支援IE</h5>'+
+                            '</div>'+
+                            '<div class="modal-body">'+
+                                '<p>亲，我们不再支援IE浏览，建议下在谷歌浏览器</p>'+
+                            '</div>'+
+                            '<div class="modal-footer">'+
+                                '<a href="'+alertUrl+'" class="btn btn-primary">下载</a>'+
+                            '</div>'+
+                        '</div>'+
+                    '</div>'+
+                '</div>'
+                $('body').append(modal);
+            }
+            $.each($('.alertUrl'),function(i, item) {
+                $(item).attr('href', alertUrl)
+            });
+            let adTimer = new Date().getTime();
+            if(!localStorage.adTimer || ((adTimer - localStorage.adTimer)/86400000)>1 ) {
+                localStorage.setItem('adTimer', adTimer);
+                $.ajax({
+                    url: '/index/get_ad',
+                    dataType: 'json',
+                    success: function (data) {
+                        localStorage.setItem('ad', JSON.stringify(data))
+                    },
+                });
+            }
+        })
+        function alertMessage(message,sec,disappear){
+            if(sec === undefined){
+                sec = 3;
+            }
+            // sec 1,3,5,10
+            $('#alert').html(message).addClass('s'+sec).removeClass('d-none')
+            if(disappear === true) {
+                setTimeout(() => {
+                    $('#alert').html('').addClass('d-none')
+                }, sec * 1000)
+            }
+        }
+    </script>
+    <style>
+        a{
+            color: var(--link);
+        }
+        .fixed-bottom.mob-nav.bg_third a{
+            color: var(--white);
+        }
+        .navbar.navbar-expand-lg.navbar-light.bg_third{
+            background-color: var(--bg-third);
+        }
+        /*@media (min-width: 576px) { }*/
+        /*@media (min-width: 768px) { }*/
+        @media (min-width: 992px) {
+            .navbar.navbar-expand-lg.navbar-light.bg_third{
+                background-color: var(--bg-third);
+            }
+        }
+        /*@media (min-width: 1200px) { }*/
+        .video_container a:hover img {
+            transform: scale(0.95, 0.95);
+            transition: 0.3s;
+        }
+        .marqee {
+            height: 2em;
+            line-height: 2em;
+            margin: 0 auto;
+            overflow: hidden;
+            position: relative;
+            background: var(--bg-primary);
+        }
+        .marqee > ul {
+            padding-left: 0;
+            display: flex;
+            list-style-type: none;
+            animation: marqee 60s linear infinite;
+            position: absolute;
+        }
+        .marqee > ul > li {
+            white-space: nowrap;
+            margin-right: 30em;
+            font-weight: bold;
+            color: var(--info);
+        }
+        @keyframes marqee {
+            0% {
+                left: 100%;
+                transform: translateX(0%);
+            }
+            100% {
+                left: 0;
+                transform: translateX(-100%);
+            }
+        }
+        /* 有VIP */
+        body:not([data-v ='0']) .marqee,
+        body:not([data-v ='0']) .unVip{
+            display: none !important;
+        }
+        .card{
+            background-color:  var(--bg-primary);
+        }
+        .card .btn-link{
+            background-color:  rgba(255,255,255,0.2);
+            color: var(--info);
+        }
+        .btn.btn-primary.mb-2{
+            background-color: rgba(255,64,170,0.7);
+            border-color: rgba(255,64,170,0.7);
+        }
+        .pagination.justify-content-center .page-item .page-link{
+            background-color: var(--info);
+            border-color: var(--info);
+            color: var(--white);
+            opacity: 0.9;
+        }
+        .pagination.justify-content-center .page-item.disabled .page-link{
+            opacity: 0.5;
+            color: var(--deep-black);
+        }
+        .pagination.justify-content-center .page-item.active .page-link{
+            opacity: 0.7;
+        }
+        .wrap .tabbable-line>.nav-tabs>li:hover {
+            background: var(--deep-black);
+            color: #1c1a1a;
+            border-radius: 5px 5px 0px 0px;
+        }
+        .wrap .tabbable-line>.nav-tabs>li a{
+            color: var(--white);
+        }
+        #mob_nav_cover,
+        #mob_nav_list{
+            position: fixed;
+            z-index: 99999;
+            bottom: 0;
+            right: 0;
+            width: 100%;
+        }
+        #mob_nav_list{
+            background-color: var(--bg-third);
+            border-radius: 30px 30px 0 0;
+            padding-bottom: 15px;
+        }
+        #mob_nav_cover{
+            height: 100%;
+            background-color: var(--bg-dark);
+            opacity: 0.7;
+        }
+        .nav-item.col .nav-link{
+            padding: .5rem 0;
+        }
+        .navbar{
+            padding: .5rem;
+            z-index: 1;
+        }
+        .pagination.justify-content-center .page-item .page-link{
+            white-space: nowrap;
+        }
+        .actress_img{
+            width: auto;
+            max-height: 213px;
+            margin: auto;
+            overflow: hidden;
+        }
+        .actress_img img{
+            max-width: 100%;
+        }
+        /* 瀏覽器 提示 */
+        .browserAlert { display: none }
+        .video-detail .browserAlert{ display: block }
+        .video-detail .browserAlert.alert.chrome{ display: none; }
+        .browserAlert.alert.ucbrowser{ display: block; }
+        .browserAlert.alert.qq{ display: block; }
+        .tag_box .tag img{ vertical-align: baseline; }
+        #alert{
+            width: fit-content;
+            z-index: 1031;
+            right: 0;
+            bottom: 0;
+            transition: all .3s ease-in-out;
+            will-change: transform;
+        }
+        #alert.s3:not(.d-none) {
+            animation: fadein 3s;
+            -o-animation: fadein 3s; /* Opera < 12.1 */
+            -ms-animation: fadein 3s; /* Internet Explorer */
+            -moz-animation: fadein 3s; /* Firefox < 16 */
+            -webkit-animation: fadein 3s; /* Safari, Chrome and Opera > 12.1 */
+        }
+        #alert.s5:not(.d-none) {
+            animation: fadein 5s;
+            -o-animation: fadein 5s; /* Opera < 12.1 */
+            -ms-animation: fadein 5s; /* Internet Explorer */
+            -moz-animation: fadein 5s; /* Firefox < 16 */
+            -webkit-animation: fadein 5s; /* Safari, Chrome and Opera > 12.1 */
+        }
+        #alert.s10:not(.d-none) {
+            animation: fadein 10s;
+            -o-animation: fadein 10s; /* Opera < 12.1 */
+            -ms-animation: fadein 10s; /* Internet Explorer */
+            -moz-animation: fadein 10s; /* Firefox < 16 */
+            -webkit-animation: fadein 10s; /* Safari, Chrome and Opera > 12.1 */
+        }
+        #pingPic button.close {
+            position:absolute;
+            right: 0;
+        }
+        #pingPic {
+            border-radius: 6px;
+            overflow: hidden;
+            max-width: 150px;
+            bottom: 5px;
+            right:  5px;
+        }
+        .collapse>.navbar-nav>li>a>.item {
+            border: 0px;
+            color: var(--light);
+            border-bottom: 5px solid var(--bg-third);
+        }
+        .collapse>.navbar-nav>li:hover>a>.item{
+            color: navajowhite;
+        }
+        .nav-item .nav-link.active>.item{
+            border: 0px;
+            color: var(--light);
+            border-bottom: 5px solid #8E101EFF;
+        }
+        #accept-cookies,
+        #reject-cookies{
+            border-radius: 5px;
+            white-space: nowrap;
+            border: 1px solid black;
+            color: black;
+            background-color: transparent;
+        }
+        #accept-cookies:hover,
+        #reject-cookies:hover{
+            border-radius: 5px;
+            white-space: nowrap;
+            border: 1px solid #876900;
+            color: #876900;
+            background-color: white;
+        }
+        @keyframes         fadein { 0% { right: -100%; } 20% { right: 0; } 80% { right: 0; } 100% { right: -100%; }  }
+        @-moz-keyframes    fadein { 0% { right: -100%; } 20% { right: 0; } 80% { right: 0; } 100% { right: -100%; }  }/* Firefox < 16 */
+        @-webkit-keyframes fadein { 0% { right: -100%; } 20% { right: 0; } 80% { right: 0; } 100% { right: -100%; }  }/* Safari, Chrome and Opera > 12.1 */
+        @-ms-keyframes     fadein { 0% { right: -100%; } 20% { right: 0; } 80% { right: 0; } 100% { right: -100%; }  }/* Internet Explorer */
+    </style>
+        <meta name="description" content="亚洲最新成人色情影片网站,最污黄片宝库,av女优都是你的后宫,亚洲最新成人色情影片网站,最污黄片宝库,av女优都是你的后宫,只要88元人民币,包月爽爽看,享受无负担！">
+<meta name="keywords" content="色情,成人,免费">
+<meta property="og:title" content="撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+<meta property="og:description" content="亚洲最新成人色情影片网站,最污黄片宝库,av女优都是你的后宫,亚洲最新成人色情影片网站,最污黄片宝库,av女优都是你的后宫,只要88元人民币,包月爽爽看,享受无负担！">
+<meta property="og:url" content="/">
+<meta property="og:image" content="/img/icon.png">
+
+<link type="image/png" href="/img/icon.png" rel="shortcut icon">
+<link href="/img/icon.png" rel="apple-touch-icon">
+<link href="/img/icon.png" rel="icon" sizes="192×192"></head>
+<body data-v="0">
+    <nav class="navbar navbar-expand-lg navbar-light bg_third">
+        <a class="navbar-brand" href="/">
+            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="" onerror="this.onerror = null; this.src ='/img/LOGO.png'" style="height:30px;width:75px" alt="撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="撸撸吧" width="125" height="50" class="img-fluid">
+        </a>
+        <div id="cookie-consent-banner" class ="flex-md-row flex-column p-2 align-content-center justify-content-center items-center fixed-bottom mb-lg-0 mb-5" style="color: black; display: none; background-color: white;opacity: 90%;">
+            <p class="mt-1 mb-1 align-content-center text-left">您是否接受我们使用第三方网站分析工具来搜集统计资料，以提供更个人化的服务？</p>
+            <div class="d-flex justify-content-center">
+                <button id="accept-cookies" class="m-1 flex">接受</button>
+                <button id="reject-cookies" class="m-1 flex">拒绝</button>
+            </div>
+        </div>
+        <div class="unVip ml-auto btn-group">
+            <a class="nav-link btn badge badge-pill text-white badge-danger  border-light p-2 d-block d-lg-none" href="/video/tryplay">试播</a>
+            <a class="nav-link btn badge badge-pill text-white badge-warning border-light p-2 d-block d-lg-none" href="/member/payment?pid=4">开通VIP</a>
+        </div>
+        <a class="nav-link d-block d-lg-none " href="/video/bysearch"><span>搜寻</span></a>
+                    <a class="nav-link ml-1 p-2 d-block d-lg-none f-light" href="/member/login">登入</a>
+                <div id="lu-nav" class="collapse navbar-collapse">
+            <ul class="navbar-nav m-auto">
+                <li class="nav-item d-none d-lg-inline-block col">
+                    <a class="nav-link" href="/video/bynew?page=1"><div class="p-1 item">最新</div></a>
+                </li>
+                <li class="nav-item d-none d-lg-inline-block col">
+                    <a class="nav-link" href="/video/byunpix?page=1"><div class="p-1 item">无码</div></a>
+                </li>
+                <li class="nav-item d-none d-lg-inline-block col">
+                    <a class="nav-link" href="/video/bywestern?page=1"><div class="p-1 item">欧美</div></a>
+                </li>
+                <li class="nav-item d-none d-lg-inline-block col">
+                    <a class="nav-link" href="/video/bych?page=1"><div class="p-1 item">中字</div></a>
+                </li>
+                <li class="nav-item d-none d-lg-inline-block col">
+                    <a class="nav-link" href="/video/bygirl?page=1"><div class="p-1 item">女优</div></a>
+                </li>
+                <li class="nav-item d-none d-lg-inline-block col">
+                    <a class="nav-link" href="/video/bydate"><div class="p-1 item">日期</div></a>
+                </li>
+                <li class="nav-item d-none d-lg-inline-block col">
+                    <a href="/video/bytag" class="nav-link"><div class="p-1 item">标签</div></a>
+                </li>
+                <li class="nav-item d-none d-lg-inline-block col">
+                    <a href="/index/game" class="nav-link"><div class="p-1 item">色游</div></a>
+                </li>
+                <li class="unVip nav-item d-none d-lg-inline-block col">
+                    <a href="/video/tryplay" class="nav-link"><div class="p-1 item">试播</div></a>
+                </li>
+            </ul>
+            <div class="nav-item d-none d-lg-inline-block">
+                <a href="/member/payment?pid=4" class="unVip badge badge-pill badge-warning" style="padding: 7px 10px;margin-right: 5px">💎开通VIP</a>
+                <div class="d-none">1</div>
+                                    <a href="/member/login" style="padding: 3px 5px 5px 10px; margin-right: 10px;">登入</a>
+                                <a href="/video/bysearch" style="padding: 3px 5px 5px 10px; margin-right: 5px">搜寻</a>
+            </div>
+        </div>
+        <!-- mob -->
+        <div class="fixed-bottom mob-nav bg_third">
+            <div class="d-block d-lg-none" style="white-space:nowrap;">
+                <div class="row no-gutters justify-content-between">
+                    <li class="nav-item col">
+                        <a  id="mob_nav_toggler" class="nav-link" href="#"><span>标签</span></a>
+                    </li>
+                    <li class="nav-item col">
+                        <a class="nav-link" href="/video/bypixelization?page=1"><span>有码</span></a>
+                    </li>
+                    <li class="nav-item col">
+                        <a class="nav-link" href="/video/byunpix?page=1"><span>无码</span></a>
+                    </li>
+                    <li class="nav-item col">
+                        <a class="nav-link" href="/video/bygirl?page=1"><span>女优</span></a>
+                    </li>
+                    <li class="nav-item col">
+                        <a class="nav-link" href="/video/bydate"><span>日期</span></a>
+                    </li>
+                    <li class="nav-item col">
+                        <a class="nav-link" href="/index/game"><span>色游</span></a>
+                    </li>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <div class="marqee">
+        <ul class="vip">
+            <li>VIP只要88元人民币，包月爽爽看，享受无负担！<a class="f-primary" href="/member/payment?pid=4">立马升级</a></li>
+            <li>还等啥！<a class="f-primary" href="/member/payment?pid=4">升级成为VIP大佬</a></li>
+            <li>！<a class="f-primary" href="/member/payment?pid=4">升级VIP</a>！</li>
+        </ul>
+    </div>
+    <div id="alert" class="d-none alert alert-light position-fixed"></div>
+    <div id="container-outer" data-page="?s=MDX-0006-" class="?s=MDX-0006- container p-0" style="min-height: calc(100vh - 115px);">
+        <div class="browserAlert alert alert-light mt-2 chrome" role="alert">
+            <a href="/service/ChromeSetup.exe" class="alertUrl" style="color:var(--info);">-</a>
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                    </div>
+        <!--輪播設定-->
+<link rel="stylesheet" href="/css/glider.min.css">
+<script src="/js/glider.min.js" type="e4ad4a09661f3eee6a2b3c1c-text/javascript"></script>
+
+<style>
+    #index .tag{
+        padding: 5px 15px;
+        margin: 3px 3px 3px 0;
+        line-height: 2.5;
+    }
+    #index .tag:hover{
+        color: var(--dark);
+        background-color: var(--light-primary);
+        border: 1px solid var(--warning);
+    }
+    #index a.more{
+        color: var(--light-primary);
+    }
+    #index a.more.disabled{
+        color: var(--light-primary);
+        opacity: 0;
+    }
+    .video_info h3 a,
+    .video_info h3 {
+        font-size: var(--sm-fs);
+        line-height: inherit;
+        color: var(--bg-third);
+    }
+    #index{ overflow: hidden }
+    @media (min-width: 576px) {
+        #get1{
+            transform: translateX(-225px);
+        }
+        #get3 :first-child,#get4 :first-child{ order: 1; }
+        #get5 :last-child,#get1 :last-child{ order: -1; }
+        .img_container > :nth-child(n):not(.active){
+            -webkit-filter: grayscale(80%);
+            -moz-filter: grayscale(80%);
+            -o-filter: grayscale(80%);
+            filter: progid:DXImageTransform.Microsoft.BasicImage(grayscale=.8);
+            _filter: none;
+        }
+        .img_container > :nth-child(n).active{
+            transform: scale(1.1);
+            z-index: 1;
+        }
+    }
+    .img_container ,
+    .img_container > :nth-child(n){
+        transition: transform .3s ease ,  filter .1s ease ;
+    }
+    .actionBanner{
+        display: block;
+        height: 50px;
+        position: relative;
+        border-radius: 4px;
+        overflow: hidden;
+        color: white;
+        margin: 0 5px 5px 5px;
+        transition: all 0.3s linear;
+    }
+    .actionBanner:after{
+        content: '';
+        display: block;
+        width: 55px;
+        height: 55px;
+        position: absolute;
+        bottom: -15px;
+        right: -15px;
+    }
+    .actionBanner:hover *{
+        color: #ffffff88;
+    }
+    .getApk{
+        background: #67B26F;  /* fallback for old browsers */
+        background: -webkit-linear-gradient(315deg, #4ca2cd, #67B26F);  /* Chrome 10-25, Safari 5.1-6 */
+        background: linear-gradient(315deg, #4ca2cd, #67B26F); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+    }
+    .getVip{
+        background: #c471ed;  /* fallback for old browsers */
+        background: -webkit-linear-gradient(315deg, #f64f59, #c471ed);  /* Chrome 10-25, Safari 5.1-6 */
+        background: linear-gradient(315deg, #f64f59, #c471ed); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+    }
+    .getApk:after{ background: url('/img/icon/android.svg') center no-repeat;}
+    .getVip:after{ background: url('/img/icon/diamond_line.svg') center no-repeat; }
+    .actress_img {
+        width: 100%;
+        aspect-ratio: 3/4;
+        margin: auto;
+        overflow: hidden;
+    }
+    @media (min-width: 992px) {
+        .actionBanner{ margin: 0 5px 5px 0; }
+        .actress_img { max-height: 180px; }
+    }
+    @media (min-width: 1200px) {
+        .actress_img { max-height: 180px; }
+    }
+    @media (min-width: 1400px) {
+        .actress_img { max-height: 280px; }
+    }
+    /*輪播設定*/
+    .glider-dot.active{
+        background: var(--bg-third);
+    }
+    .glider:not(.oneGlider) .glider-track{
+        padding: 30px 0;
+    }
+    @media (min-width: 992px) {
+        .glider:not(.oneGlider) .glider-slide:not(.center) {
+            transform: scale(0.95, 0.95);
+            transition: 0.1s;
+            filter: grayscale(.8);
+        }
+
+        .glider:not(.oneGlider) .glider-slide.visible.center {
+            transform: scale(1.5, 1.5);
+            transition: 0.3s;
+            z-index: 1;
+        }
+    }
+    .imgsize{
+        aspect-ratio: 400/269;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+        max-width: 100%;
+        height: auto;
+    }
+    .actress_img_size{
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+    .video_container:hover .imgsize ,.actress_img:hover .actress_img_size{
+        transform: scale(1.1);
+        z-index: 1;
+    }
+    .img_frame{
+        overflow: hidden;
+    }
+    @media (min-width: 1400px) {
+        .container {
+            max-width:1400px
+        }
+    }
+    .class_title{
+       font-size: 26px;
+    }
+    .title_icon{
+        aspect-ratio: 1/1;
+        object-fit: contain;
+        max-width: 100%;
+        height: auto;
+    }
+    h1{
+        font-size: 2px;
+        position: absolute;
+        top: 0px; left: 0px;
+    }
+    .ad_size{
+        object-fit: contain;
+        max-width: 100%;
+        height: auto;
+    }
+</style>
+<script type="e4ad4a09661f3eee6a2b3c1c-text/javascript">
+    $(document).ready(function () {
+        $('#getApk').click(function(){
+            let apkVersion = ($(this)[0].dataset.file)
+            $.get('/log/index?type=downloadApk&record='+apkVersion);
+        });
+    })
+</script>
+<div id="index">
+    <h1>首頁 | 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片</h1>
+    <div class="tag-container pt-2 d-flex no-gutters flex-wrap justify-content-around align-self-end align-items-stretch">
+        <div class="col-8 d-none d-lg-block">
+                            <a class="tag" href="/video/bytagdetail?search=单体作品&page=1">单体作品</a>
+                            <a class="tag" href="/video/bytagdetail?search=中出&page=1">中出</a>
+                            <a class="tag" href="/video/bytagdetail?search=人妻&page=1">人妻</a>
+                            <a class="tag" href="/video/bytagdetail?search=巨乳&page=1">巨乳</a>
+                            <a class="tag" href="/video/bytagdetail?search=熟女&page=1">熟女</a>
+                            <a class="tag" href="/video/bytagdetail?search=痴女&page=1">痴女</a>
+                            <a class="tag" href="/video/bytagdetail?search=NTR&page=1">NTR</a>
+                            <a class="tag" href="/video/bytagdetail?search=剧情版&page=1">剧情版</a>
+                            <a class="tag" href="/video/bytagdetail?search=苗条&page=1">苗条</a>
+                            <a class="tag" href="/video/bytagdetail?search=姊姊系&page=1">姊姊系</a>
+                            <a class="tag" href="/video/bytagdetail?search=骑乘位&page=1">骑乘位</a>
+                            <a class="tag" href="/video/bytagdetail?search=OL&page=1">OL</a>
+                            <a class="tag" href="/video/bytagdetail?search=美乳&page=1">美乳</a>
+                            <a class="tag" href="/video/bytagdetail?search=素人&page=1">素人</a>
+                            <a class="tag" href="/video/bytagdetail?search=口交&page=1">口交</a>
+                        <a class="tag" href="/video/bytag">更多 > </a>
+        </div>
+        <div class="col-12 col-lg-4 d-flex flex-wrap align-items-stretch">
+            <a id="getApk" class="actionBanner col getApk d-block p-2" href="/service/lulubar_1_1.0.apk" data-file="lulubar_1_1.0.apk">
+                <h2>下载APK</h2>
+            </a>
+            <a class="actionBanner col getVip d-block p-2" href="/member/payment?pid=4">
+                <h2>开通VIP</h2>
+            </a>
+        </div>
+    </div>
+    <div class="no-gutters">
+                <div class="d-flex justify-content-between pl-3 pr-3 pt-3 p-md-0 mt-lg-2 align-items-center">
+            <div class="d-flex">
+                <img src="/img/icon/burn.png" class="img-fluid title_icon p-1 pl-md-3" alt="熱門" title="熱門" loading="lazy" width="50" height="50">
+                <h2 class="class_title p-3 mt-1">本周熱門</h2>
+            </div>
+        </div>
+        <div class="d-flex flex-wrap video_row">
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463691">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/08/6111105/pb0e0dal0011.jpg" alt="DAL-011 - [AI解码版]空想制服美少女 AI MODEL AV 首秀 工作OL编 Vol.02 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="DAL-011 - [AI解码版]空想制服美少女 AI MODEL AV 首秀 工作OL编 Vol.02 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=DAL&page=1">
+                                    DAL                                </a>
+                                                        <a href="/video/detail?id=463691" title="DAL-011 - [AI解码版]空想制服美少女 AI MODEL AV 首秀 工作OL编 Vol.02 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                [AI解码版]空想制服美少女 AI MODEL AV 首秀 工作OL编 Vol.02                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463696">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/08/6111121/aarm00359pl.jpg" alt="AARM-359 - [AI解码版]订阅超乳～美女保险外交员尝试新学会的诱惑术，轻松突破极限。随时可揩擦的94公分胸围！绫濑心 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="AARM-359 - [AI解码版]订阅超乳～美女保险外交员尝试新学会的诱惑术，轻松突破极限。随时可揩擦的94公分胸围！绫濑心 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=AARM&page=1">
+                                    AARM                                </a>
+                                                        <a href="/video/detail?id=463696" title="AARM-359 - [AI解码版]订阅超乳～美女保险外交员尝试新学会的诱惑术，轻松突破极限。随时可揩擦的94公分胸围！绫濑心 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                [AI解码版]订阅超乳～美女保险外交员尝试新学会的诱惑术，轻松突破极限。随时可揩擦的94公分胸围！绫濑心                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463683">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/08/6111083/h01240milk00298pl.jpg" alt="MILK-298 - [AI解码版]随时随地都可以召唤我，随叫随到让我做的很方便的私人性伴侣铃木真夕 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="MILK-298 - [AI解码版]随时随地都可以召唤我，随叫随到让我做的很方便的私人性伴侣铃木真夕 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=MILK&page=1">
+                                    MILK                                </a>
+                                                        <a href="/video/detail?id=463683" title="MILK-298 - [AI解码版]随时随地都可以召唤我，随叫随到让我做的很方便的私人性伴侣铃木真夕 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                [AI解码版]随时随地都可以召唤我，随叫随到让我做的很方便的私人性伴侣铃木真夕                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463680">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/08/6111072/h0237nact00156pl.jpg" alt="NACT-156 - [AI解码版]为什么只订了一间房间！ ？竟然要和笨拙的年长上司同房，被优秀上司的阳具迷住了… 梓真理 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="NACT-156 - [AI解码版]为什么只订了一间房间！ ？竟然要和笨拙的年长上司同房，被优秀上司的阳具迷住了… 梓真理 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=NACT&page=1">
+                                    NACT                                </a>
+                                                        <a href="/video/detail?id=463680" title="NACT-156 - [AI解码版]为什么只订了一间房间！ ？竟然要和笨拙的年长上司同房，被优秀上司的阳具迷住了… 梓真理 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                [AI解码版]为什么只订了一间房间！ ？竟然要和笨拙的年长上司同房，被优秀上司的阳具迷住了… 梓真理                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463813">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/09/6111569/fway00102pl.jpg" alt="FWAY-102 - 你们，我会接受全部的挑战-筱原伊代 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="FWAY-102 - 你们，我会接受全部的挑战-筱原伊代 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=FWAY&page=1">
+                                    FWAY                                </a>
+                                                        <a href="/video/detail?id=463813" title="FWAY-102 - 你们，我会接受全部的挑战-筱原伊代 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                你们，我会接受全部的挑战-筱原伊代                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463679">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/08/6111070/h0237nact00159pl.jpg" alt="NACT-159 - [AI解码版]在先生旁边达到高潮NTR 不满足的新妻找到了幸运的座位先生。 股票价格和乐趣一直在上涨，熟睡的丈夫身边，渴望着狂热的卧室 涉谷夏 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="NACT-159 - [AI解码版]在先生旁边达到高潮NTR 不满足的新妻找到了幸运的座位先生。 股票价格和乐趣一直在上涨，熟睡的丈夫身边，渴望着狂热的卧室 涉谷夏 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=NACT&page=1">
+                                    NACT                                </a>
+                                                        <a href="/video/detail?id=463679" title="NACT-159 - [AI解码版]在先生旁边达到高潮NTR 不满足的新妻找到了幸运的座位先生。 股票价格和乐趣一直在上涨，熟睡的丈夫身边，渴望着狂热的卧室 涉谷夏 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                [AI解码版]在先生旁边达到高潮NTR 不满足的新妻找到了幸运的座位先生。 股票价格和乐趣一直在上涨，熟睡的丈夫身边，渴望着狂热的卧室 涉谷夏                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463675">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/07/6111060/1sw01059pl.jpg" alt="SW-1059 - [AI解码版]同窗会上能得逞！初恋女孩已成为人妻…娇嫩长大的胸部和臀部诱惑独身男子！在厕所、走廊、丈夫不在家时幸运性爱！ - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="SW-1059 - [AI解码版]同窗会上能得逞！初恋女孩已成为人妻…娇嫩长大的胸部和臀部诱惑独身男子！在厕所、走廊、丈夫不在家时幸运性爱！ - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=SW&page=1">
+                                    SW                                </a>
+                                                        <a href="/video/detail?id=463675" title="SW-1059 - [AI解码版]同窗会上能得逞！初恋女孩已成为人妻…娇嫩长大的胸部和臀部诱惑独身男子！在厕所、走廊、丈夫不在家时幸运性爱！ - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                [AI解码版]同窗会上能得逞！初恋女孩已成为人妻…娇嫩长大的胸部和臀部诱惑独身男子！在厕所、走廊、丈夫不在家时幸运性爱！                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463869">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/11/6113513/mida00735pl.jpg" alt="MIDA-735 - [AI解码版]妻绝对不允许的射精在她的亲友的亲友发生，对敏感的男性生殖器进行十次洁净口交。松本一花。 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="MIDA-735 - [AI解码版]妻绝对不允许的射精在她的亲友的亲友发生，对敏感的男性生殖器进行十次洁净口交。松本一花。 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=MIDA&page=1">
+                                    MIDA                                </a>
+                                                        <a href="/video/detail?id=463869" title="MIDA-735 - [AI解码版]妻绝对不允许的射精在她的亲友的亲友发生，对敏感的男性生殖器进行十次洁净口交。松本一花。 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                [AI解码版]妻绝对不允许的射精在她的亲友的亲友发生，对敏感的男性生殖器进行十次洁净口交。松本一花。                            </a>
+                        </h3>
+                    </div>
+                </div>
+                    </div>
+                <div class="d-flex justify-content-between pl-3 pr-3 pt-3 p-md-0 mt-lg-2 align-items-center">
+            <div class="d-flex">
+                <img src="/img/icon/glitter.png" class="img-fluid title_icon p-1 pl-md-3" alt="最新" title="最新" loading="lazy" width="50" height="50">
+                <h2 class="class_title p-3 mt-1">最新</h2>
+            </div>
+            <a class="f-primary more p-3" href="/video/bynew?page=1">更多 ></a>
+        </div>
+        <div class="d-flex flex-wrap video_row">
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463900">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/11/6113811/lulu00445pl.jpg" alt="LULU-445 - [AI解码版]住在附近的淫荡美腿空姐，在飞行回程中被诱惑，用甜美的脚技缠绕并满足性欲，卷入充满中出性愉悦的FUCK。 天马夕依 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="LULU-445 - [AI解码版]住在附近的淫荡美腿空姐，在飞行回程中被诱惑，用甜美的脚技缠绕并满足性欲，卷入充满中出性愉悦的FUCK。 天马夕依 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=LULU&page=1">
+                                    LULU                                </a>
+                                                        <a href="/video/detail?id=463900" title="LULU-445 - [AI解码版]住在附近的淫荡美腿空姐，在飞行回程中被诱惑，用甜美的脚技缠绕并满足性欲，卷入充满中出性愉悦的FUCK。 天马夕依 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                [AI解码版]住在附近的淫荡美腿空姐，在飞行回程中被诱惑，用甜美的脚技缠绕并满足性欲，卷入充满中出性愉悦的FUCK。 天马夕依                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463889">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/11/6113789/mida00725pl.jpg" alt="MIDA-725 - [AI解码版]“被看到尿尿…好害羞啊”不伦色情J系让对方喝尿液、口水、分泌物、汗水 狐狸搔搔发情激情！体液滴滴圣水湿透学园 辉星きら - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="MIDA-725 - [AI解码版]“被看到尿尿…好害羞啊”不伦色情J系让对方喝尿液、口水、分泌物、汗水 狐狸搔搔发情激情！体液滴滴圣水湿透学园 辉星きら - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=MIDA&page=1">
+                                    MIDA                                </a>
+                                                        <a href="/video/detail?id=463889" title="MIDA-725 - [AI解码版]“被看到尿尿…好害羞啊”不伦色情J系让对方喝尿液、口水、分泌物、汗水 狐狸搔搔发情激情！体液滴滴圣水湿透学园 辉星きら - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                [AI解码版]“被看到尿尿…好害羞啊”不伦色情J系让对方喝尿液、口水、分泌物、汗水 狐狸搔搔发情激情！体液滴滴圣水湿透学园 辉星きら                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463871">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/11/6113517/mida00733pl.jpg" alt="MIDA-733 - [AI解码版]润滑液淫荡声音 超级浓厚的 淫荡污辱语言并舔食至骨髓射精引导肉感痴女极端粗俗的自慰帮助玛丽亚瓦伦泰恩 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="MIDA-733 - [AI解码版]润滑液淫荡声音 超级浓厚的 淫荡污辱语言并舔食至骨髓射精引导肉感痴女极端粗俗的自慰帮助玛丽亚瓦伦泰恩 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=MIDA&page=1">
+                                    MIDA                                </a>
+                                                        <a href="/video/detail?id=463871" title="MIDA-733 - [AI解码版]润滑液淫荡声音 超级浓厚的 淫荡污辱语言并舔食至骨髓射精引导肉感痴女极端粗俗的自慰帮助玛丽亚瓦伦泰恩 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                [AI解码版]润滑液淫荡声音 超级浓厚的 淫荡污辱语言并舔食至骨髓射精引导肉感痴女极端粗俗的自慰帮助玛丽亚瓦伦泰恩                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463869">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/11/6113513/mida00735pl.jpg" alt="MIDA-735 - [AI解码版]妻绝对不允许的射精在她的亲友的亲友发生，对敏感的男性生殖器进行十次洁净口交。松本一花。 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="MIDA-735 - [AI解码版]妻绝对不允许的射精在她的亲友的亲友发生，对敏感的男性生殖器进行十次洁净口交。松本一花。 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=MIDA&page=1">
+                                    MIDA                                </a>
+                                                        <a href="/video/detail?id=463869" title="MIDA-735 - [AI解码版]妻绝对不允许的射精在她的亲友的亲友发生，对敏感的男性生殖器进行十次洁净口交。松本一花。 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                [AI解码版]妻绝对不允许的射精在她的亲友的亲友发生，对敏感的男性生殖器进行十次洁净口交。松本一花。                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463868">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/11/6113511/mida00736pl.jpg" alt="MIDA-736 - [AI解码版]太过无防备的美腿纤瘦女教师成为我们的性处理工具：泼溅中出强奸轮奸集团活塞22发湿漉漉的精液侮辱 川口樱 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="MIDA-736 - [AI解码版]太过无防备的美腿纤瘦女教师成为我们的性处理工具：泼溅中出强奸轮奸集团活塞22发湿漉漉的精液侮辱 川口樱 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=MIDA&page=1">
+                                    MIDA                                </a>
+                                                        <a href="/video/detail?id=463868" title="MIDA-736 - [AI解码版]太过无防备的美腿纤瘦女教师成为我们的性处理工具：泼溅中出强奸轮奸集团活塞22发湿漉漉的精液侮辱 川口樱 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                [AI解码版]太过无防备的美腿纤瘦女教师成为我们的性处理工具：泼溅中出强奸轮奸集团活塞22发湿漉漉的精液侮辱 川口樱                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463816">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/09/6111575/dvaj00752pl.jpg" alt="DVAJ-752 - 在最后一班电车上，我被一名女子高中生假装无防备的短裙诱惑所吸引而上当了，在车厢里我们二人独处，发出淫荡的声音一直到终点站，我完全被迷失在花守夏步的诱惑中。 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="DVAJ-752 - 在最后一班电车上，我被一名女子高中生假装无防备的短裙诱惑所吸引而上当了，在车厢里我们二人独处，发出淫荡的声音一直到终点站，我完全被迷失在花守夏步的诱惑中。 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=DVAJ&page=1">
+                                    DVAJ                                </a>
+                                                        <a href="/video/detail?id=463816" title="DVAJ-752 - 在最后一班电车上，我被一名女子高中生假装无防备的短裙诱惑所吸引而上当了，在车厢里我们二人独处，发出淫荡的声音一直到终点站，我完全被迷失在花守夏步的诱惑中。 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                在最后一班电车上，我被一名女子高中生假装无防备的短裙诱惑所吸引而上当了，在车厢里我们二人独处，发出淫荡的声音一直到终点站，我完全被迷失在花守夏步的诱惑中。                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463815">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/09/6111573/ekdv00825pl.jpg" alt="EKDV-825 - 处男被青涩的青梅竹马抢走了…美丽可爱的青梅竹马青坂蓝成为了为处男我练习性爱的对象 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="EKDV-825 - 处男被青涩的青梅竹马抢走了…美丽可爱的青梅竹马青坂蓝成为了为处男我练习性爱的对象 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=EKDV&page=1">
+                                    EKDV                                </a>
+                                                        <a href="/video/detail?id=463815" title="EKDV-825 - 处男被青涩的青梅竹马抢走了…美丽可爱的青梅竹马青坂蓝成为了为处男我练习性爱的对象 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                处男被青涩的青梅竹马抢走了…美丽可爱的青梅竹马青坂蓝成为了为处男我练习性爱的对象                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463814">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/09/6111571/fway00099pl.jpg" alt="FWAY-099 - 那么，再次八木奈奈 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="FWAY-099 - 那么，再次八木奈奈 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=FWAY&page=1">
+                                    FWAY                                </a>
+                                                        <a href="/video/detail?id=463814" title="FWAY-099 - 那么，再次八木奈奈 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                那么，再次八木奈奈                            </a>
+                        </h3>
+                    </div>
+                </div>
+                    </div>
+        <div class="mt-3 mb-3">
+            <div class="glider d-none"></div>
+            <div class="dots"></div>
+            <div class="m-1">
+                <a href="/index/game" class="btn btn-block btn-danger d-lg-none">👉 色游 黃油 都在这 👈</a>
+            </div>
+        </div>
+        <div class="d-flex justify-content-between pl-3 pr-3 pt-3 p-md-0 mt-lg-2 align-items-center">
+            <div class="d-flex">
+                <img src="/img/icon/heart_unpixal.png" class="img-fluid title_icon p-1 pl-md-3" alt="无码" title="无码" loading="lazy" width="50" height="50">
+                <h2 class="class_title p-3 mt-1">无码</h2>
+            </div>
+            <a class="f-primary more p-3" href="/video/byunpix?page=1">更多 ></a>
+        </div>
+        <div class="lazy-loading d-none flex-wrap video_row">
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463900">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/11/6113811/lulu00445pl.jpg" alt="LULU-445 - [AI解码版]住在附近的淫荡美腿空姐，在飞行回程中被诱惑，用甜美的脚技缠绕并满足性欲，卷入充满中出性愉悦的FUCK。 天马夕依 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="LULU-445 - [AI解码版]住在附近的淫荡美腿空姐，在飞行回程中被诱惑，用甜美的脚技缠绕并满足性欲，卷入充满中出性愉悦的FUCK。 天马夕依 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=LULU&page=1">
+                                    LULU                                </a>
+                                                        <a href="/video/detail?id=463900" title="LULU-445 - [AI解码版]住在附近的淫荡美腿空姐，在飞行回程中被诱惑，用甜美的脚技缠绕并满足性欲，卷入充满中出性愉悦的FUCK。 天马夕依 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                [AI解码版]住在附近的淫荡美腿空姐，在飞行回程中被诱惑，用甜美的脚技缠绕并满足性欲，卷入充满中出性愉悦的FUCK。 天马夕依                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463889">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/11/6113789/mida00725pl.jpg" alt="MIDA-725 - [AI解码版]“被看到尿尿…好害羞啊”不伦色情J系让对方喝尿液、口水、分泌物、汗水 狐狸搔搔发情激情！体液滴滴圣水湿透学园 辉星きら - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="MIDA-725 - [AI解码版]“被看到尿尿…好害羞啊”不伦色情J系让对方喝尿液、口水、分泌物、汗水 狐狸搔搔发情激情！体液滴滴圣水湿透学园 辉星きら - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=MIDA&page=1">
+                                    MIDA                                </a>
+                                                        <a href="/video/detail?id=463889" title="MIDA-725 - [AI解码版]“被看到尿尿…好害羞啊”不伦色情J系让对方喝尿液、口水、分泌物、汗水 狐狸搔搔发情激情！体液滴滴圣水湿透学园 辉星きら - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                [AI解码版]“被看到尿尿…好害羞啊”不伦色情J系让对方喝尿液、口水、分泌物、汗水 狐狸搔搔发情激情！体液滴滴圣水湿透学园 辉星きら                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463871">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/11/6113517/mida00733pl.jpg" alt="MIDA-733 - [AI解码版]润滑液淫荡声音 超级浓厚的 淫荡污辱语言并舔食至骨髓射精引导肉感痴女极端粗俗的自慰帮助玛丽亚瓦伦泰恩 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="MIDA-733 - [AI解码版]润滑液淫荡声音 超级浓厚的 淫荡污辱语言并舔食至骨髓射精引导肉感痴女极端粗俗的自慰帮助玛丽亚瓦伦泰恩 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=MIDA&page=1">
+                                    MIDA                                </a>
+                                                        <a href="/video/detail?id=463871" title="MIDA-733 - [AI解码版]润滑液淫荡声音 超级浓厚的 淫荡污辱语言并舔食至骨髓射精引导肉感痴女极端粗俗的自慰帮助玛丽亚瓦伦泰恩 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                [AI解码版]润滑液淫荡声音 超级浓厚的 淫荡污辱语言并舔食至骨髓射精引导肉感痴女极端粗俗的自慰帮助玛丽亚瓦伦泰恩                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463869">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/11/6113513/mida00735pl.jpg" alt="MIDA-735 - [AI解码版]妻绝对不允许的射精在她的亲友的亲友发生，对敏感的男性生殖器进行十次洁净口交。松本一花。 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="MIDA-735 - [AI解码版]妻绝对不允许的射精在她的亲友的亲友发生，对敏感的男性生殖器进行十次洁净口交。松本一花。 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=MIDA&page=1">
+                                    MIDA                                </a>
+                                                        <a href="/video/detail?id=463869" title="MIDA-735 - [AI解码版]妻绝对不允许的射精在她的亲友的亲友发生，对敏感的男性生殖器进行十次洁净口交。松本一花。 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                [AI解码版]妻绝对不允许的射精在她的亲友的亲友发生，对敏感的男性生殖器进行十次洁净口交。松本一花。                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463868">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/11/6113511/mida00736pl.jpg" alt="MIDA-736 - [AI解码版]太过无防备的美腿纤瘦女教师成为我们的性处理工具：泼溅中出强奸轮奸集团活塞22发湿漉漉的精液侮辱 川口樱 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="MIDA-736 - [AI解码版]太过无防备的美腿纤瘦女教师成为我们的性处理工具：泼溅中出强奸轮奸集团活塞22发湿漉漉的精液侮辱 川口樱 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=MIDA&page=1">
+                                    MIDA                                </a>
+                                                        <a href="/video/detail?id=463868" title="MIDA-736 - [AI解码版]太过无防备的美腿纤瘦女教师成为我们的性处理工具：泼溅中出强奸轮奸集团活塞22发湿漉漉的精液侮辱 川口樱 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                [AI解码版]太过无防备的美腿纤瘦女教师成为我们的性处理工具：泼溅中出强奸轮奸集团活塞22发湿漉漉的精液侮辱 川口樱                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463696">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/08/6111121/aarm00359pl.jpg" alt="AARM-359 - [AI解码版]订阅超乳～美女保险外交员尝试新学会的诱惑术，轻松突破极限。随时可揩擦的94公分胸围！绫濑心 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="AARM-359 - [AI解码版]订阅超乳～美女保险外交员尝试新学会的诱惑术，轻松突破极限。随时可揩擦的94公分胸围！绫濑心 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=AARM&page=1">
+                                    AARM                                </a>
+                                                        <a href="/video/detail?id=463696" title="AARM-359 - [AI解码版]订阅超乳～美女保险外交员尝试新学会的诱惑术，轻松突破极限。随时可揩擦的94公分胸围！绫濑心 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                [AI解码版]订阅超乳～美女保险外交员尝试新学会的诱惑术，轻松突破极限。随时可揩擦的94公分胸围！绫濑心                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463692">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/08/6111111/h01378arso26208pl.jpg" alt="ARSO-26208 - [AI解码版]舞蹈人妻～名流俱乐部 208 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="ARSO-26208 - [AI解码版]舞蹈人妻～名流俱乐部 208 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=ARSO&page=1">
+                                    ARSO                                </a>
+                                                        <a href="/video/detail?id=463692" title="ARSO-26208 - [AI解码版]舞蹈人妻～名流俱乐部 208 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                [AI解码版]舞蹈人妻～名流俱乐部 208                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463691">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/08/6111105/pb0e0dal0011.jpg" alt="DAL-011 - [AI解码版]空想制服美少女 AI MODEL AV 首秀 工作OL编 Vol.02 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="DAL-011 - [AI解码版]空想制服美少女 AI MODEL AV 首秀 工作OL编 Vol.02 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=DAL&page=1">
+                                    DAL                                </a>
+                                                        <a href="/video/detail?id=463691" title="DAL-011 - [AI解码版]空想制服美少女 AI MODEL AV 首秀 工作OL编 Vol.02 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                [AI解码版]空想制服美少女 AI MODEL AV 首秀 工作OL编 Vol.02                            </a>
+                        </h3>
+                    </div>
+                </div>
+                    </div>
+        <div class="d-flex justify-content-between pl-3 pr-3 pt-3 p-md-0 mt-lg-2 align-items-center">
+            <div class="d-flex">
+                <img src="/img/icon/sexy1.png" class="img-fluid title_icon p-1 pl-md-3" alt="欧美" title="欧美" loading="lazy" width="50" height="50">
+                <h2 class="class_title p-3 mt-1">欧美</h2>
+            </div>
+            <a class="f-primary more p-3" href="/video/bywestern?page=1">更多 ></a>
+        </div>
+        <div class="lazy-loading d-none flex-wrap video_row">
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=461083">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/06/04/6072855/om0060400302.jpg" alt="om-0604-03 - 性感老师严厉榨精不乖学生 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="om-0604-03 - 性感老师严厉榨精不乖学生 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" loading="lazy" class="img-fluid imgsize" width="400" height="269" >
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=OM&page=1">
+                                    OM                                </a>
+                                                        <a href="/video/detail?id=461083" title="om-0604-03 - 性感老师严厉榨精不乖学生 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                性感老师严厉榨精不乖学生                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=461082">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/06/04/6072853/om0060400202.jpg" alt="om-0604-02 - 甜美女孩想吃黑色棒棒糖 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="om-0604-02 - 甜美女孩想吃黑色棒棒糖 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" loading="lazy" class="img-fluid imgsize" width="400" height="269" >
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=OM&page=1">
+                                    OM                                </a>
+                                                        <a href="/video/detail?id=461082" title="om-0604-02 - 甜美女孩想吃黑色棒棒糖 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                甜美女孩想吃黑色棒棒糖                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=461081">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/06/04/6072851/om0060400102.jpg" alt="om-0604-01 - 任何长度的肉棒我都爱吃 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="om-0604-01 - 任何长度的肉棒我都爱吃 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" loading="lazy" class="img-fluid imgsize" width="400" height="269" >
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=OM&page=1">
+                                    OM                                </a>
+                                                        <a href="/video/detail?id=461081" title="om-0604-01 - 任何长度的肉棒我都爱吃 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                任何长度的肉棒我都爱吃                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=459315">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/04/28/6039611/om0042302402.jpg" alt="om-0423-24 - 偷窃少女被检查鲍鱼 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="om-0423-24 - 偷窃少女被检查鲍鱼 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" loading="lazy" class="img-fluid imgsize" width="400" height="269" >
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=OM&page=1">
+                                    OM                                </a>
+                                                        <a href="/video/detail?id=459315" title="om-0423-24 - 偷窃少女被检查鲍鱼 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                偷窃少女被检查鲍鱼                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=459314">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/04/28/6039609/om0042302302.jpg" alt="om-0423-23 - 超巨黑屌vs超娇小少女 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="om-0423-23 - 超巨黑屌vs超娇小少女 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" loading="lazy" class="img-fluid imgsize" width="400" height="269" >
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=OM&page=1">
+                                    OM                                </a>
+                                                        <a href="/video/detail?id=459314" title="om-0423-23 - 超巨黑屌vs超娇小少女 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                超巨黑屌vs超娇小少女                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=459313">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/04/28/6039607/om0042302202.jpg" alt="om-0423-22 - 我只想上班却被夹击吸屌毒龙钻 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="om-0423-22 - 我只想上班却被夹击吸屌毒龙钻 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" loading="lazy" class="img-fluid imgsize" width="400" height="269" >
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=OM&page=1">
+                                    OM                                </a>
+                                                        <a href="/video/detail?id=459313" title="om-0423-22 - 我只想上班却被夹击吸屌毒龙钻 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                我只想上班却被夹击吸屌毒龙钻                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=459312">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/04/28/6039605/om0042302102.jpg" alt="om-0423-21 - 我妈的胸部一夜之间变大十倍! - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="om-0423-21 - 我妈的胸部一夜之间变大十倍! - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" loading="lazy" class="img-fluid imgsize" width="400" height="269" >
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=OM&page=1">
+                                    OM                                </a>
+                                                        <a href="/video/detail?id=459312" title="om-0423-21 - 我妈的胸部一夜之间变大十倍! - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                我妈的胸部一夜之间变大十倍!                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=459311">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/04/28/6039603/om0042302002.jpg" alt="om-0423-20 - 性感妹妹总爱调戏我 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="om-0423-20 - 性感妹妹总爱调戏我 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" loading="lazy" class="img-fluid imgsize" width="400" height="269" >
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=OM&page=1">
+                                    OM                                </a>
+                                                        <a href="/video/detail?id=459311" title="om-0423-20 - 性感妹妹总爱调戏我 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                性感妹妹总爱调戏我                            </a>
+                        </h3>
+                    </div>
+                </div>
+                    </div>
+        <div class="d-flex justify-content-between pl-3 pr-3 pt-3 p-md-0 mt-lg-2 align-items-center">
+            <div class="d-flex">
+                <img src="/img/icon/text1.png" class="img-fluid title_icon p-1 pl-md-3" alt="中字" title="中字" loading="lazy" width="50" height="50">
+                <h2 class="class_title p-3 mt-1">中字</h2>
+            </div>
+            <a class="f-primary more p-3" href="/video/bych?page=1">更多 ></a>
+        </div>
+        <div class="lazy-loading d-none flex-wrap video_row">
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463900">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/11/6113811/lulu00445pl.jpg" alt="LULU-445 - [AI解码版]住在附近的淫荡美腿空姐，在飞行回程中被诱惑，用甜美的脚技缠绕并满足性欲，卷入充满中出性愉悦的FUCK。 天马夕依 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="LULU-445 - [AI解码版]住在附近的淫荡美腿空姐，在飞行回程中被诱惑，用甜美的脚技缠绕并满足性欲，卷入充满中出性愉悦的FUCK。 天马夕依 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" loading="lazy"  class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=LULU&page=1">
+                                    LULU                                </a>
+                                                        <a href="/video/detail?id=463900" title="LULU-445 - [AI解码版]住在附近的淫荡美腿空姐，在飞行回程中被诱惑，用甜美的脚技缠绕并满足性欲，卷入充满中出性愉悦的FUCK。 天马夕依 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                [AI解码版]住在附近的淫荡美腿空姐，在飞行回程中被诱惑，用甜美的脚技缠绕并满足性欲，卷入充满中出性愉悦的FUCK。 天马夕依                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463889">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/11/6113789/mida00725pl.jpg" alt="MIDA-725 - [AI解码版]“被看到尿尿…好害羞啊”不伦色情J系让对方喝尿液、口水、分泌物、汗水 狐狸搔搔发情激情！体液滴滴圣水湿透学园 辉星きら - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="MIDA-725 - [AI解码版]“被看到尿尿…好害羞啊”不伦色情J系让对方喝尿液、口水、分泌物、汗水 狐狸搔搔发情激情！体液滴滴圣水湿透学园 辉星きら - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" loading="lazy"  class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=MIDA&page=1">
+                                    MIDA                                </a>
+                                                        <a href="/video/detail?id=463889" title="MIDA-725 - [AI解码版]“被看到尿尿…好害羞啊”不伦色情J系让对方喝尿液、口水、分泌物、汗水 狐狸搔搔发情激情！体液滴滴圣水湿透学园 辉星きら - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                [AI解码版]“被看到尿尿…好害羞啊”不伦色情J系让对方喝尿液、口水、分泌物、汗水 狐狸搔搔发情激情！体液滴滴圣水湿透学园 辉星きら                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463871">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/11/6113517/mida00733pl.jpg" alt="MIDA-733 - [AI解码版]润滑液淫荡声音 超级浓厚的 淫荡污辱语言并舔食至骨髓射精引导肉感痴女极端粗俗的自慰帮助玛丽亚瓦伦泰恩 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="MIDA-733 - [AI解码版]润滑液淫荡声音 超级浓厚的 淫荡污辱语言并舔食至骨髓射精引导肉感痴女极端粗俗的自慰帮助玛丽亚瓦伦泰恩 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" loading="lazy"  class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=MIDA&page=1">
+                                    MIDA                                </a>
+                                                        <a href="/video/detail?id=463871" title="MIDA-733 - [AI解码版]润滑液淫荡声音 超级浓厚的 淫荡污辱语言并舔食至骨髓射精引导肉感痴女极端粗俗的自慰帮助玛丽亚瓦伦泰恩 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                [AI解码版]润滑液淫荡声音 超级浓厚的 淫荡污辱语言并舔食至骨髓射精引导肉感痴女极端粗俗的自慰帮助玛丽亚瓦伦泰恩                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463869">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/11/6113513/mida00735pl.jpg" alt="MIDA-735 - [AI解码版]妻绝对不允许的射精在她的亲友的亲友发生，对敏感的男性生殖器进行十次洁净口交。松本一花。 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="MIDA-735 - [AI解码版]妻绝对不允许的射精在她的亲友的亲友发生，对敏感的男性生殖器进行十次洁净口交。松本一花。 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" loading="lazy"  class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=MIDA&page=1">
+                                    MIDA                                </a>
+                                                        <a href="/video/detail?id=463869" title="MIDA-735 - [AI解码版]妻绝对不允许的射精在她的亲友的亲友发生，对敏感的男性生殖器进行十次洁净口交。松本一花。 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                [AI解码版]妻绝对不允许的射精在她的亲友的亲友发生，对敏感的男性生殖器进行十次洁净口交。松本一花。                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463868">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/11/6113511/mida00736pl.jpg" alt="MIDA-736 - [AI解码版]太过无防备的美腿纤瘦女教师成为我们的性处理工具：泼溅中出强奸轮奸集团活塞22发湿漉漉的精液侮辱 川口樱 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="MIDA-736 - [AI解码版]太过无防备的美腿纤瘦女教师成为我们的性处理工具：泼溅中出强奸轮奸集团活塞22发湿漉漉的精液侮辱 川口樱 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" loading="lazy"  class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=MIDA&page=1">
+                                    MIDA                                </a>
+                                                        <a href="/video/detail?id=463868" title="MIDA-736 - [AI解码版]太过无防备的美腿纤瘦女教师成为我们的性处理工具：泼溅中出强奸轮奸集团活塞22发湿漉漉的精液侮辱 川口樱 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                [AI解码版]太过无防备的美腿纤瘦女教师成为我们的性处理工具：泼溅中出强奸轮奸集团活塞22发湿漉漉的精液侮辱 川口樱                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463696">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/08/6111121/aarm00359pl.jpg" alt="AARM-359 - [AI解码版]订阅超乳～美女保险外交员尝试新学会的诱惑术，轻松突破极限。随时可揩擦的94公分胸围！绫濑心 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="AARM-359 - [AI解码版]订阅超乳～美女保险外交员尝试新学会的诱惑术，轻松突破极限。随时可揩擦的94公分胸围！绫濑心 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" loading="lazy"  class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=AARM&page=1">
+                                    AARM                                </a>
+                                                        <a href="/video/detail?id=463696" title="AARM-359 - [AI解码版]订阅超乳～美女保险外交员尝试新学会的诱惑术，轻松突破极限。随时可揩擦的94公分胸围！绫濑心 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                [AI解码版]订阅超乳～美女保险外交员尝试新学会的诱惑术，轻松突破极限。随时可揩擦的94公分胸围！绫濑心                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463692">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/08/6111111/h01378arso26208pl.jpg" alt="ARSO-26208 - [AI解码版]舞蹈人妻～名流俱乐部 208 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="ARSO-26208 - [AI解码版]舞蹈人妻～名流俱乐部 208 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" loading="lazy"  class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=ARSO&page=1">
+                                    ARSO                                </a>
+                                                        <a href="/video/detail?id=463692" title="ARSO-26208 - [AI解码版]舞蹈人妻～名流俱乐部 208 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                [AI解码版]舞蹈人妻～名流俱乐部 208                            </a>
+                        </h3>
+                    </div>
+                </div>
+                            <div class="video_container bg_pri mb-1 p-1 col-6 col-md-3 col-lg-3">
+                    <a class="imgBoxW" href="/video/detail?id=463691">
+                        <div class="img_frame">
+                            <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src="https://image.lulubar.co/films/2026/08/08/6111105/pb0e0dal0011.jpg" alt="DAL-011 - [AI解码版]空想制服美少女 AI MODEL AV 首秀 工作OL编 Vol.02 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" title="DAL-011 - [AI解码版]空想制服美少女 AI MODEL AV 首秀 工作OL编 Vol.02 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" onerror="this.onerror = null; this.src ='/img/notFoundPoster.jpg'" loading="lazy"  class="img-fluid imgsize" width="400" height="269">
+                        </div>
+                    </a>
+                    <div class="pt-2 pb-1 video_info">
+                        <h3 class="text-hidden">
+                                                            <a class="ogtag" href="/video/bysearch?search=DAL&page=1">
+                                    DAL                                </a>
+                                                        <a href="/video/detail?id=463691" title="DAL-011 - [AI解码版]空想制服美少女 AI MODEL AV 首秀 工作OL编 Vol.02 - 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片">
+                                [AI解码版]空想制服美少女 AI MODEL AV 首秀 工作OL编 Vol.02                            </a>
+                        </h3>
+                    </div>
+                </div>
+                    </div>
+        <div class="d-flex justify-content-between pl-3 pr-3 pt-3 p-md-0 mt-lg-2 align-items-center">
+            <div class="d-flex">
+                <img src="/img/icon/mask.png" class="img-fluid title_icon p-1 pl-md-3" alt="女优推荐" title="女优推荐" loading="lazy" width="50" height="50" >
+                <h2 class="class_title p-3 pb-1 mt-1">女优推荐</h2>
+            </div>
+
+            <a class="f-primary more p-3" href="/video/bygirl?page=1">更多 ></a>
+        </div>
+        <div id="girlContainer" class="lazy-loading d-none flex-wrap no-gutters bg_pri mb-5">
+            <div class="d-flex flex-wrap align-items-center video_row col-12 col-lg-12">
+                                    <div class="p-2 col-4 col-md-2 col-lg-2">
+                        <a href="/video/bygirldetail?id=855&page=1">
+                            <div class="actress_img">
+                                <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src ="/upload/actress/9ad55d44da374d08ab392d1c5131d98feeb218b54e08cec438eefa585b57b274.jpg" onerror="this.onerror = null; this.src ='/img/notFoundG.jpg'" alt="素人 | 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" loading="lazy" class="img-fluid actress_img_size" width="375" height="500">
+                            </div>
+                            <div class="pt-2 video_info text-center">
+                                <h3 class="text-hidden mb-0">素人</h3>
+                            </div>
+                        </a>
+                    </div>
+                                    <div class="p-2 col-4 col-md-2 col-lg-2">
+                        <a href="/video/bygirldetail?id=1047&page=1">
+                            <div class="actress_img">
+                                <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src ="/upload/actress/aoi.jpg" onerror="this.onerror = null; this.src ='/img/notFoundG.jpg'" alt="葵 | 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" loading="lazy" class="img-fluid actress_img_size" width="375" height="500">
+                            </div>
+                            <div class="pt-2 video_info text-center">
+                                <h3 class="text-hidden mb-0">葵</h3>
+                            </div>
+                        </a>
+                    </div>
+                                    <div class="p-2 col-4 col-md-2 col-lg-2">
+                        <a href="/video/bygirldetail?id=500&page=1">
+                            <div class="actress_img">
+                                <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src ="/upload/actress/anzu.jpg" onerror="this.onerror = null; this.src ='/img/notFoundG.jpg'" alt="杏 | 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" loading="lazy" class="img-fluid actress_img_size" width="375" height="500">
+                            </div>
+                            <div class="pt-2 video_info text-center">
+                                <h3 class="text-hidden mb-0">杏</h3>
+                            </div>
+                        </a>
+                    </div>
+                                    <div class="p-2 col-4 col-md-2 col-lg-2">
+                        <a href="/video/bygirldetail?id=442&page=1">
+                            <div class="actress_img">
+                                <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src ="https://image.dd1919.com/actresses/2025/08/07/5902309/s0u00t51uj0zc0ezacltz000nq00a00meta606i5bm05p035000550r602i000w0j0t00gt00cg000x000y0mpw0w000.jpg" onerror="this.onerror = null; this.src ='/img/notFoundG.jpg'" alt="芽衣 | 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" loading="lazy" class="img-fluid actress_img_size" width="375" height="500">
+                            </div>
+                            <div class="pt-2 video_info text-center">
+                                <h3 class="text-hidden mb-0">芽衣</h3>
+                            </div>
+                        </a>
+                    </div>
+                                    <div class="p-2 col-4 col-md-2 col-lg-2">
+                        <a href="/video/bygirldetail?id=1006&page=1">
+                            <div class="actress_img">
+                                <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src ="https://image.dd1919.com/actresses/2025/01/07/4692063/w0g040hk00eb41100u01td0yn8l0fu0meta5q0u5r6k502z5a000mpw0w000.jpg" onerror="this.onerror = null; this.src ='/img/notFoundG.jpg'" alt="森泽佳奈 | 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" loading="lazy" class="img-fluid actress_img_size" width="375" height="500">
+                            </div>
+                            <div class="pt-2 video_info text-center">
+                                <h3 class="text-hidden mb-0">森泽佳奈</h3>
+                            </div>
+                        </a>
+                    </div>
+                                    <div class="p-2 col-4 col-md-2 col-lg-2">
+                        <a href="/video/bygirldetail?id=579&page=1">
+                            <div class="actress_img">
+                                <script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49"></script><img src ="/upload/actress/b52606b220dbefe8e72b762f4fc4004e9a6a7ebfe2a8148f24a16bfb4746f290.jpg" onerror="this.onerror = null; this.src ='/img/notFoundG.jpg'" alt="波多野结衣 | 撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片" loading="lazy" class="img-fluid actress_img_size" width="375" height="500">
+                            </div>
+                            <div class="pt-2 video_info text-center">
+                                <h3 class="text-hidden mb-0">波多野结衣</h3>
+                            </div>
+                        </a>
+                    </div>
+                            </div>
+        </div>
+    </div>
+</div>
+<script type="e4ad4a09661f3eee6a2b3c1c-text/javascript">
+    mixpanel.track('index');
+    $(document).ready(()=>{
+        $('.lazy-loading').removeClass('d-none').addClass('d-flex');
+    })
+    //AD start
+    if(!localStorage.ad) {
+        $.ajax({
+            url: '/index/get_ad',
+            dataType: 'json',
+            success: function (data) {
+                localStorage.setItem('ad', JSON.stringify(data))
+                indexAd(data)
+            },
+        });
+    }else {
+        var data = JSON.parse(localStorage.ad);
+        indexAd(data)
+    }
+    function indexAd(data){
+        var indexAd = data.index;
+        var indexAdBnLen = indexAd.banner.length;
+        if (indexAdBnLen > 0) {
+            $(indexAd.banner).each(function (i, element) {
+                if (i == 0 && indexAdBnLen > 1) {
+                    appendImg(indexAd.banner[indexAdBnLen - 1], '.glider');
+                }
+                appendImg(element, '.glider');
+                if ((i + 1) == indexAdBnLen) {
+                    $('.glider').removeClass('d-none');
+                    if (indexAdBnLen > 1) {
+                        appendImg(indexAd.banner[0], '.glider');
+                    }
+                    //輪播設定
+                    if (window.innerWidth < 812 || indexAdBnLen == 1) {
+                        $('.glider').addClass('oneGlider')
+                        var glider = new Glider(document.querySelector('.glider'), {
+                            slidesToShow: 1,
+                            slidesToScroll: 1,
+                            draggable: true,
+                            dots: '.dots',
+                        });
+                    } else {
+                        var glider = new Glider(document.querySelector('.glider'), {
+                            slidesToShow: 3,
+                            slidesToScroll: 1,
+                            draggable: true,
+                            dots: '.dots',
+                        });
+                    }
+                    sliderAuto(glider, 3000);
+                }
+            })
+        }
+        let indexAdGirlBn = indexAd.ping.girl;
+        prependImg(indexAdGirlBn, '#girlContainer', 'imgBoxW bg_pri col-12 col-lg-6 p-0 p-md-1');
+        let indexAdFtBn = indexAd.ping.footer;
+        prependImg(indexAdFtBn, '#footer', 'imgBoxW mt-5 mt-lg-3 d-block mb-5 mb-lg-3');
+    }
+    function sliderAuto(slider, miliseconds) {
+        const slidesCount = slider.track.childElementCount;
+        let slideTimeout = null;
+        let nextIndex = 1;
+        function slide () {
+            slideTimeout = setTimeout(
+                function () {
+                    if (nextIndex >= slidesCount ) {
+                        nextIndex = 0;
+                    }
+                    slider.scrollItem(nextIndex++);
+                },
+                miliseconds
+            );
+        }
+        slider.ele.addEventListener('glider-animated', function() {
+            window.clearInterval(slideTimeout);
+            slide();
+        });
+        slide();
+    }
+    function appendImg(element,parents,classList){
+        dom = '<a href="'+element.link+'"';
+        if(classList != undefined){
+            dom += ' class="'+classList+'"';
+        }
+        if(element.link_target == 1){
+            dom += ' rel="noopener noreferrer" target="_blank" title="'+element.slogan+'">';
+        }else {
+            dom += ' title="'+element.slogan+'">';
+        }
+        dom += '<img loading="lazy" src="'+element.media+'" alt="撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片 | '+element.slogan+'" class="img-fluid ad_size" width="692" height="228"></a>'
+        $(parents).append(dom);
+    }
+    function prependImg(element,parents,classList){
+        dom = '<a href="'+element.link+'"';
+        if(classList != undefined){
+            dom += ' class="'+classList+'"';
+        }
+        if(element.link_target == 1){
+            dom += ' rel="noopener noreferrer" target="_blank" title="'+element.slogan+'">';
+        }else {
+            dom += ' title="'+element.slogan+'">';
+        }
+        dom += '<img loading="lazy" src="'+element.media+'" alt="撸撸吧-视频,色播,色站,色情女优,色片宝库,啪啪谜片 | '+element.slogan+'" class="img-fluid ad_size" width="1400" height="119"></a>'
+        $(parents).prepend(dom);
+    }
+    //AD end
+</script>
+<script type="e4ad4a09661f3eee6a2b3c1c-text/javascript">
+    // Define dataLayer and the gtag function.
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+
+    // Set default consent to 'denied' as a placeholder
+    // Determine actual values based on your own requirements
+    gtag('consent', 'default', {
+        'ad_storage': 'denied',  // 廣告存儲未同意
+        'analytics_storage': 'denied',
+        'functionality storage': "denied",
+        'personalization_storage': "denied",
+        'security_storage': "denied",
+        'ad_user_data': "denied",
+        'ad_personalization': "denied",
+        'wait_for_update': "2000",
+    });
+
+</script>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-L0LPCTP32P" type="e4ad4a09661f3eee6a2b3c1c-text/javascript"></script>
+<script type="e4ad4a09661f3eee6a2b3c1c-text/javascript">
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-L0LPCTP32P');
+    gtag('set', 'url_passthrough', true);
+    gtag('set', 'ads_data_redaction', true);
+    gtag('set', 'anonymize_ip', true);
+    gtag('set', 'allow_google_signals', false);
+    gtag('set', 'allow_ad_personalization_signals', false);
+    gtag('set', 'cookie_domain', 'auto');
+    gtag('set', 'cookie_flags', 'SameSite=None;Secure;Partitioned');
+    gtag('set', 'cookie_update', true);
+</script>
+<script type="e4ad4a09661f3eee6a2b3c1c-text/javascript">
+    async function allConsentGranted() {
+        gtag('consent', 'update', {
+            //'ad_storage': 'granted',
+            'analytics_storage': 'granted',
+            'ad_user_data': "granted",
+            'ad_personalization': "granted",
+            'functionality_storage': "granted",
+            'personalization_storage': "granted",
+            'security_storage': "granted",
+        });
+    }
+    async function allConsentDenied() {
+        gtag('consent', 'update', {
+            'ad_storage': 'denied',
+            'analytics_storage': 'denied',
+            'functionality storage': "denied",
+            'personalization_storage': "denied",
+            'security_storage': "denied",
+            'ad_user_data': "denied",
+            'ad_personalization': "denied",
+        });
+    }
+    window.onload = function() {
+        // 檢查是否已接受 Cookies
+        if (!document.cookie.includes('cookies_accepted')) {
+            console.log("未接受 Cookies，顯示 Cookie 同意橫幅。");
+            document.getElementById('cookie-consent-banner').style.display = 'flex';
+            allConsentDenied();
+        } else {
+            document.getElementById('cookie-consent-banner').style.display = 'none';
+            console.log("已接受 Cookies，隱藏 Cookie 同意橫幅。");
+            allConsentGranted();
+        }
+    };
+
+    // 接受 Cookies 的處理
+    document.getElementById('accept-cookies').onclick = function() {
+        document.cookie = "cookies_accepted=true; path=/; max-age=" + (60 * 60 * 24 * 30) + "; SameSite=None; Secure;"; // 30天 Partitioned;
+        console.log("用戶接受了 Cookies。");
+        document.getElementById('cookie-consent-banner').style.display = 'none';
+        allConsentGranted();
+    };
+
+    // 拒絕 Cookies 的處理
+    document.getElementById('reject-cookies').onclick = function() {
+        console.log("用戶拒絕了 Cookies。");
+        document.getElementById('cookie-consent-banner').style.display = 'none';
+        allConsentDenied();
+    };
+</script>
+        <div id="footer"></div>
+    </div>
+    <div id="mob_nav_cover" class="d-none" ></div>
+    <div id="mob_nav_list" class="d-none" style="color: #fff;">
+        <div id="mob_nav_close" class="d-flex  justify-content-between">
+            <p style="font-size: 26px;padding: 14px 0 0 20px;line-height: 55px"  class="">热搜标签</p>
+            <span style="font-size: 26px;padding: 14px 20px 0 0 ;" >✖</span>
+        </div>
+        <div class="tag-container text-left d-flex flex-wrap pl-3 pr-2">
+                            <a class="tag" href="/video/bytagdetail?search=单体作品&page=1">单体作品</a>
+                            <a class="tag" href="/video/bytagdetail?search=中出&page=1">中出</a>
+                            <a class="tag" href="/video/bytagdetail?search=人妻&page=1">人妻</a>
+                            <a class="tag" href="/video/bytagdetail?search=巨乳&page=1">巨乳</a>
+                            <a class="tag" href="/video/bytagdetail?search=熟女&page=1">熟女</a>
+                            <a class="tag" href="/video/bytagdetail?search=痴女&page=1">痴女</a>
+                            <a class="tag" href="/video/bytagdetail?search=NTR&page=1">NTR</a>
+                            <a class="tag" href="/video/bytagdetail?search=剧情版&page=1">剧情版</a>
+                            <a class="tag" href="/video/bytagdetail?search=苗条&page=1">苗条</a>
+                            <a class="tag" href="/video/bytagdetail?search=姊姊系&page=1">姊姊系</a>
+                            <a class="tag" href="/video/bytagdetail?search=骑乘位&page=1">骑乘位</a>
+                            <a class="tag" href="/video/bytagdetail?search=OL&page=1">OL</a>
+                            <a class="tag" href="/video/bytagdetail?search=美乳&page=1">美乳</a>
+                            <a class="tag" href="/video/bytagdetail?search=素人&page=1">素人</a>
+                            <a class="tag" href="/video/bytagdetail?search=口交&page=1">口交</a>
+                            <a class="tag" href="/video/bytagdetail?search=乳交&page=1">乳交</a>
+                            <a class="tag" href="/video/bytagdetail?search=粗暴&page=1">粗暴</a>
+                            <a class="tag" href="/video/bytagdetail?search=大屁股&page=1">大屁股</a>
+                            <a class="tag" href="/video/bytagdetail?search=不伦&page=1">不伦</a>
+                            <a class="tag" href="/video/bytagdetail?search=接吻&page=1">接吻</a>
+                        <a class="tag" href="/video/bytag">更多 > </a>
+        </div>
+    </div>
+    <footer class="footer pb-5 p-1" style="background-color: var(--bg-primary);color:var(--nav-text);">
+        <div class="container d-flex flex-wrap justify-content-center">
+            <a href="/index/dealer" class="p-2 text-center col-lg-3" style="color:var(--info);">加入經銷</a>
+                        <p class="text-center col-12">Copyright&copy; target 2026</p>
+        </div>
+    </footer>
+<!--    <div id="pingPic" class="d-none justify-content-center position-fixed" style="z-index: 9999;">-->
+<!--        <button class="close p-2" type="button" onclick="closePing()"> X </button>-->
+<!--        <a class="imgBoxW" href="http://a.dxxlp.xyz">-->
+<!--            <img src="/img/wallE.png">-->
+<!--        </a>-->
+<!--    </div>-->
+<script type="e4ad4a09661f3eee6a2b3c1c-text/javascript">
+    $('#mob_nav_toggler').click(function () {
+        $('#mob_nav_list').addClass('d-block');
+        $('#mob_nav_cover').addClass('d-block');
+    });
+    $('#mob_nav_close').click(function () {
+        $('#mob_nav_list').removeClass('d-block');
+        $('#mob_nav_cover').removeClass('d-block');
+    });
+    $('#mob_nav_cover').click(function () {
+        $('#mob_nav_list').removeClass('d-block');
+        $('#mob_nav_cover').removeClass('d-block');
+    });
+    function closePing(){
+        $("#pingPic").removeClass("d-flex").addClass("d-none");
+        sessionStorage.setItem("hidePing",1);
+    }
+    var layout_timer;
+    var layout_count = 0;
+    let layout_click = 0
+    $(document).ready(()=> {
+        if(!sessionStorage.hidePing || sessionStorage.hidePing == undefined){
+            $("#pingPic").removeClass("d-none").addClass("d-flex");
+        }
+        if( localStorage.lastMessageId != undefined ) {
+            window.clearInterval(layout_timer);
+            if (layout_click == 0) {
+                layout_timer = window.setInterval("layoutLoad()", 10 * 1000);
+            }
+            layout_click++;
+        }
+        if ( !localStorage.identify && localStorage.identify != 'VIP') {
+            let referrer = ( document.referrer.split('/')[2] != undefined ) ? document.referrer.split('/')[2] : 'original';
+            localStorage.setItem('referrer', referrer);
+            $.get('/log/visitor_rate?type=0&referrer='+referrer,(data)=>{
+                localStorage.setItem('identify', data);
+            });
+        }
+        let landingPage = new Date().getTime();
+        if(!sessionStorage.landingPage || ((landingPage - sessionStorage.landingPage)/1000)>1 ) {
+            sessionStorage.setItem('landingPage', landingPage);
+            mixpanel.track("landing page", {
+                "referrer": document.referrer,
+                "userId": 0,
+            });
+                    }
+    })
+        document.addEventListener('DOMContentLoaded', function() {
+        // Get current full URL
+        const currentUrl = window.location.href;
+
+        // Select all nav links
+        const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
+
+        // Loop through nav links to find a match
+        navLinks.forEach(link => {
+            // Get the link's href attribute
+            const linkHref = link.getAttribute('href');
+
+            // Check if the current URL starts with the link's href (ignoring query parameters)
+            if (currentUrl.includes(linkHref.split('?')[0])) {
+                link.classList.add('active'); // Add active class if it matches
+            } else {
+                link.classList.remove('active'); // Remove active class if it doesn't match
+            }
+        });
+    });
+
+</script>
+<script src="/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js" data-cf-settings="e4ad4a09661f3eee6a2b3c1c-|49" defer></script><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"40d7c9eef9e64b3a96364813433826a7","r":1}' crossorigin="anonymous"></script>
+</body>
+</html>

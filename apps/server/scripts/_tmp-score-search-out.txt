@@ -1,0 +1,477 @@
+﻿e:\Mdcs\apps\server\src\library\identify.ts:7:const LUXU259 = /259LUXU-(\d+)/i;
+e:\Mdcs\apps\server\src\ops\embyClient.ts:135:recentDays > 0 ? Date.now() - recentDays * 24 * 60 * 60 * 1000 : 0;
+e:\Mdcs\apps\server\src\ops\gfriends.ts:40:if (Date.now() - st.mtimeMs < 7 * 24 * 3600 * 1000) {
+e:\Mdcs\apps\server\src\organize\faceCrop.test.ts:9:{ left: 10, top: 10, width: 40, height: 40, score: 0.9 },
+e:\Mdcs\apps\server\src\organize\faceCrop.test.ts:10:{ left: 200, top: 20, width: 80, height: 80, score: 0.85 },
+e:\Mdcs\apps\server\src\organize\faceCrop.test.ts:21:const face = { left: 300, top: 80, width: 120, height: 140, score: 0.9 };
+e:\Mdcs\apps\server\src\organize\faceCrop.test.ts:28:const cx = face.left + face.width / 2;
+e:\Mdcs\apps\server\src\organize\faceCrop.test.ts:29:const cy = face.top + face.height / 2;
+e:\Mdcs\apps\server\src\organize\faceCrop.test.ts:38:assert.equal(box.left, Math.floor((900 - box.width) / 2));
+e:\Mdcs\apps\server\src\organize\faceCrop.test.ts:39:assert.equal(box.top, Math.floor((600 - box.height) / 2));
+e:\Mdcs\apps\server\src\organize\faceCrop.ts:10:score: number;
+e:\Mdcs\apps\server\src\organize\faceCrop.ts:55:const scoreOf = (f: FaceBox) => {
+e:\Mdcs\apps\server\src\organize\faceCrop.ts:56:const cx = f.left + f.width / 2;
+e:\Mdcs\apps\server\src\organize\faceCrop.ts:59:return f.score * 100 + rightBias * 12 + Math.min(area / 1000, 30);
+e:\Mdcs\apps\server\src\organize\faceCrop.ts:61:return scoreOf(face) > scoreOf(best) ? face : best;
+e:\Mdcs\apps\server\src\organize\faceCrop.ts:82:const faceCx = face.left + face.width / 2;
+e:\Mdcs\apps\server\src\organize\faceCrop.ts:83:const faceCy = face.top + face.height / 2;
+e:\Mdcs\apps\server\src\organize\faceCrop.ts:85:let left = Math.round(faceCx - cw / 2);
+e:\Mdcs\apps\server\src\organize\faceCrop.ts:119:left: Math.floor((imageWidth - cw) / 2),
+e:\Mdcs\apps\server\src\organize\faceCrop.ts:120:top: Math.floor((imageHeight - ch) / 2),
+e:\Mdcs\apps\server\src\organize\faceCrop.ts:149:scoreThreshold: 0.35,
+e:\Mdcs\apps\server\src\organize\faceCrop.ts:160:score: d.score,
+e:\Mdcs\apps\server\src\organize\nfo.ts:31:score?: number | null;
+e:\Mdcs\apps\server\src\organize\nfo.ts:33:/** 嵌套 <ratings>，如 javdb */
+e:\Mdcs\apps\server\src\organize\nfo.ts:34:ratingSource?: string;
+e:\Mdcs\apps\server\src\organize\nfo.ts:35:ratingValue?: number;
+e:\Mdcs\apps\server\src\organize\nfo.ts:36:ratingMax?: number;
+e:\Mdcs\apps\server\src\organize\nfo.ts:144:score: (pick("score") as number | null | undefined) ?? scraped.score,
+e:\Mdcs\apps\server\src\organize\nfo.ts:145:ratingValue: (pick("ratingValue") as number | null | undefined) ?? scraped.ratingValue,
+e:\Mdcs\apps\server\src\organize\nfo.ts:146:ratingMax: (pick("ratingMax") as number | undefined) || scraped.ratingMax,
+e:\Mdcs\apps\server\src\organize\nfo.ts:147:ratingSource: (pick("ratingSource") as string | undefined) || scraped.ratingSource,
+e:\Mdcs\apps\server\src\organize\nfo.ts:312:if (ctx.score != null && Number.isFinite(ctx.score)) {
+e:\Mdcs\apps\server\src\organize\nfo.ts:313:const ratingText = Number(ctx.score.toFixed(1)).toString();
+e:\Mdcs\apps\server\src\organize\nfo.ts:314:if (inc.score) lines.push(tag("rating", ratingText).trimEnd());
+e:\Mdcs\apps\server\src\organize\nfo.ts:315:if (inc.criticrating) lines.push(tag("criticrating", Math.round(ctx.score * 10)).trimEnd());
+e:\Mdcs\apps\server\src\organize\nfo.ts:318:inc.score &&
+e:\Mdcs\apps\server\src\organize\nfo.ts:319:ctx.ratingSource &&
+e:\Mdcs\apps\server\src\organize\nfo.ts:320:ctx.ratingValue != null &&
+e:\Mdcs\apps\server\src\organize\nfo.ts:321:Number.isFinite(ctx.ratingValue)
+e:\Mdcs\apps\server\src\organize\nfo.ts:323:const max = ctx.ratingMax && ctx.ratingMax > 0 ? ctx.ratingMax : 5;
+e:\Mdcs\apps\server\src\organize\nfo.ts:324:const val = Number(ctx.ratingValue.toFixed(2));
+e:\Mdcs\apps\server\src\organize\nfo.ts:325:lines.push(`  <ratings>`);
+e:\Mdcs\apps\server\src\organize\nfo.ts:327:`    <rating name="${escapeXml(ctx.ratingSource)}" max="${max}" default="true">`,
+e:\Mdcs\apps\server\src\organize\nfo.ts:336:else if (ctx.ratingSource) lines.push(`  <votes/>`);
+e:\Mdcs\apps\server\src\organize\nfoConfig.ts:29:score: boolean;
+e:\Mdcs\apps\server\src\organize\nfoConfig.ts:30:criticrating: boolean;
+e:\Mdcs\apps\server\src\organize\nfoConfig.ts:100:score: true,
+e:\Mdcs\apps\server\src\organize\nfoConfig.ts:101:criticrating: true,
+e:\Mdcs\apps\server\src\organize\nfoCtx.ts:28:const score10 =
+e:\Mdcs\apps\server\src\organize\nfoCtx.ts:29:meta.score != null && Number.isFinite(meta.score)
+e:\Mdcs\apps\server\src\organize\nfoCtx.ts:30:? meta.score
+e:\Mdcs\apps\server\src\organize\nfoCtx.ts:31:: meta.ratingValue != null && meta.ratingMax
+e:\Mdcs\apps\server\src\organize\nfoCtx.ts:32:? (meta.ratingValue / meta.ratingMax) * 10
+e:\Mdcs\apps\server\src\organize\nfoCtx.ts:47:score: score10,
+e:\Mdcs\apps\server\src\organize\nfoCtx.ts:52:ratingSource: meta.ratingSource,
+e:\Mdcs\apps\server\src\organize\nfoCtx.ts:53:ratingValue: meta.ratingValue ?? undefined,
+e:\Mdcs\apps\server\src\organize\nfoCtx.ts:54:ratingMax: meta.ratingMax,
+e:\Mdcs\apps\server\src\organize\nfoCtx.ts:88:rating: meta.score != null || meta.ratingValue != null,
+e:\Mdcs\apps\server\src\organize\nfoCtx.ts:89:criticrating: meta.score != null || meta.ratingValue != null,
+e:\Mdcs\apps\server\src\organize\nfoCtx.ts:90:ratings: meta.ratingSource != null && meta.ratingValue != null,
+e:\Mdcs\apps\server\src\organize\poster.ts:99:const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+e:\Mdcs\apps\server\src\organize\poster.ts:264:const badgeW = Math.max(badgeH * 2, label.text.length * Math.floor(badgeH * 0.7) + badgeH);
+e:\Mdcs\apps\server\src\organize\template.test.ts:194:ratingValue: 4.42,
+e:\Mdcs\apps\server\src\organize\template.test.ts:195:ratingMax: 5,
+e:\Mdcs\apps\server\src\organize\template.test.ts:196:ratingSource: "javdb",
+e:\Mdcs\apps\server\src\organize\template.test.ts:197:score: 8.8,
+e:\Mdcs\apps\server\src\organize\template.test.ts:208:ratingSource: "javdb",
+e:\Mdcs\apps\server\src\organize\template.test.ts:209:ratingValue: 4.42,
+e:\Mdcs\apps\server\src\organize\template.test.ts:210:ratingMax: 5,
+e:\Mdcs\apps\server\src\organize\template.test.ts:211:score: 8.8,
+e:\Mdcs\apps\server\src\organize\template.test.ts:218:assert.match(xml, /<ratings>/);
+e:\Mdcs\apps\server\src\organize\template.ts:326:const shortTitle = (ctx.title || "").slice(0, Math.max(8, Math.floor((ctx.title || "").length / 2)));
+e:\Mdcs\apps\server\src\scrape\downloadPrefs.test.ts:86:"https://tukaka.space/video/m3u8/2025/11/01/88439477/vod.jpg",
+e:\Mdcs\apps\server\src\scrape\downloadPrefs.test.ts:98:isJunkCoverUrl("https://tukaka.space/video/m3u8/2025/11/01/88439477/vod.jpg"),
+e:\Mdcs\apps\server\src\scrape\merge.test.ts:46:["javbus", result("javbus", { score: 8.5 })],
+e:\Mdcs\apps\server\src\scrape\merge.test.ts:48:const order = resolveFieldSourceOrder("score", undefined, { score: ["dmm", "jav321"] }, [
+e:\Mdcs\apps\server\src\scrape\merge.test.ts:52:const pick = pickFieldStrict<number>("score", order, bySource);
+e:\Mdcs\apps\server\src\scrape\merge.test.ts:61:{ score: ["dmm", "jav321"], titleZh: ["iqqtv"] },
+e:\Mdcs\apps\server\src\scrape\merge.ts:234:const scorePick = pick<number>("score");
+e:\Mdcs\apps\server\src\scrape\merge.ts:235:const ratingValuePick = pick<number>("ratingValue");
+e:\Mdcs\apps\server\src\scrape\merge.ts:236:const ratingMaxPick = pick<number>("ratingMax");
+e:\Mdcs\apps\server\src\scrape\merge.ts:237:const ratingSourcePick = pick<string>("ratingSource");
+e:\Mdcs\apps\server\src\scrape\merge.ts:288:score: scorePick.value ?? null,
+e:\Mdcs\apps\server\src\scrape\merge.ts:289:ratingValue: ratingValuePick.value ?? null,
+e:\Mdcs\apps\server\src\scrape\merge.ts:290:ratingMax: ratingMaxPick.value,
+e:\Mdcs\apps\server\src\scrape\merge.ts:291:ratingSource: ratingSourcePick.value,
+e:\Mdcs\apps\server\src\scrape\metadataPrefs.ts:77:// 2) 简介换行
+e:\Mdcs\apps\server\src\scrape\metaPatch.ts:28:function parseRating(value: string): { ratingValue?: number; score?: number } {
+e:\Mdcs\apps\server\src\scrape\metaPatch.ts:31:return { ratingValue: n, score: n };
+e:\Mdcs\apps\server\src\scrape\metaPatch.ts:111:case "score": {
+e:\Mdcs\apps\server\src\scrape\metaPatch.ts:113:next.ratingValue = rating.ratingValue ?? null;
+e:\Mdcs\apps\server\src\scrape\metaPatch.ts:114:next.score = rating.score ?? null;
+e:\Mdcs\apps\server\src\scrape\metaPatch.ts:115:setSource("score");
+e:\Mdcs\apps\server\src\scrape\network\flaresolverr.ts:172:trafficOk = Math.floor(trafficOk / 2);
+e:\Mdcs\apps\server\src\scrape\network\flaresolverr.ts:173:trafficErr = Math.floor(trafficErr / 2);
+e:\Mdcs\apps\server\src\scrape\pipelineLogHelpers.ts:298:const nfoFields = ["title", "plot", "actors", "genres", "studio", "premiered", "runtime", "score"]
+e:\Mdcs\apps\server\src\scrape\providers\avbase.ts:36:/** 对齐 MDCX：演员名后的序号（1/2/3）勿当作人名 */
+e:\Mdcs\apps\server\src\scrape\providers\avbase.ts:92:const scored = products.map((p) => {
+e:\Mdcs\apps\server\src\scrape\providers\avbase.ts:93:let score = 0;
+e:\Mdcs\apps\server\src\scrape\providers\avbase.ts:94:if (p.image_url?.includes("pl.")) score += 20;
+e:\Mdcs\apps\server\src\scrape\providers\avbase.ts:95:if (p.source === "fanza" || p.product_id) score += 10;
+e:\Mdcs\apps\server\src\scrape\providers\avbase.ts:96:if (p.iteminfo?.description) score += 5;
+e:\Mdcs\apps\server\src\scrape\providers\avbase.ts:97:if (p.sample_image_urls?.length) score += 3;
+e:\Mdcs\apps\server\src\scrape\providers\avbase.ts:98:return { p, score };
+e:\Mdcs\apps\server\src\scrape\providers\avbase.ts:100:scored.sort((a, b) => b.score - a.score);
+e:\Mdcs\apps\server\src\scrape\providers\avbase.ts:101:return scored[0]?.p;
+e:\Mdcs\apps\server\src\scrape\providers\carib.test.ts:105:assert.equal(r?.ratingValue, 5);
+e:\Mdcs\apps\server\src\scrape\providers\carib.test.ts:106:assert.equal(r?.ratingMax, 5);
+e:\Mdcs\apps\server\src\scrape\providers\carib.test.ts:122:assert.equal(r!.fields.ratingValue, 5);
+e:\Mdcs\apps\server\src\scrape\providers\carib.ts:133:ratingValue: number;
+e:\Mdcs\apps\server\src\scrape\providers\carib.ts:134:ratingMax: number;
+e:\Mdcs\apps\server\src\scrape\providers\carib.ts:139:if (stars >= 1 && stars <= 5) return { ratingValue: stars, ratingMax: 5 };
+e:\Mdcs\apps\server\src\scrape\providers\carib.ts:143:if (Number.isFinite(val) && val > 0 && val <= 5) return { ratingValue: val, ratingMax: 5 };
+e:\Mdcs\apps\server\src\scrape\providers\carib.ts:239:score: (rating.ratingValue / rating.ratingMax) * 10,
+e:\Mdcs\apps\server\src\scrape\providers\carib.ts:240:ratingValue: rating.ratingValue,
+e:\Mdcs\apps\server\src\scrape\providers\carib.ts:241:ratingMax: rating.ratingMax,
+e:\Mdcs\apps\server\src\scrape\providers\carib.ts:242:ratingSource: "carib",
+e:\Mdcs\apps\server\src\scrape\providers\dmm.test.ts:93:assert.equal(r.ratingValue, 3.8824);
+e:\Mdcs\apps\server\src\scrape\providers\dmm.test.ts:94:assert.equal(r.ratingMax, 5);
+e:\Mdcs\apps\server\src\scrape\providers\dmm.test.ts:95:assert.equal(r.ratingSource, "dmm");
+e:\Mdcs\apps\server\src\scrape\providers\dmm.test.ts:120:assert.equal(r.ratingValue, undefined);
+e:\Mdcs\apps\server\src\scrape\providers\dmm.ts:217:score: reviewAvg * 2,
+e:\Mdcs\apps\server\src\scrape\providers\dmm.ts:218:ratingValue: reviewAvg,
+e:\Mdcs\apps\server\src\scrape\providers\dmm.ts:219:ratingMax: 5,
+e:\Mdcs\apps\server\src\scrape\providers\dmm.ts:220:ratingSource: "dmm",
+e:\Mdcs\apps\server\src\scrape\providers\fc2.test.ts:33:<script type="application/ld+json">{"@type":"Product","description":"","aggregateRating":{"ratingValue":5,"bestRating":5,"reviewCount":598}}</script>
+e:\Mdcs\apps\server\src\scrape\providers\fc2.test.ts:37:<div class="items_article_softDevice"><p>上架时间 : 2020/10/24</p></div>
+e:\Mdcs\apps\server\src\scrape\providers\fc2.test.ts:88:assert.equal(hit!.fields.ratingValue, 5);
+e:\Mdcs\apps\server\src\scrape\providers\fc2.test.ts:104:assert.equal(hit!.fields.ratingValue, 5);
+e:\Mdcs\apps\server\src\scrape\providers\fc2.ts:68:ratingValue?: number;
+e:\Mdcs\apps\server\src\scrape\providers\fc2.ts:69:ratingMax?: number;
+e:\Mdcs\apps\server\src\scrape\providers\fc2.ts:87:const val = Number(rating.ratingValue);
+e:\Mdcs\apps\server\src\scrape\providers\fc2.ts:91:out.ratingValue = val;
+e:\Mdcs\apps\server\src\scrape\providers\fc2.ts:92:out.ratingMax = max;
+e:\Mdcs\apps\server\src\scrape\providers\fc2.ts:208:if (ld.ratingValue != null && Number.isFinite(ld.ratingValue)) {
+e:\Mdcs\apps\server\src\scrape\providers\fc2.ts:209:const max = ld.ratingMax && ld.ratingMax > 0 ? ld.ratingMax : 5;
+e:\Mdcs\apps\server\src\scrape\providers\fc2.ts:210:fields.ratingValue = ld.ratingValue;
+e:\Mdcs\apps\server\src\scrape\providers\fc2.ts:211:fields.ratingMax = max;
+e:\Mdcs\apps\server\src\scrape\providers\fc2.ts:212:fields.ratingSource = "fc2";
+e:\Mdcs\apps\server\src\scrape\providers\fc2.ts:213:fields.score = (ld.ratingValue / max) * 10;
+e:\Mdcs\apps\server\src\scrape\providers\fc2_hub.test.ts:76:it("reads col-8 seller and strips trailing score", () => {
+e:\Mdcs\apps\server\src\scrape\providers\fc2_hub.test.ts:141:"https://javten.com/video/2115058/id4962908",
+e:\Mdcs\apps\server\src\scrape\providers\fc2_hub.ts:87:// 页上常带评分/数字尾巴
+e:\Mdcs\apps\server\src\scrape\providers\freejavbt.ts:236:if (release.getTime() > today.getTime() + 45 * 24 * 3600 * 1000) return undefined;
+e:\Mdcs\apps\server\src\scrape\providers\jav321.test.ts:17:ratingValue: 4.2,
+e:\Mdcs\apps\server\src\scrape\providers\jav321.test.ts:18:ratingMax: 5,
+e:\Mdcs\apps\server\src\scrape\providers\jav321.test.ts:19:score: 8.4,
+e:\Mdcs\apps\server\src\scrape\providers\jav321.test.ts:26:ratingValue: 4,
+e:\Mdcs\apps\server\src\scrape\providers\jav321.test.ts:27:ratingMax: 5,
+e:\Mdcs\apps\server\src\scrape\providers\jav321.test.ts:28:score: 8,
+e:\Mdcs\apps\server\src\scrape\providers\jav321.test.ts:34:ratingValue: 4.5,
+e:\Mdcs\apps\server\src\scrape\providers\jav321.test.ts:35:ratingMax: 5,
+e:\Mdcs\apps\server\src\scrape\providers\jav321.test.ts:36:score: 9,
+e:\Mdcs\apps\server\src\scrape\providers\jav321.ts:69:/** 对齐 MDCX getScore：gif /10 或 `<b>平均評価</b>: 数字`（5 分制） */
+e:\Mdcs\apps\server\src\scrape\providers\jav321.ts:71:ratingValue: number;
+e:\Mdcs\apps\server\src\scrape\providers\jav321.ts:72:ratingMax: number;
+e:\Mdcs\apps\server\src\scrape\providers\jav321.ts:73:score: number;
+e:\Mdcs\apps\server\src\scrape\providers\jav321.ts:77:const ratingValue = Number(gif[1]) / 10;
+e:\Mdcs\apps\server\src\scrape\providers\jav321.ts:78:if (Number.isFinite(ratingValue) && ratingValue > 0) {
+e:\Mdcs\apps\server\src\scrape\providers\jav321.ts:79:return { ratingValue, ratingMax: 5, score: ratingValue * 2 };
+e:\Mdcs\apps\server\src\scrape\providers\jav321.ts:90:const ratingMax = num <= 5 ? 5 : 10;
+e:\Mdcs\apps\server\src\scrape\providers\jav321.ts:91:const score = ratingMax === 10 ? num : num * 2;
+e:\Mdcs\apps\server\src\scrape\providers\jav321.ts:92:return { ratingValue: num, ratingMax, score };
+e:\Mdcs\apps\server\src\scrape\providers\jav321.ts:175:const ratingRaw = metaAfterBold($, panel, /平均評価|平均评分|Average\s*Rating/i);
+e:\Mdcs\apps\server\src\scrape\providers\jav321.ts:240:ratingValue: rating.ratingValue,
+e:\Mdcs\apps\server\src\scrape\providers\jav321.ts:241:ratingMax: rating.ratingMax,
+e:\Mdcs\apps\server\src\scrape\providers\jav321.ts:242:ratingSource: "jav321",
+e:\Mdcs\apps\server\src\scrape\providers\jav321.ts:243:score: rating.score,
+e:\Mdcs\apps\server\src\scrape\providers\javbus.test.ts:54:assert.equal(normalizeJavbusPremiered("2024/1/2"), "2024-01-02");
+e:\Mdcs\apps\server\src\scrape\providers\javdb.ts:159:const scoreRaw =
+e:\Mdcs\apps\server\src\scrape\providers\javdb.ts:160:stripTags($(".score").first().text()) ||
+e:\Mdcs\apps\server\src\scrape\providers\javdb.ts:161:html.match(/class=["']score["'][^>]*>[\s\S]*?(\d\.\d+)/i)?.[1] ||
+e:\Mdcs\apps\server\src\scrape\providers\javdb.ts:163:const scoreMatch = scoreRaw.match(/(\d\.\d+)/);
+e:\Mdcs\apps\server\src\scrape\providers\javdb.ts:164:const ratingValue = scoreMatch ? Number(scoreMatch[1]) : null;
+e:\Mdcs\apps\server\src\scrape\providers\javdb.ts:182:...(ratingValue != null && Number.isFinite(ratingValue)
+e:\Mdcs\apps\server\src\scrape\providers\javdb.ts:184:ratingValue,
+e:\Mdcs\apps\server\src\scrape\providers\javdb.ts:185:ratingMax: 5,
+e:\Mdcs\apps\server\src\scrape\providers\javdb.ts:186:ratingSource: "javdb",
+e:\Mdcs\apps\server\src\scrape\providers\javdb.ts:187:score: ratingValue * 2,
+e:\Mdcs\apps\server\src\scrape\providers\javlibrary.test.ts:31:<div id="video_review"><table>${tbody('<tr><td><span class="score">(4.20)</span></td></tr>')}</table></div>
+e:\Mdcs\apps\server\src\scrape\providers\javlibrary.test.ts:82:assert.equal(r!.fields.ratingValue, 4.2);
+e:\Mdcs\apps\server\src\scrape\providers\javlibrary.ts:130:const ratingRaw = stripTags($("#video_review span.score").first().text()).replace(/[()]/g, "");
+e:\Mdcs\apps\server\src\scrape\providers\javlibrary.ts:146:ratingValue: rating,
+e:\Mdcs\apps\server\src\scrape\providers\javlibrary.ts:147:ratingMax: 5,
+e:\Mdcs\apps\server\src\scrape\providers\javlibrary.ts:148:ratingSource: "javlibrary",
+e:\Mdcs\apps\server\src\scrape\providers\javlibrary.ts:149:score: rating * 2,
+e:\Mdcs\apps\server\src\scrape\providers\lulubar.ts:51:let bestScore = -1;
+e:\Mdcs\apps\server\src\scrape\providers\lulubar.ts:63:let score = 10;
+e:\Mdcs\apps\server\src\scrape\providers\lulubar.ts:64:if (hay.includes(want)) score += 20;
+e:\Mdcs\apps\server\src\scrape\providers\lulubar.ts:65:if (new RegExp(std.replace(/-/g, "[-]?"), "i").test(text)) score += 30;
+e:\Mdcs\apps\server\src\scrape\providers\lulubar.ts:66:if (score > bestScore) {
+e:\Mdcs\apps\server\src\scrape\providers\lulubar.ts:67:bestScore = score;
+e:\Mdcs\apps\server\src\scrape\providers\mgstage.test.ts:57:it("parses score and votes", () => {
+e:\Mdcs\apps\server\src\scrape\providers\mgstage.test.ts:60:assert.equal(r!.ratingValue, 4.2);
+e:\Mdcs\apps\server\src\scrape\providers\mgstage.test.ts:62:assert.equal(r!.score, 8.4);
+e:\Mdcs\apps\server\src\scrape\providers\mgstage.test.ts:100:assert.equal(r!.fields.ratingValue, 4.2);
+e:\Mdcs\apps\server\src\scrape\providers\mgstage.ts:77:/** 对齐 MDCX getScore；优先读 td.review 文本，回退 star_* class */
+e:\Mdcs\apps\server\src\scrape\providers\mgstage.ts:79:ratingValue: number;
+e:\Mdcs\apps\server\src\scrape\providers\mgstage.ts:80:ratingMax: number;
+e:\Mdcs\apps\server\src\scrape\providers\mgstage.ts:81:score: number;
+e:\Mdcs\apps\server\src\scrape\providers\mgstage.ts:89:const ratingValue = Number(m[1]);
+e:\Mdcs\apps\server\src\scrape\providers\mgstage.ts:90:if (Number.isFinite(ratingValue) && ratingValue > 0) {
+e:\Mdcs\apps\server\src\scrape\providers\mgstage.ts:92:ratingValue,
+e:\Mdcs\apps\server\src\scrape\providers\mgstage.ts:93:ratingMax: 5,
+e:\Mdcs\apps\server\src\scrape\providers\mgstage.ts:94:score: ratingValue * 2,
+e:\Mdcs\apps\server\src\scrape\providers\mgstage.ts:102:const ratingValue = Number(star[1]) / 10;
+e:\Mdcs\apps\server\src\scrape\providers\mgstage.ts:103:if (Number.isFinite(ratingValue) && ratingValue > 0) {
+e:\Mdcs\apps\server\src\scrape\providers\mgstage.ts:104:return { ratingValue, ratingMax: 5, score: ratingValue * 2 };
+e:\Mdcs\apps\server\src\scrape\providers\mgstage.ts:191:score: rating?.score,
+e:\Mdcs\apps\server\src\scrape\providers\mgstage.ts:192:ratingValue: rating?.ratingValue,
+e:\Mdcs\apps\server\src\scrape\providers\mgstage.ts:193:ratingMax: rating?.ratingMax,
+e:\Mdcs\apps\server\src\scrape\providers\mgstage.ts:194:ratingSource: rating ? "mgstage" : undefined,
+e:\Mdcs\apps\server\src\scrape\providers\miss_av.ts:54:const scored = [...new Set(hrefs)].map((h) => {
+e:\Mdcs\apps\server\src\scrape\providers\miss_av.ts:57:let score = 0;
+e:\Mdcs\apps\server\src\scrape\providers\miss_av.ts:58:if (DETAIL_SUFFIX_RE.test(slug)) score -= 80;
+e:\Mdcs\apps\server\src\scrape\providers\miss_av.ts:59:if (slug === std || slug === compact) score += 100;
+e:\Mdcs\apps\server\src\scrape\providers\miss_av.ts:60:else if (slug.startsWith(std) || slug.startsWith(compact)) score += 40;
+e:\Mdcs\apps\server\src\scrape\providers\miss_av.ts:61:if (/\/cn\/search\//i.test(path)) score -= 50;
+e:\Mdcs\apps\server\src\scrape\providers\miss_av.ts:62:if (/-uncensored-leak/i.test(slug)) score -= 30;
+e:\Mdcs\apps\server\src\scrape\providers\miss_av.ts:63:if (/-chinese-subtitle|-english-subtitle/i.test(slug)) score -= 10;
+e:\Mdcs\apps\server\src\scrape\providers\miss_av.ts:64:if (/\/dm\d+\/cn\//i.test(path)) score += 5;
+e:\Mdcs\apps\server\src\scrape\providers\miss_av.ts:65:return { h, score };
+e:\Mdcs\apps\server\src\scrape\providers\miss_av.ts:67:scored.sort((a, b) => b.score - a.score);
+e:\Mdcs\apps\server\src\scrape\providers\miss_av.ts:68:return scored[0]?.score > 0 ? scored[0].h : "";
+e:\Mdcs\apps\server\src\scrape\providers\njav.ts:41:const scored = [...new Set(hrefs)].map((h) => {
+e:\Mdcs\apps\server\src\scrape\providers\njav.ts:44:let score = 0;
+e:\Mdcs\apps\server\src\scrape\providers\njav.ts:45:if (DETAIL_SUFFIX_RE.test(slug)) score -= 80;
+e:\Mdcs\apps\server\src\scrape\providers\njav.ts:46:if (slug === std || slug === compact) score += 100;
+e:\Mdcs\apps\server\src\scrape\providers\njav.ts:47:else if (slug.startsWith(std) || slug.startsWith(compact)) score += 40;
+e:\Mdcs\apps\server\src\scrape\providers\njav.ts:48:if (/\/search\//i.test(path)) score -= 50;
+e:\Mdcs\apps\server\src\scrape\providers\njav.ts:49:if (/uncensored/i.test(slug)) score -= 20;
+e:\Mdcs\apps\server\src\scrape\providers\njav.ts:50:return { h, score };
+e:\Mdcs\apps\server\src\scrape\providers\njav.ts:52:scored.sort((a, b) => b.score - a.score);
+e:\Mdcs\apps\server\src\scrape\providers\njav.ts:53:return scored[0]?.score > 0 ? scored[0].h : "";
+e:\Mdcs\apps\server\src\scrape\providers\sevenmmtv.test.ts:13:<a href="/zh/censored_content/2/sone-001-abc.html">y</a>
+e:\Mdcs\apps\server\src\scrape\providers\sevenmmtv.ts:27:const scored = [...new Set(hrefs)].map((h) => {
+e:\Mdcs\apps\server\src\scrape\providers\sevenmmtv.ts:28:let score = 0;
+e:\Mdcs\apps\server\src\scrape\providers\sevenmmtv.ts:29:if (/censored_content/i.test(h) && !/reducing/i.test(h)) score += 50;
+e:\Mdcs\apps\server\src\scrape\providers\sevenmmtv.ts:30:if (/chinese_content/i.test(h)) score += 40;
+e:\Mdcs\apps\server\src\scrape\providers\sevenmmtv.ts:31:if (/amateurjav_content/i.test(h)) score += 30;
+e:\Mdcs\apps\server\src\scrape\providers\sevenmmtv.ts:32:if (/uncensored_content/i.test(h)) score += 20;
+e:\Mdcs\apps\server\src\scrape\providers\sevenmmtv.ts:33:if (/reducing-mosaic/i.test(h)) score += 5;
+e:\Mdcs\apps\server\src\scrape\providers\sevenmmtv.ts:34:if (new RegExp(codeRe, "i").test(h)) score += 20;
+e:\Mdcs\apps\server\src\scrape\providers\sevenmmtv.ts:35:return { h, score };
+e:\Mdcs\apps\server\src\scrape\providers\sevenmmtv.ts:37:scored.sort((a, b) => b.score - a.score);
+e:\Mdcs\apps\server\src\scrape\providers\sevenmmtv.ts:38:return scored[0]?.h || "";
+e:\Mdcs\apps\server\src\scrape\providers\sourceMaster.ts:27:* 2026-08-23：清除单厂/窄前缀站与主站冗余 API/旁路；灰区（carib/mgstage/avsex/javday/njav/miss_av）保留。
+e:\Mdcs\apps\server\src\scrape\providers\theporndb.ts:65:function scoreWesternDateHit(item: TpdbScene, code: string): number {
+e:\Mdcs\apps\server\src\scrape\providers\theporndb.ts:70:let score = 0;
+e:\Mdcs\apps\server\src\scrape\providers\theporndb.ts:71:if (String(item.date || "").slice(0, 10) === iso) score += 80;
+e:\Mdcs\apps\server\src\scrape\providers\theporndb.ts:74:if (siteName.includes(alias) || alias.includes(siteName.split(":")[0]?.trim() || "zzz")) score += 40;
+e:\Mdcs\apps\server\src\scrape\providers\theporndb.ts:75:return score;
+e:\Mdcs\apps\server\src\scrape\providers\theporndb.ts:86:function scoreHit(item: TpdbScene, want: string, code: string): number {
+e:\Mdcs\apps\server\src\scrape\providers\theporndb.ts:87:let score = 0;
+e:\Mdcs\apps\server\src\scrape\providers\theporndb.ts:92:if (keyBlob === want || keyBlob.includes(want)) score += 100;
+e:\Mdcs\apps\server\src\scrape\providers\theporndb.ts:93:if (codeKey(String(item.sku || "")) === want) score += 80;
+e:\Mdcs\apps\server\src\scrape\providers\theporndb.ts:94:if (codeKey(String(item.external_id || "")) === want) score += 40;
+e:\Mdcs\apps\server\src\scrape\providers\theporndb.ts:95:if (new RegExp(code.replace(/-/g, "[-_]?"), "i").test(blob)) score += 30;
+e:\Mdcs\apps\server\src\scrape\providers\theporndb.ts:96:if (item.image || item.poster || item.poster_image) score += 5;
+e:\Mdcs\apps\server\src\scrape\providers\theporndb.ts:97:score += scoreWesternDateHit(item, code);
+e:\Mdcs\apps\server\src\scrape\providers\theporndb.ts:98:return score;
+e:\Mdcs\apps\server\src\scrape\providers\theporndb.ts:212:let bestScore = 0;
+e:\Mdcs\apps\server\src\scrape\providers\theporndb.ts:222:const sc = scoreHit(item, want, code);
+e:\Mdcs\apps\server\src\scrape\providers\theporndb.ts:223:if (sc > bestScore) {
+e:\Mdcs\apps\server\src\scrape\providers\theporndb.ts:225:bestScore = sc;
+e:\Mdcs\apps\server\src\scrape\providers\theporndb.ts:229:if (bestScore >= 100) break;
+e:\Mdcs\apps\server\src\scrape\providers\theporndb.ts:232:if (!best || bestScore < 20) {
+e:\Mdcs\apps\server\src\scrape\sourceSnapshots.ts:75:const rv = pickField(fields, "ratingValue");
+e:\Mdcs\apps\server\src\scrape\sourceSnapshots.ts:80:const score = pickField(fields, "score");
+e:\Mdcs\apps\server\src\scrape\sourceSnapshots.ts:81:if (score != null && Number.isFinite(Number(score))) {
+e:\Mdcs\apps\server\src\scrape\sourceSnapshots.ts:82:const n = Number(score);
+e:\Mdcs\apps\server\src\scrape\sourceSnapshots.ts:119:case "score":
+e:\Mdcs\apps\server\src\scrape\types.ts:36:/** 0–10，写入 <rating>/<criticrating> */
+e:\Mdcs\apps\server\src\scrape\types.ts:37:score?: number | null;
+e:\Mdcs\apps\server\src\scrape\types.ts:39:ratingValue?: number | null;
+e:\Mdcs\apps\server\src\scrape\types.ts:40:ratingMax?: number;
+e:\Mdcs\apps\server\src\scrape\types.ts:41:ratingSource?: string;
+e:\Mdcs\apps\web\src\components\FolderPicker.tsx:2:import { ArrowLeftIcon, ChevronRightIcon, FolderIcon } from "@heroicons/react/24/solid";
+e:\Mdcs\apps\web\src\components\JobActionsMenu.tsx:3:import { EllipsisVerticalIcon } from "@heroicons/react/20/solid";
+e:\Mdcs\apps\web\src\components\KindSourcesSettingsView.tsx:27:{ id: "score", label: "用户评分 (UserRating)" },
+e:\Mdcs\apps\web\src\components\Modal.tsx:3:import { XMarkIcon } from "@heroicons/react/24/solid";
+e:\Mdcs\apps\web\src\components\providerGuide.ts:38:fields: "标题、演员、简介、评分等。",
+e:\Mdcs\apps\web\src\components\providerGuide.ts:54:fields: "标题、简介、演员、片商、系列、发行日、时长、封面、剧照、预告等；评分视接口。",
+e:\Mdcs\apps\web\src\components\providerGuide.ts:64:summary: "日本有码综合站，评分/想看数据较全。",
+e:\Mdcs\apps\web\src\components\providerGuide.ts:66:fields: "标题、演员、片商、类型、评分、投票、发行日、封面、剧照等。",
+e:\Mdcs\apps\web\src\components\providerGuide.ts:114:fields: "标题、简介、演员、类型、片商、系列、发行日、时长、导演、封面、剧照、预告；无评分。",
+e:\Mdcs\apps\web\src\components\providerGuide.ts:120:fields: "标题、简介、演员、类型、片商、系列、发行日、时长、评分、投票、封面、剧照；无导演；预告 API 不稳。",
+e:\Mdcs\apps\web\src\components\providerGuide.ts:126:fields: "中文标题、简介、演员、类型、片商、上架日、时长；可解析封面/剧照 URL 但不下载。无评分/系列/导演。",
+e:\Mdcs\apps\web\src\components\providerGuide.ts:138:fields: "标题、演员、类型、片商/发行商/系列、导演、发行日、时长、封面、样品图。无简介/评分/预告。",
+e:\Mdcs\apps\web\src\components\providerGuide.ts:144:fields: "中文标题、简介、演员、类型、封面；无片商/系列/时长/评分。",
+e:\Mdcs\apps\web\src\components\providerGuide.ts:150:fields: "标题(JA+CN)、演员、类型、片商、发行、导演、发行日、时长、评分、想看；无简介/剧照。",
+e:\Mdcs\apps\web\src\components\providerGuide.ts:180:fields: "中文标题/类型、演员、片商、系列、发行日、时长、封面；无 plot/评分。",
+e:\Mdcs\apps\web\src\components\ProviderSettingsModal.tsx:7:} from "@heroicons/react/24/outline";
+e:\Mdcs\apps\web\src\components\RecordDetailView.tsx:8:} from "@heroicons/react/24/outline";
+e:\Mdcs\apps\web\src\components\RecordDetailView.tsx:9:import { CheckIcon, StarIcon } from "@heroicons/react/20/solid";
+e:\Mdcs\apps\web\src\components\RecordDetailView.tsx:163:if (meta.ratingValue != null) {
+e:\Mdcs\apps\web\src\components\RecordDetailView.tsx:164:const n = Number(meta.ratingValue);
+e:\Mdcs\apps\web\src\components\RecordDetailView.tsx:165:return Number.isFinite(n) ? n.toFixed(2).replace(/\.?0+$/, "") : String(meta.ratingValue);
+e:\Mdcs\apps\web\src\components\RecordDetailView.tsx:167:if (meta.score != null) {
+e:\Mdcs\apps\web\src\components\RecordDetailView.tsx:168:const n = Number(meta.score);
+e:\Mdcs\apps\web\src\components\RecordDetailView.tsx:169:return Number.isFinite(n) ? n.toFixed(2).replace(/\.?0+$/, "") : String(meta.score);
+e:\Mdcs\apps\web\src\components\RecordDetailView.tsx:260:{ key: "score", label: "评分", value: rating, sourceKey: "score" },
+e:\Mdcs\apps\web\src\components\RecordDetailView.tsx:342:// 2. 刮削数据
+e:\Mdcs\apps\web\src\components\RecordDetailView.tsx:498:"score",
+e:\Mdcs\apps\web\src\components\RecordMetaEditModal.tsx:5:} from "@heroicons/react/20/solid";
+e:\Mdcs\apps\web\src\components\RecordMetaEditModal.tsx:45:if (meta.ratingValue != null) {
+e:\Mdcs\apps\web\src\components\RecordMetaEditModal.tsx:46:const n = Number(meta.ratingValue);
+e:\Mdcs\apps\web\src\components\RecordMetaEditModal.tsx:47:return Number.isFinite(n) ? n.toFixed(2).replace(/\.?0+$/, "") : String(meta.ratingValue);
+e:\Mdcs\apps\web\src\components\RecordMetaEditModal.tsx:49:if (meta.score != null) {
+e:\Mdcs\apps\web\src\components\RecordMetaEditModal.tsx:50:const n = Number(meta.score);
+e:\Mdcs\apps\web\src\components\RecordMetaEditModal.tsx:51:return Number.isFinite(n) ? n.toFixed(2).replace(/\.?0+$/, "") : String(meta.score);
+e:\Mdcs\apps\web\src\components\RecordMetaEditModal.tsx:138:{ key: "score", label: "用户评分", value: formatRating(meta), sourceKey: "score" },
+e:\Mdcs\apps\web\src\components\SourceChainDropdown.tsx:10:import { CheckIcon, ChevronDownIcon } from "@heroicons/react/20/solid";
+e:\Mdcs\apps\web\src\components\VirtualList.tsx:29:const endIdx = Math.min(items.length, startIdx + visible + overscan * 2);
+e:\Mdcs\apps\web\src\layout\AppShell.tsx:2:import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/solid";
+e:\Mdcs\apps\web\src\lib\metaFieldOptions.ts:28:const rv = pickField(fields, "ratingValue");
+e:\Mdcs\apps\web\src\lib\metaFieldOptions.ts:33:const score = pickField(fields, "score");
+e:\Mdcs\apps\web\src\lib\metaFieldOptions.ts:34:if (score != null && Number.isFinite(Number(score))) {
+e:\Mdcs\apps\web\src\lib\metaFieldOptions.ts:35:const n = Number(score);
+e:\Mdcs\apps\web\src\lib\metaFieldOptions.ts:96:case "score":
+e:\Mdcs\apps\web\src\lib\navIcons.tsx:11:} from "@heroicons/react/24/solid";
+e:\Mdcs\apps\web\src\pages\FilesPage.tsx:7:} from "@heroicons/react/20/solid";
+e:\Mdcs\apps\web\src\pages\JobsPage.tsx:2:import { MagnifyingGlassIcon, PlusIcon } from "@heroicons/react/20/solid";
+e:\Mdcs\apps\web\src\pages\KindTasksPage.tsx:2:import { PlayIcon, PauseIcon } from "@heroicons/react/20/solid";
+e:\Mdcs\apps\web\src\pages\NfoSettingsPanel.tsx:33:score: true,
+e:\Mdcs\apps\web\src\pages\NfoSettingsPanel.tsx:34:criticrating: true,
+e:\Mdcs\apps\web\src\pages\NfoSettingsPanel.tsx:324:<Section title="评分">
+e:\Mdcs\apps\web\src\pages\NfoSettingsPanel.tsx:329:{ key: "score", label: "公众评分 (score)" },
+e:\Mdcs\apps\web\src\pages\NfoSettingsPanel.tsx:330:{ key: "criticrating", label: "影评人评分 (criticrating)" },
+e:\Mdcs\apps\web\src\pages\PrioritySettingsPanel.tsx:56:{ id: "score", label: "用户评分 (UserRating)" },
+e:\Mdcs\apps\web\src\pages\RecordsPage.tsx:11:} from "@heroicons/react/20/solid";
+e:\Mdcs\apps\web\src\pages\ScrapeConfigPanel.tsx:2:import { ArrowPathIcon } from "@heroicons/react/20/solid";
+e:\Mdcs\apps\web\src\pages\ScrapeConfigPanel.tsx:154:return `${Math.floor(hr / 24)} 天前`;
+e:\Mdcs\apps\web\src\types.ts:125:score?: number | null;
+e:\Mdcs\apps\web\src\types.ts:126:ratingValue?: number | null;
+e:\Mdcs\apps\web\src\types.ts:127:ratingMax?: number;
+e:\Mdcs\apps\web\src\types.ts:128:ratingSource?: string;
+e:\Mdcs\apps\web\src\types.ts:256:score: boolean;
+e:\Mdcs\apps\web\src\types.ts:257:criticrating: boolean;
+e:\Mdcs\config\scrape.json:44:"score": [
+e:\Mdcs\config\scrape.json:327:"score": true,
+e:\Mdcs\config\scrape.json:328:"criticrating": true,
+e:\Mdcs\docs\DESIGN.md:17:MDCS 是独立部署的本地刮削整理系统，面向 **20 万级** 媒体文件：
+e:\Mdcs\docs\DESIGN.md:418:| 用户评分 UserRating | Dmm, Jav321 |
+e:\Mdcs\docs\DESIGN.md:797:##### 年份 / 时长 / 评分
+e:\Mdcs\docs\DESIGN.md:802:| 评分 | `score`、`criticrating` | ✅ / ✅ |
+e:\Mdcs\docs\references\MDC-NG-UI.md:500:### 14.4 年份 / 时长 / 评分
+e:\Mdcs\docs\references\MDC-NG-UI.md:505:| 评分 | `score`、`criticrating` | ✅ / ✅ |
+e:\Mdcs\docs\references\MDC-NG-UI.md:726:**2. 全局设置**：
+e:\Mdcs\docs\references\MDC-NG-UI.md:756:| 用户评分 (UserRating) | Dmm, Jav321 |
+e:\Mdcs\docs\references\MDC-NG-UI.md:834:| 85655 | CESD-816 | 加山なつこ | 蓝标 | 2019 | 2026/8/20 07:31:32 |
+e:\Mdcs\docs\references\MDC-NG-UI.md:835:| 85654 | CESD-812 | 三船かれん | 蓝标 | 2019 | 2026/8/20 07:33:42 |
+e:\Mdcs\docs\references\MDC-NG-UI.md:836:| 85653 | APNS-142 | 森本亚美 | 蓝标 | 2019 | 2026/8/20 00:24:17 |
+e:\Mdcs\docs\SETTINGS-MDCX-ALIGNMENT.md:21:| **NFO 评分/预告** | javdb rating · DMM trailer | 单源时有；merge 后更接近 | ⚠️ 视源链 |
+e:\Mdcs\docs\SOURCE-CATALOG-8REF.md:119:| 全源 Provider | 色花最全 | 16/24 已实现 |
+e:\Mdcs\docs\SOURCE-E2E-TEST-LOG.md:27:| **生成器** | 已支持 `<thumb>`、`<fanart/>`、嵌套 `<ratings name="javdb">`（`nfo.ts` 2026-08-22） |
+e:\Mdcs\docs\SOURCE-E2E-TEST-LOG.md:126:| NFO | ✅ 已采集项 **21/21 必过** |
+e:\Mdcs\docs\SOURCE-E2E-TEST-LOG.md:179:| NFO | ✅ 已采集项 **23/23 必过** |
+e:\Mdcs\docs\SOURCE-E2E-TEST-LOG.md:180:| 字段 | **21/30** |
+e:\Mdcs\docs\SOURCE-E2E-TEST-LOG.md:197:| NFO | ✅ 已采集 **26/26** |
+e:\Mdcs\docs\SOURCE-E2E-TEST-LOG.md:218:| L1 / 测通 | ✅ 2/2 · probe **curl** ~2s · access=`proxy_adaptive` |
+e:\Mdcs\docs\SOURCE-E2E-TEST-LOG.md:222:| NFO | ✅ 已采集 **21/21** |
+e:\Mdcs\docs\SOURCE-E2E-TEST-LOG.md:284:| E2E | ✅ NFO 20/20 |
+e:\Mdcs\docs\SOURCE-E2E-TEST-LOG.md:295:| NFO | ✅ 已采集项 **20/20 必过** |
+e:\Mdcs\docs\SOURCE-MASTER-LIST.md:14:| **T1** | MDCS 当前 catalog（色花对齐 24 源） | ✅ 显示 | 进行中（16/24 已实现） |
+e:\Mdcs\docs\SOURCE-SINGLE-SITE-TEST.md:162:| 15 | avmoo | ✅ 2026-08-24 · E2E 23/23 · 封面 DMM 镜像 · 剧照 15 |
+e:\Mdcs\docs\SOURCE-SINGLE-SITE-TEST.md:163:| 16 | javlibrary | ✅ 2026-08-24 · E2E 26/26 · 封面 142KB · 镜像 f101w |
+e:\Mdcs\docs\SOURCE-SINGLE-SITE-TEST.md:173:| 1 | **carib** | ✅ 2026-08-24 · E2E **26/30** · 封面 104KB · curl · EUC-JP |
+e:\Mdcs\docs\SOURCE-SINGLE-SITE-TEST.md:180:| 1 | **fc2** | ✅ 2026-08-24 · E2E **23/30** · 封面 8KB · curl · 多标签 parser |
+e:\Mdcs\docs\sources\airav.md:17:| NFO | ✅ **21/21** 必过 | 刮削 **19/30** |
+e:\Mdcs\docs\sources\airav.md:57:| E2E | ✅ 全过 | 封面 **112895B** · NFO **20/21**（originalplot 未写） |
+e:\Mdcs\docs\sources\airav_io.md:17:| NFO | ✅ **21/21** 必过 | 刮削 **19/30** |
+e:\Mdcs\docs\sources\airav_io.md:52:| E2E | ✅ 全过 | 封面 **112895B** · NFO **20/21**（originalplot 未写） |
+e:\Mdcs\docs\sources\avbase.md:26:| E2E | ✅ **26/30** | extrafanart 15/15 · NFO 28/28 |
+e:\Mdcs\docs\sources\avbase.md:35:| rating / votes / criticrating | ✗ 站点无 |
+e:\Mdcs\docs\sources\avheat.md:121:| 7. NFO | ✅ | 已采集项 **20/20 必过** |
+e:\Mdcs\docs\sources\avmoo.md:31:| E2E | ✅ **23/23** | 封面 166KB · 剧照 15/15 · NFO 全过 |
+e:\Mdcs\docs\sources\avmoo.md:42:**生产可用 ✅** — 有码补充源；须 FlareSolverr；封面走 DMM 镜像。简介/评分/预告本站不提供，需其它源补齐。
+e:\Mdcs\docs\sources\avsox.md:119:**未采集原因**：AIO 详情页无简介/导演/评分结构化字段；加勒比条目无 sample 剧照区（extrafanart 可能为空或仅封面）。
+e:\Mdcs\docs\sources\avsox.md:131:| 5. NFO | ✅ | 已采集项 **20/20 必过** |
+e:\Mdcs\docs\sources\avsox.md:170:| 2026-08-24 | E2E 复测 ✅ · 18/30 · NFO 20/20 · 封面 55KB · 无码水印 · scrape timeout 180s |
+e:\Mdcs\docs\sources\carib.md:95:单源 **CARIB-010117-339**，刮削可采集 **26/30**（生成器推导项另计 8 项）。
+e:\Mdcs\docs\sources\carib.md:107:| rating 系列 / votes | **★ 用户评分已接**（5/5 → score 10）；votes 站点无 |
+e:\Mdcs\docs\sources\carib.md:120:| 5. NFO | ✅ | 已采集项 **28/28 必过** |
+e:\Mdcs\docs\sources\carib.md:163:| 2026-08-24 | parser 优化：**★ 用户评分** · **website** · trailer smovie 兜底 · E2E **26/30** · L1 **13/13** |
+e:\Mdcs\docs\sources\dmm.md:18:| 海报 | ✅ **296255 B** | censored 水印 |
+e:\Mdcs\docs\sources\dmm.md:35:| 评分 | `reviewSummary.average` | ✅ rating/criticrating |
+e:\Mdcs\docs\sources\dmm.md:148:单源 **SONE-001**，刮削可采集 **25/30**（生成器推导项另计 8 项）。
+e:\Mdcs\docs\sources\dmm.md:152:| ✓ 已采集 | title, originaltitle, sorttitle, num, **plot, outline, originalplot**, premiered, actor, **director**, runtime, **rating, ratings(dmm), criticrating**
+e:\Mdcs\docs\sources\dmm.md:162:**2026-08-22 补全**（对齐 MDCX GraphQL）：
+e:\Mdcs\docs\sources\dmm.md:165:- `reviewSummary.average` → **rating 8.8** / **criticrating 88** / 嵌套 `<ratings name="dmm">`
+e:\Mdcs\docs\sources\dmm.md:167:NFO 写入：已采集 **31/31** 必过项全部写入 ✅（**29/30** 刮削字段，仅 votes 空）
+e:\Mdcs\docs\sources\dmm.md:183:| 5. NFO | ✅ | 27/27 已采集项全写入 |
+e:\Mdcs\docs\sources\dmm.md:194:| 6. 海报 | ✅ | 右侧裁剪 **296255 bytes** |
+e:\Mdcs\docs\sources\dmm.md:221:| 字段采集 | **29/30** | 19/30 |
+e:\Mdcs\docs\sources\dmm.md:256:| 2026-08-22 | GraphQL 补 trailer + reviewSummary 评分 → **29/30** 字段 |
+e:\Mdcs\docs\sources\fc2.md:26:| 解析 | og:title · 标签区 · 卖家链接 · **販売日/上架时间** · **items_article_info 时长** · JSON-LD 评分 · og:video 预告 |
+e:\Mdcs\docs\sources\fc2.md:84:| 5. NFO | ✅ | **25/25 必过** |
+e:\Mdcs\docs\sources\fc2.md:88:**字段** 23/30（缺 actor/director/series/plot 原文等 — FC2 官方页通常无演员名；本样例 og:description 为空）
+e:\Mdcs\docs\sources\fc2.md:119:| 2026-08-24 | parser 补全多标签（上架时间/runtime/评分/预告）· E2E **23/30** · L1 **6/6** |
+e:\Mdcs\docs\sources\fc2.md:120:| 2026-08-24 | 复测 E2E ✅ · 导出 `parseFc2DetailHtml` · L1 2/2 · access 改 proxy_adaptive |
+e:\Mdcs\docs\sources\fc2_hub.md:67:| 6. NFO | ✅ | 已采集项 **26/26** 必过 |
+e:\Mdcs\docs\sources\fc2_hub.md:108:| 2026-08-24 | **E2E 4962908 全通过**（24/30 · 封面 · 剧照×3 · NFO 26/26）；默认样例改此号 |
+e:\Mdcs\docs\sources\fd2ppv.md:53:| L1 单测 | ✅ 2/2（演员与 actress-tag 分离） |
+e:\Mdcs\docs\sources\fd2ppv.md:65:| 2. 封面 | ✅ | `xximgs.cc/.../3275049.webp` · **2927** bytes |
+e:\Mdcs\docs\sources\freejavbt.md:17:| E2E NFO | ✅ **20/20** | 刮削 18/30（plot/rating/studio 本无） |
+e:\Mdcs\docs\sources\freejavbt.md:28:| 封面 | ✅ **23381 B** | 第三方 CDN |
+e:\Mdcs\docs\sources\freejavbt.md:30:| NFO | ✅ **20/20** 必过 | 刮削 18/30 |
+e:\Mdcs\docs\sources\freejavbt.md:53:| E2E | ✅ 全过 | 封面 **23KB** · NFO **20/20** |
+e:\Mdcs\docs\sources\hscangku.md:66:| 2. 封面 | ✅ | `data/covers/china/MDX-0006.jpg` · **25546** bytes（`tukaka.space` 搜索卡图） |
+e:\Mdcs\docs\sources\iqqtv.md:17:| NFO | ✅ **23/23** 必过 | 刮削 **21/30** |
+e:\Mdcs\docs\sources\iqqtv.md:53:| Live 刮削 | ✅ **2153ms** | 3 次 cookie-direct（CN+JP+详情） |
+e:\Mdcs\docs\sources\iqqtv.md:54:| E2E | ✅ 全过 | 封面 **119386B** · NFO **23/23** |
+e:\Mdcs\docs\sources\iqqtv.md:58:- **刮削**：**21/30**
+e:\Mdcs\docs\sources\iqqtv.md:113:| 2026-08-23 | 逐站复测：L1 6/6 · 测通 1286ms · E2E 21/30 · NFO 23/23 |
+e:\Mdcs\docs\sources\jav321.md:16:| 海报 | ✅ **296255 B** | censored |
+e:\Mdcs\docs\sources\jav321.md:17:| NFO | ✅ **20/20** 必过 | 刮削 **18/30** |
+e:\Mdcs\docs\sources\jav321.md:23:- **plot/outline** 长文 · **premiered** 2023-12-12 · **runtime** 153min
+e:\Mdcs\docs\sources\jav321.md:24:- **rating** 4/5（score 8 / criticrating 80）
+e:\Mdcs\docs\sources\jav321.md:30:**生产可用 ✅** — 元数据+评分+高清封面；演员/标签需 javbus 等补充。本轮无代码修复。
+e:\Mdcs\docs\sources\jav321.md:41:| 评分 | gif `/10` → 5 分制 | ✅ `parseJav321Rating` |
+e:\Mdcs\docs\sources\jav321.md:53:| E2E | ✅ 全过 | 封面 **909847B**（aws pl 升级）· NFO **20/20** |
+e:\Mdcs\docs\sources\jav321.md:64:**生产可用 ✅** — 元数据+评分+高清封面；演员/标签需 javbus 等补充。本轮无代码修复。
+e:\Mdcs\docs\sources\jav321.md:116:| 评分 | 4/5（rating 8 / criticrating 80） |
+e:\Mdcs\docs\sources\jav321.md:118:| E2E | ✅ 20/20 必过 · hardlink · censored 水印 |
+e:\Mdcs\docs\sources\jav321.md:153:| **rating** | `<b>平均評価</b>: 4` → **4/5**（`score=8`） | ✅ 2026-08-22 已接 |
+e:\Mdcs\docs\sources\jav321.md:164:| ✓ 已采集 | title, originaltitle, sorttitle, num, plot, outline, premiered, releasedate, release, runtime, **rating, ratings(jav321), criticrating**, studio, make
+e:\Mdcs\docs\sources\jav321.md:189:| 5. NFO | ✅ | 已采集项 **20/20 必过**（含 rating 8 / criticrating 80） |
+e:\Mdcs\docs\sources\jav321.md:214:| 生产可用 | ⚠️ 标题/简介/日期/片商/封面可用；**演员/标签/系列/评分** 靠他源或增强 parser |
+e:\Mdcs\docs\sources\jav321.md:221:2. **rating**：✅ `parseJav321Rating`（对齐 MDCX `getScore`）。
+e:\Mdcs\docs\sources\javbus.md:17:| NFO | ✅ **23/23** 必过 | 刮削 **21/30** |
+e:\Mdcs\docs\sources\javbus.md:24:- **premiered** 2023-12-12 · **publisher/label** 有
+e:\Mdcs\docs\sources\javbus.md:29:**生产可用 ✅** — 百科级元数据补充源；简介/评分/预告需 dmm/javdb 补。本轮无代码修复。
+e:\Mdcs\docs\sources\javbus.md:51:| E2E | ✅ 全过 | 封面 **174KB** · NFO **23/23** |
+e:\Mdcs\docs\sources\javbus.md:55:- **刮削**：**21/30**
+e:\Mdcs\docs\sources\javbus.md:62:**生产可用 ✅** — 百科级元数据补充源；简介/评分/预告需 dmm/javdb 补。本轮无代码修复。
+e:\Mdcs\docs\sources\javbus.md:158:| ✗ **未采集** | **plot, outline, originalplot, director, rating, ratings(javdb), criticrating, votes, trailer, website** |
+e:\Mdcs\docs\sources\javbus.md:167:| rating / ratings / criticrating / votes | 无评分 |
+e:\Mdcs\docs\sources\javbus.md:171:NFO 写入：已采集 **21/21** 必过项全部写入 ✅
+e:\Mdcs\docs\sources\javbus.md:252:| 2026-08-23 | 逐站复测 SONE-001：L1 5/5 · 测通 486ms · E2E 21/30 · NFO 23/23 |
+e:\Mdcs\docs\sources\javlibrary.md:19:| 字段 | `#video_title` `#video_cast` `#video_genres` 等 | 同；评分 votes · 导演 · 发行商 |
+e:\Mdcs\docs\sources\javlibrary.md:35:| E2E | ✅ **26/26 必过** | 采集 24/30 · 封面 **142KB** · 无剧照 |
+e:\Mdcs\docs\sources\javlibrary.md:55:**生产可用 ✅** — 有码组 meta/评分/封面（DMM 图）稳定；须 FlareSolverr 可达镜像域。登录 cookie 非必须（公开详情可刮）。
+e:\Mdcs\docs\sources\libredmm.md:17:| NFO | ✅ **21/21** 必过 | 刮削 **19/30** |
+e:\Mdcs\docs\sources\libredmm.md:40:| 导演/评分/样图 | HTML 有 | JSON 源通常无 |
+e:\Mdcs\docs\sources\libredmm.md:51:| E2E | ✅ 全过 | 封面 **145808B** · hardlink · NFO **21/21** |
+e:\Mdcs\docs\sources\libredmm.md:134:| ✗ **未采集** | originalplot, director, **runtime**, rating, ratings, criticrating, votes, set, **series**, trailer, website |
+e:\Mdcs\docs\sources\libredmm.md:190:| NFO | ✅ **21/21 必过** | ✅ **21/21 必过** |
+e:\Mdcs\docs\sources\libredmm.md:228:| 生产可用 | ⚠️ 补充源；正式作/封面/评分优先 DMM；注意 outlet 消歧 |
+e:\Mdcs\docs\sources\libredmm.md:245:| 2026-08-22 | **复测** SONE-001 + SONE-002；字段缺口 **19/30**；NFO 21/21 必过 |
+e:\Mdcs\docs\sources\lulubar.md:51:| NFO | ✅ **20/20** 必过 |
+e:\Mdcs\docs\sources\mgstage.md:17:| 评分 | star class / review 文本 | ✅ `parseMgstageRating` 4.2 + votes |
+e:\Mdcs\docs\sources\mgstage.md:27:| E2E | ✅ **28/30** | extrafanart 8/8 · NFO 30/30 |
+e:\Mdcs\docs\sources\mgstage.md:45:**已实现 ✅** — MGS/Prestige 系番号可用；评分/投票齐全；预告片待 API 稳定后再补。
+e:\Mdcs\docs\sources\miss_av.md:11:| 样例 | SONE-001 | E2E 25/30 字段 · NFO 27/27 必过项（除 poster/thumb 依赖封面文件） |
+e:\Mdcs\docs\sources\miss_av.md:24:- 同会话第二次：curl 直链 **200**，无需再开 Flare
+e:\Mdcs\docs\sources\miss_av.md:49:- 无评分/预告/剧照列表
+e:\Mdcs\docs\sources\njav.md:67:| NFO | ✅ 21/21 必过 |
+e:\Mdcs\docs\sources\r18dev.md:18:| NFO | ✅ **25/25** 必过 | 刮削 **23/30** |
+e:\Mdcs\docs\sources\r18dev.md:54:| E2E | ✅ 全过 | 封面 **166329B** · extrafanart **×15** · NFO **25/25** |
+e:\Mdcs\docs\sources\r18dev.md:58:- **刮削**：**23/30**
+e:\Mdcs\docs\sources\sevenmmtv.md:18:| NFO | ✅ **24/24** | 中文源无 originalplot 时不误报必过 |
+e:\Mdcs\docs\sources\sevenmmtv.md:19:| 刮削 | **22/30** | |
+e:\Mdcs\docs\sources\sevenmmtv.md:54:| E2E | ✅ 全过 | 封面 **163227B** · extrafanart **×3** · NFO **24/25** |
+e:\Mdcs\docs\sources\sevenmmtv.md:58:- **刮削**：**23/30**
+e:\Mdcs\docs\sources\theporndb.md:51:| PURETABOO.2026.07.14 | ✅ NFO **20/20** |
+e:\Mdcs\docs\UI-DENSITY.md:44:| 主区外边距 | 32 / 24 | 24 / 16 | 页面顶再叠大空白 |
+e:\Mdcs\docs\UI-DENSITY.md:46:| 区块与区块 | 32–48 | **24**（最多 28） | 每个 section 再套大卡片撑开 |
+e:\Mdcs\docs\UI-DENSITY.md:49:| 卡片内边距 | 24 | **16**（复杂卡可 16/20） | 卡套卡再各垫 24 |
+e:\Mdcs\docs\UI-DENSITY.md:79:| 页标题 | 28 → 可降到 **22–24**（设置子页） | 子页不要再刷 28 |
+e:\Mdcs\docs\UI-DENSITY.md:165:- [ ] 区块间距是否基本落在 16/24，而不是 32/48 混飞？
+e:\Mdcs\docs\UI-DESIGN-SYSTEM.md:77:- 侧栏宽：**220px**；rail：**64px**
+e:\Mdcs\docs\UI-DESIGN-SYSTEM.md:165:| 区块标题 | `--text-section` | 18px / 28px | 600 |
+e:\Mdcs\docs\UI-DESIGN-SYSTEM.md:166:| 卡片/表头 | `--text-card` | 15px / 24px | 600 |
+e:\Mdcs\docs\UI-DESIGN-SYSTEM.md:167:| 正文 | `--text-body` | 14px / 22px | 400 |
+
+TOTAL 475

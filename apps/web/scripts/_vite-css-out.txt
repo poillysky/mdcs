@@ -1,0 +1,6 @@
+len=105867
+empty=false
+head=
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/styles.css");import { updateStyle as __vite__updateStyle, removeStyle as __vite__removeStyle } from "/@vite/client"
+const __vite__id = "E:/Mdcs/apps/web/src/styles.css"
+const __vite__css = ":root {\n  /* UI-DESIGN-SYSTEM v1 — 浅色极简克制 */\n  --bg: #fafafa;\n  --bg-subtle: #f4f4f5;\n  --surface: #ffffff;\n  --surface-hover: #f4f4f5;\n  --text: #18181b;\n  --text-secondary: #3f3f46;\n  --text-muted: #71717a;\n  --text-dim: #a1a1aa;\n  --border: #e4e4e7;\n  --border-strong: #d4d4d8;\n  --accent: #3d5c63;\n  --accent-hover: #334e54;\n  --accent-soft: rgba(61, 92, 99, 0.1);\n  --accent-text: #ffffff;\n  --secondary: #7d8b74;\n  --secondary-soft: rgba(125, 139, 116, 0.14);\n

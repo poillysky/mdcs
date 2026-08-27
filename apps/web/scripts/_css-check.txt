@@ -1,0 +1,4 @@
+final=0
+bad=[]
+lines=5531
+len=99787
