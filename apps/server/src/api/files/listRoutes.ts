@@ -1,8 +1,11 @@
 import { Router } from "express";
 import { openDatabase } from "../../db/init.js";
 import type { KindId } from "../../types.js";
+import { recoverStaleInflightStatuses, revertOrphanPipelineFiles } from "../../jobs/jobFiles.js";
+import { normalizeRelativePath } from "../../security/pathPolicy.js";
 import { FILE_LIST_JOINS, FILE_LIST_SELECT, mapFileListRow } from "../fileListMap.js";
 import { sendFail, sendOk } from "../respond.js";
+import { appendFileListStatusFilter, resolveFileListOrderBy, shouldExcludeIndexed } from "./listFilters.js";
 import { applyJobFilesScope } from "./scope.js";
 
 export function registerListRoutes(filesRouter: Router) {
@@ -15,6 +18,8 @@ filesRouter.get("/stats/by-kind", (_req, res) => {
 });
 
 filesRouter.get("/", (req, res) => {
+  recoverStaleInflightStatuses();
+  revertOrphanPipelineFiles();
   const db = openDatabase();
   const kind = req.query.kind ? String(req.query.kind) : undefined;
   const sourceRoot = req.query.sourceRoot ? String(req.query.sourceRoot).trim() : "";
@@ -26,6 +31,7 @@ filesRouter.get("/", (req, res) => {
     200,
     Math.max(1, parseInt(String(req.query.pageSize ?? "50"), 10) || 50),
   );
+  const sort = req.query.sort ? String(req.query.sort) : undefined;
   const offset = (page - 1) * pageSize;
 
   const where: string[] = [];
@@ -44,15 +50,28 @@ filesRouter.get("/", (req, res) => {
     params.push(kind);
   }
   if (sourceRoot && !jobId) {
-    const root = sourceRoot.replace(/\\/g, "/").replace(/^\/+/, "");
+    let root = "";
+    try {
+      root = normalizeRelativePath(sourceRoot);
+    } catch {
+      sendFail(res, "sourceRoot 路径无效", 400, "bad_request");
+      return;
+    }
     if (root) {
-      where.push("f.source_path LIKE ?");
-      params.push(`%${root}%`);
+      const directOnly = req.query.directOnly === "1";
+      if (directOnly) {
+        where.push("f.source_path LIKE ? AND f.source_path NOT LIKE ?");
+        params.push(`${root}/%`, `${root}/%/%`);
+      } else {
+        where.push("(f.source_path = ? OR f.source_path LIKE ?)");
+        params.push(root, `${root}/%`);
+      }
     }
   }
-  if (status) {
-    where.push("f.status = ?");
-    params.push(status);
+  appendFileListStatusFilter(status, where, params);
+  const excludeIndexed = req.query.excludeIndexed === "1";
+  if (shouldExcludeIndexed(excludeIndexed, status, jobId)) {
+    where.push("f.status != 'indexed'");
   }
   if (q) {
     where.push(
@@ -77,7 +96,8 @@ filesRouter.get("/", (req, res) => {
       `SELECT ${FILE_LIST_SELECT}
        ${FILE_LIST_JOINS}
        ${whereSql}
-       ORDER BY f.id DESC LIMIT ? OFFSET ?`,
+       ORDER BY ${resolveFileListOrderBy(sort)}
+       LIMIT ? OFFSET ?`,
     )
     .all(...params, pageSize, offset) as Array<Record<string, unknown>>;
 

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { openDatabase } from "../../db/init.js";
 import { readScrapeCache, writeScrapeCache } from "../../scrape/cache.js";
 import { applyMetaFieldPatches } from "../../scrape/metaPatch.js";
+import { toStorageRelativePath } from "../../paths.js";
 import type { KindId } from "../../types.js";
 import { KIND_IDS } from "../../types.js";
 import { API_CODES } from "../codes.js";
@@ -63,6 +64,14 @@ filesRouter.get("/:id", (req, res) => {
 
   const meta =
     row.code && KIND_IDS.includes(row.kind) ? readScrapeCache(row.code, row.kind) : null;
-  sendOk(res, { file: row, meta });
+  const file = {
+    ...row,
+    source_path: row.source_path ? toStorageRelativePath(String(row.source_path)) : row.source_path,
+    target_path:
+      row.target_path != null && row.target_path !== ""
+        ? String(row.target_path).trim().replace(/\\/g, "/").replace(/^\/+/, "")
+        : row.target_path,
+  };
+  sendOk(res, { file, meta });
 });
 }

@@ -3,14 +3,17 @@ import path from "node:path";
 import { loadLibrariesConfig, resolveKind, resolveOrganizeForKind } from "../config/loadConfig.js";
 import { openDatabase } from "../db/init.js";
 import { buildPlanForFile } from "../organize/plan.js";
-import { findLocalCover } from "../scrape/cache.js";
-import { PROJECT_ROOT, pathExists, resolveProjectPath } from "../paths.js";
+import { isUsableCoverImage, MIN_COVER_IMAGE_BYTES } from "../organize/coverCache.js";
+import { findLocalCover, findLocalThumbCover } from "../scrape/cache.js";
+import { PROJECT_ROOT, pathExists, resolveFromRoot, resolveProjectPath } from "../paths.js";
+import { getPathRoot } from "../config/loadConfig.js";
+import { resolveStoredTargetAbs } from "../organize/libraryPaths.js";
 import type { KindId } from "../types.js";
 import { KIND_IDS } from "../types.js";
 
 export type LibraryAssetRole = "poster" | "thumb" | "fanart";
 
-type FileRow = {
+export type LibraryFileRow = {
   id: number;
   kind: KindId;
   source_path: string;
@@ -23,31 +26,40 @@ type FileRow = {
 
 const IMAGE_EXT = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
 
+/** 过小多为损坏/占位图（与封面最小体积一致） */
+export const MIN_LIBRARY_ASSET_BYTES = MIN_COVER_IMAGE_BYTES;
+
+export function isUsableLibraryAsset(abs: string): boolean {
+  return isUsableCoverImage(abs);
+}
+
 function isImageFile(name: string): boolean {
   return IMAGE_EXT.has(path.extname(name).toLowerCase());
 }
 
 function firstExistingFile(candidates: string[]): string | null {
   for (const p of candidates) {
-    if (pathExists(p) && fs.statSync(p).size > 0) return p;
+    if (isUsableLibraryAsset(p)) return p;
   }
   return null;
 }
 
-function absFromRelative(rel: string): string {
-  return path.isAbsolute(rel) ? rel : path.join(PROJECT_ROOT, rel.replace(/\\/g, "/"));
+function absFromRelative(rel: string, kind?: ReturnType<typeof resolveKind>): string {
+  if (kind) return resolveStoredTargetAbs(kind, rel);
+  const root = getPathRoot();
+  return path.isAbsolute(rel) ? rel : resolveFromRoot(rel, root);
 }
 
 /** 解析入库目录：target_path 目录 > 整理计划目录 > 库内按番号搜索 */
-export function resolveMovieDirForFile(file: FileRow): string | null {
+export function resolveMovieDirForFile(file: LibraryFileRow): string | null {
   const target = file.target_path?.trim();
+  const kind = resolveKind(file.kind, loadLibrariesConfig());
   if (target) {
-    const abs = absFromRelative(target);
+    const abs = kind ? resolveStoredTargetAbs(kind, target) : absFromRelative(target);
     const dir = fs.existsSync(abs) && fs.statSync(abs).isFile() ? path.dirname(abs) : abs;
     if (pathExists(dir) && fs.statSync(dir).isDirectory()) return dir;
   }
 
-  const kind = resolveKind(file.kind, loadLibrariesConfig());
   if (kind && file.code) {
     const plan = buildPlanForFile(
       {
@@ -141,7 +153,7 @@ function listFanartFiles(dir: string): string[] {
 }
 
 export function findLibraryAssetAbs(
-  file: FileRow,
+  file: LibraryFileRow,
   role: LibraryAssetRole,
   fanartIndex = 1,
 ): string | null {
@@ -155,7 +167,7 @@ export function findLibraryAssetAbs(
   return fanarts[idx] ?? null;
 }
 
-export function listGalleryAssets(file: FileRow): Array<{
+export function listGalleryAssets(file: LibraryFileRow): Array<{
   role: LibraryAssetRole;
   index?: number;
   abs: string;
@@ -178,19 +190,24 @@ export function galleryAssetUrl(fileId: number, item: { role: LibraryAssetRole; 
   return `/api/files/${fileId}/asset/fanart/${item.index ?? 1}`;
 }
 
-export function loadFileRow(fileId: number): FileRow | null {
+export function loadFileRow(fileId: number): LibraryFileRow | null {
   const db = openDatabase();
   const row = db
     .prepare(
       `SELECT id, kind, source_path, file_name, code, mosaic, status, target_path
        FROM files WHERE id = ?`,
     )
-    .get(fileId) as FileRow | undefined;
+    .get(fileId) as LibraryFileRow | undefined;
   if (!row || !KIND_IDS.includes(row.kind)) return null;
   return row;
 }
 
 export function findCachedCoverAbs(code: string, kind: KindId): string | null {
   const rel = findLocalCover(code, kind);
+  return rel ? resolveProjectPath(rel) : null;
+}
+
+export function findCachedThumbCoverAbs(code: string, kind: KindId): string | null {
+  const rel = findLocalThumbCover(code, kind);
   return rel ? resolveProjectPath(rel) : null;
 }

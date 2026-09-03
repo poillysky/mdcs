@@ -1,48 +1,43 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchKinds, updateOrganizeConfig } from "../api";
+import { ORGANIZE_MODES } from "../components/advancedSettings/organizeModes";
 import { FolderPicker } from "../components/FolderPicker";
 import { SettingRow } from "../components/SettingRow";
+import { PanelSkeleton } from "../components/ui/PanelSkeleton";
+import { readCachedQuery, useCachedQuery } from "../hooks/useCachedQuery";
+import { useCacheDiscard } from "../hooks/settingsDiscard";
+import type { SettingsSaveActions } from "../hooks/useDirtyBaseline";
+import { KINDS_KEY } from "../lib/queryCacheKeys";
 import type { NotifyFn } from "../lib/notify";
 import type { OrganizeConfig } from "../types";
 
-const ORGANIZE_MODES = [
-  {
-    value: "hardlink",
-    label: "硬链接",
-    hint: "同盘零拷贝，不支持跨盘",
-  },
-  {
-    value: "softlink",
-    label: "软链接",
-    hint: "仅生成链接，播放器需能寻址源文件",
-  },
-  {
-    value: "inplace",
-    label: "原地整理",
-    hint: "源目录内出结果，忽略输出目录",
-  },
-  {
-    value: "copy",
-    label: "复制",
-    hint: "保留源文件，占用双倍空间",
-  },
-  {
-    value: "move",
-    label: "移动",
-    hint: "删除源文件，请谨慎使用",
-  },
-] as const;
+type KindsResponse = Awaited<ReturnType<typeof fetchKinds>>;
 
-export type OrganizeSaveActions = {
-  dirty: boolean;
-  saving: boolean;
-  save: () => Promise<void>;
-};
+export type OrganizeSaveActions = SettingsSaveActions;
 
 type Props = {
   notify: NotifyFn;
   onActionsChange: (actions: OrganizeSaveActions | null) => void;
 };
+
+function cloneOrganize(org: OrganizeConfig): OrganizeConfig {
+  return {
+    ...org,
+    videoExtensions: [...org.videoExtensions],
+    filenameBlacklist: [...org.filenameBlacklist],
+    junkFilters: [...org.junkFilters],
+    crackKeywords: [...org.crackKeywords],
+    cleanup: {
+      ...org.cleanup,
+      extraWhitelistExt: [...org.cleanup.extraWhitelistExt],
+    },
+  };
+}
+
+function initialOrganize(): OrganizeConfig | null {
+  const hit = readCachedQuery<KindsResponse>(KINDS_KEY)?.organize;
+  return hit ? cloneOrganize(hit) : null;
+}
 
 function TagListEditor({
   values,
@@ -112,53 +107,88 @@ function TagListEditor({
 }
 
 export function OrganizeSettingsPanel({ notify, onActionsChange }: Props) {
-  const [config, setConfig] = useState<OrganizeConfig | null>(null);
-  const [baseline, setBaseline] = useState<OrganizeConfig | null>(null);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: kindsData,
+    loading,
+    refreshing,
+    setData: setKindsData,
+    reload,
+  } = useCachedQuery({
+    key: KINDS_KEY,
+    fetcher: fetchKinds,
+    onError: (e) => notify("error", e, "加载整理配置失败"),
+  });
+  const [config, setConfig] = useState<OrganizeConfig | null>(initialOrganize);
+  const [baseline, setBaseline] = useState<OrganizeConfig | null>(initialOrganize);
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    void (async () => {
-      setLoading(true);
-      try {
-        const data = await fetchKinds();
-        setConfig(data.organize);
-        setBaseline(data.organize);
-      } catch (e) {
-        notify("error", e, "加载整理配置失败");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [notify]);
+  const dirtyRef = useRef(false);
 
   const dirty = useMemo(() => {
     if (!config || !baseline) return false;
     return JSON.stringify(config) !== JSON.stringify(baseline);
   }, [config, baseline]);
 
+  dirtyRef.current = dirty;
+
+  useEffect(() => {
+    if (!kindsData?.organize) return;
+    const next = cloneOrganize(kindsData.organize);
+    if (!dirtyRef.current) {
+      setConfig(next);
+      setBaseline(next);
+      return;
+    }
+    setConfig((prev) => prev ?? next);
+    setBaseline((prev) => prev ?? next);
+  }, [kindsData]);
+
   const save = useCallback(async () => {
     if (!config) return;
     setSaving(true);
     try {
       const { organize } = await updateOrganizeConfig(config);
-      setConfig(organize);
-      setBaseline(organize);
+      const saved = cloneOrganize(organize);
+      setConfig(saved);
+      setBaseline(saved);
+      setKindsData((prev) => (prev ? { ...prev, organize: saved } : prev));
       notify("ok", "整理规则已保存");
     } catch (e) {
       notify("error", e, "保存失败");
     } finally {
       setSaving(false);
     }
-  }, [config, notify]);
+  }, [config, notify, setKindsData]);
+
+  const resetLocal = useCallback(() => {
+    dirtyRef.current = false;
+    setBaseline(null);
+    setConfig(null);
+  }, []);
+  const discard = useCacheDiscard(KINDS_KEY, reload, resetLocal);
 
   useEffect(() => {
-    onActionsChange({ dirty, saving, save });
+    onActionsChange({ dirty, saving, save, discard });
     return () => onActionsChange(null);
-  }, [dirty, saving, save, onActionsChange]);
+  }, [dirty, saving, save, discard, onActionsChange]);
 
   function patch(partial: Partial<OrganizeConfig>) {
     setConfig((prev) => (prev ? { ...prev, ...partial } : prev));
+  }
+
+  function patchOnConflict(onConflict: string) {
+    patch({
+      onConflict,
+      overwriteVideoSubtitle: onConflict === "overwrite",
+    });
+  }
+
+  function patchOverwriteVideoSubtitle(checked: boolean) {
+    setConfig((prev) => {
+      if (!prev) return prev;
+      const onConflict =
+        checked ? "overwrite" : prev.onConflict === "overwrite" ? "skip" : prev.onConflict;
+      return { ...prev, overwriteVideoSubtitle: checked, onConflict };
+    });
   }
 
   function patchCleanup(partial: Partial<OrganizeConfig["cleanup"]>) {
@@ -167,15 +197,19 @@ export function OrganizeSettingsPanel({ notify, onActionsChange }: Props) {
     );
   }
 
-  if (loading || !config) {
-    return <div className="empty-block">加载整理配置…</div>;
+  if (loading && !config) {
+    return <PanelSkeleton label="加载整理配置…" lines={6} />;
+  }
+
+  if (!config) {
+    return <PanelSkeleton label="整理配置不可用" lines={4} />;
   }
 
   const cleanupOff = !config.cleanup.enabled;
   const modeHint = ORGANIZE_MODES.find((m) => m.value === config.defaultMode)?.hint;
 
   return (
-    <div className="organize-settings">
+    <div className={`organize-settings${refreshing ? " is-refreshing" : ""}`}>
       <section className="mon-panel">
         <header className="mon-panel-head">
           <h3 className="mon-panel-title">整理模式</h3>
@@ -207,6 +241,21 @@ export function OrganizeSettingsPanel({ notify, onActionsChange }: Props) {
             >
               <option value="copy">降级为复制</option>
               <option value="fail">直接失败</option>
+            </select>
+          </SettingRow>
+          <SettingRow
+            label="冲突策略"
+            hint="目标路径已有同名视频/字幕时的处理方式"
+          >
+            <select
+              className="org-select"
+              aria-label="冲突策略"
+              value={config.onConflict}
+              onChange={(e) => patchOnConflict(e.target.value)}
+            >
+              <option value="skip">跳过</option>
+              <option value="overwrite">覆盖</option>
+              <option value="rename">重命名</option>
             </select>
           </SettingRow>
         </div>
@@ -241,12 +290,28 @@ export function OrganizeSettingsPanel({ notify, onActionsChange }: Props) {
               <span />
             </label>
           </SettingRow>
-          <SettingRow label="覆盖目标目录视频和字幕" hint="目标已有视频/字幕时是否覆盖">
+          <SettingRow
+            label="整理成功后清理封面缓存"
+            hint="片库已有海报/缩略图时删除 data/covers 缓存，释放磁盘空间"
+          >
             <label className="switch">
               <input
                 type="checkbox"
-                checked={config.overwriteVideoSubtitle}
-                onChange={(e) => patch({ overwriteVideoSubtitle: e.target.checked })}
+                checked={config.purgeCoverCacheAfterDone !== false}
+                onChange={(e) => patch({ purgeCoverCacheAfterDone: e.target.checked })}
+              />
+              <span />
+            </label>
+          </SettingRow>
+          <SettingRow
+            label="覆盖目标目录视频和字幕"
+            hint="快捷开关：开启等同冲突策略「覆盖」，关闭则回退为「跳过」（不影响「重命名」）"
+          >
+            <label className="switch">
+              <input
+                type="checkbox"
+                checked={config.onConflict === "overwrite"}
+                onChange={(e) => patchOverwriteVideoSubtitle(e.target.checked)}
               />
               <span />
             </label>
@@ -378,17 +443,6 @@ export function OrganizeSettingsPanel({ notify, onActionsChange }: Props) {
           </SettingRow>
         </div>
       </section>
-
-      <div className="page-save-row">
-        <button
-          type="button"
-          className="btn primary"
-          disabled={!dirty || saving}
-          onClick={() => void save()}
-        >
-          {saving ? "保存中…" : "保存整理配置"}
-        </button>
-      </div>
     </div>
   );
 }

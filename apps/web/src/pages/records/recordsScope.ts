@@ -28,11 +28,33 @@ export function parseRecordsSearch(search: string): RecordsUrlScope {
     jobId,
     kind: jobId ? "" : (params.get("kind")?.trim() ?? ""),
     sourceRoot: jobId ? "" : (params.get("sourceRoot")?.trim() ?? ""),
-    status: jobId ? "" : (params.get("status") ?? ""),
+    status: params.get("status") ?? "",
     q: jobId ? "" : (params.get("q") ?? ""),
     page: Math.max(1, parseInt(params.get("page") ?? "1", 10) || 1),
     detailId,
   };
+}
+
+export function buildRecordsListPath(
+  search: string,
+  patch: Partial<Pick<RecordsUrlScope, "status" | "q" | "page">>,
+): string {
+  const raw = search.startsWith("?") ? search.slice(1) : search;
+  const params = new URLSearchParams(raw);
+  if (patch.status !== undefined) {
+    if (patch.status) params.set("status", patch.status);
+    else params.delete("status");
+  }
+  if (patch.q !== undefined) {
+    if (patch.q) params.set("q", patch.q);
+    else params.delete("q");
+  }
+  if (patch.page !== undefined) {
+    if (patch.page > 1) params.set("page", String(patch.page));
+    else params.delete("page");
+  }
+  const q = params.toString();
+  return q ? `/records?${q}` : "/records";
 }
 
 export function buildRecordsPath(search: string, detailId: number | null): string {
@@ -73,9 +95,11 @@ export function recordsListQuery(
     kind: scope.jobId ? undefined : resolvedKind || undefined,
     sourceRoot: scope.jobId ? undefined : scope.sourceRoot || undefined,
     jobId: scope.jobId || undefined,
-    status: scope.jobId ? undefined : status || undefined,
+    status: status || undefined,
     q: scope.jobId ? undefined : q.trim() || undefined,
     page,
     pageSize: RECORDS_PAGE_SIZE,
+    excludeIndexed: false,
+    sort: "id" as const,
   };
 }

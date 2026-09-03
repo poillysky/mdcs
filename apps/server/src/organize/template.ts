@@ -254,9 +254,10 @@ export function buildTemplateContext(input: {
         )
       : "";
 
+  const directors = meta?.directors?.filter(Boolean) ?? [];
   return {
     number: input.code,
-    publish_number: "",
+    publish_number: String(meta?.publishNumber || "").trim(),
     series_name: parts.series_name || series,
     serial_number: parts.serial_number,
     first_letter: parts.first_letter,
@@ -268,7 +269,7 @@ export function buildTemplateContext(input: {
     originaltitle: originalTitle,
     titleZh: meta?.titleZh || "",
     year: /^\d{4}$/.test(year) ? year : "",
-    director: "",
+    director: directors.join(", "),
     studio: meta?.studio || "",
     publisher: meta?.publisher || "",
     runtime: meta?.runtime != null ? String(meta.runtime) : "",

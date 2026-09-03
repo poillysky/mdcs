@@ -1,14 +1,25 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { fetchOpsConfig, saveOpsConfig, testWebhookEndpoint } from "../api";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { saveOpsConfig, testWebhookEndpoint } from "../api";
 import { SettingRow } from "../components/SettingRow";
-import { COPY } from "../lib/messages";
+import { PanelSkeleton } from "../components/ui/PanelSkeleton";
+import {
+  useDirtyBaseline,
+  useReportSaveActions,
+  type SettingsSaveActions,
+} from "../hooks/useDirtyBaseline";
+import { useSharedOpsConfig } from "../hooks/useSharedOpsConfig";
+import { useCacheDiscard } from "../hooks/settingsDiscard";
+import { OPS_CONFIG_KEY } from "../lib/queryCacheKeys";
 import { kindLabel } from "../lib/labels";
 import type { NotifyFn } from "../lib/notify";
 import type { KindRow, OpsConfig, WebhookEndpoint } from "../types";
 
+export type WebhookSaveActions = SettingsSaveActions;
+
 type Props = {
   kinds: KindRow[];
   notify: NotifyFn;
+  onActionsChange?: (actions: WebhookSaveActions | null) => void;
 };
 
 const DEFAULT_BODY = `{
@@ -102,28 +113,18 @@ function Switch({
   );
 }
 
-export function WebhookSettingsPanel({ kinds, notify }: Props) {
-  const [config, setConfig] = useState<OpsConfig | null>(null);
-  const [loading, setLoading] = useState(true);
+export function WebhookSettingsPanel({ kinds, notify, onActionsChange }: Props) {
+  const { config, loading, refreshing, setConfig, reload } = useSharedOpsConfig({
+    onError: (e) => notify("error", e, "加载 Webhook 配置失败"),
+  });
   const [saving, setSaving] = useState(false);
   const [testingId, setTestingId] = useState<string | null>(null);
   const [openTestVars, setOpenTestVars] = useState<Record<string, boolean>>({});
   const [testVarsText, setTestVarsText] = useState<Record<string, string>>({});
   const [showVarsHelp, setShowVarsHelp] = useState(false);
 
-  useEffect(() => {
-    void (async () => {
-      setLoading(true);
-      try {
-        const data = await fetchOpsConfig();
-        setConfig(data.config);
-      } catch (e) {
-        notify("error", e, "加载 Webhook 配置失败");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [notify]);
+  const webhookSnap = useMemo(() => (config ? config.webhook : null), [config]);
+  const { dirty, markClean } = useDirtyBaseline({ current: webhookSnap });
 
   function patchWebhook(partial: Partial<OpsConfig["webhook"]>) {
     if (!config) return;
@@ -139,19 +140,24 @@ export function WebhookSettingsPanel({ kinds, notify }: Props) {
     });
   }
 
-  async function save() {
+  const save = useCallback(async () => {
     if (!config) return;
     setSaving(true);
     try {
       const { config: saved } = await saveOpsConfig(config);
       setConfig(saved);
+      markClean(saved.webhook);
       notify("ok", "Webhook 配置已保存");
     } catch (e) {
       notify("error", e, "保存失败");
     } finally {
       setSaving(false);
     }
-  }
+  }, [config, markClean, notify, setConfig]);
+
+  const discard = useCacheDiscard(OPS_CONFIG_KEY, reload);
+
+  useReportSaveActions(true, dirty, saving, save, onActionsChange, discard);
 
   async function test(ep: WebhookEndpoint) {
     setTestingId(ep.id);
@@ -170,15 +176,19 @@ export function WebhookSettingsPanel({ kinds, notify }: Props) {
     }
   }
 
-  if (loading || !config) {
-    return <div className="empty-block">加载 Webhook 配置…</div>;
+  if (loading && !config) {
+    return <PanelSkeleton label="加载 Webhook 配置…" lines={6} />;
+  }
+
+  if (!config) {
+    return <PanelSkeleton label="Webhook 配置不可用" lines={4} />;
   }
 
   const wh = config.webhook;
   const dimmed = !wh.enabled;
 
   return (
-    <div className="webhook-settings">
+    <div className={`webhook-settings${refreshing ? " is-refreshing" : ""}`}>
       <section className="mon-panel settings-form">
         <header className="mon-panel-head">
           <h3 className="mon-panel-title">Webhook</h3>
@@ -483,12 +493,6 @@ export function WebhookSettingsPanel({ kinds, notify }: Props) {
           </div>
         </div>
       </section>
-
-      <div className="page-save-row">
-        <button type="button" className="btn primary" disabled={saving} onClick={() => void save()}>
-          {saving ? "保存中…" : COPY.save}
-        </button>
-      </div>
     </div>
   );
 }

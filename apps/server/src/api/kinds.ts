@@ -9,21 +9,23 @@ import {
   updateOrganizeConfig,
 } from "../config/loadConfig.js";
 import { countFilesByKind, syncKindsFromConfig } from "../db/init.js";
-import { scanKind } from "../jobs/scanner.js";
+import { scanKind, resolveKindScanAbs } from "../jobs/scanner.js";
 import { PROJECT_ROOT } from "../paths.js";
 import type { KindId } from "../types.js";
 import { API_CODES } from "./codes.js";
 import { sendFail, sendOk } from "./respond.js";
+
+function kindForApi(k: ReturnType<typeof listResolvedKinds>[number]) {
+  const { sourceAbs: _s, libraryAbs: _l, ...rest } = k;
+  return { ...rest, stats: countFilesByKind(k.id) };
+}
 
 export const kindsRouter = Router();
 
 kindsRouter.get("/", (_req, res) => {
   syncKindsFromConfig();
   const config = loadLibrariesConfig();
-  const kinds = listResolvedKinds(config).map((k) => ({
-    ...k,
-    stats: countFilesByKind(k.id),
-  }));
+  const kinds = listResolvedKinds(config).map(kindForApi);
   sendOk(res, {
     organize: config.organize,
     indexRoot: config.indexRoot || "index",
@@ -59,7 +61,7 @@ kindsRouter.get("/:kindId", (req, res) => {
   const kinds = listResolvedKinds();
   const kind = kinds.find((k) => k.id === kindId);
   if (!kind) return sendFail(res, `未知分区: ${kindId}`, 404, "kind_not_found");
-  sendOk(res, { kind, stats: countFilesByKind(kindId) });
+  sendOk(res, { kind: kindForApi(kind), stats: countFilesByKind(kindId) });
 });
 
 kindsRouter.put("/:kindId", (req, res) => {
@@ -82,10 +84,14 @@ kindsRouter.post("/:kindId/scan", async (req, res) => {
   const kinds = pickKinds([kindId]);
   if (!kinds.length) return sendFail(res, `分区不可用: ${kindId}`, 404, "kind_unavailable");
   try {
-    const result = scanKind(kinds[0], PROJECT_ROOT);
+    const scanPath = typeof req.body?.path === "string" ? req.body.path.trim() : "";
+    const scanAbs = scanPath ? resolveKindScanAbs(kinds[0], scanPath) : undefined;
+    const result = scanKind(kinds[0], PROJECT_ROOT, { scanAbs });
     sendOk(res, result);
   } catch (err) {
-    sendFail(res, err instanceof Error ? err.message : String(err), 500, "scan_failed");
+    const msg = err instanceof Error ? err.message : String(err);
+    const code = msg.includes("不在") || msg.includes("不存在") ? API_CODES.bad_request : "scan_failed";
+    sendFail(res, msg, 400, code);
   }
 });
 

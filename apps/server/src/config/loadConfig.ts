@@ -4,10 +4,13 @@ import {
   CONFIG_DIR,
   ensureDir,
   LIBRARIES_CONFIG_PATH,
+  buildVideoExtSet,
+  isVideoFile,
   pathExists,
   PROJECT_ROOT,
   resolveFromRoot,
 } from "../paths.js";
+import { hitsFilenameBlacklist } from "../library/scanFilter.js";
 import type {
   KindConfig,
   KindId,
@@ -18,7 +21,7 @@ import type {
   ResolvedKind,
 } from "../types.js";
 import { KIND_IDS } from "../types.js";
-import { assertKindPathField, assertRelativePathAllowed } from "../security/pathPolicy.js";
+import { assertKindPathField, assertRelativePathAllowed, normalizeRelativePath } from "../security/pathPolicy.js";
 import { createDefaultLibrariesConfig, normalizeLibrariesConfig } from "./schema.js";
 
 let cached: LibrariesConfig | null = null;
@@ -73,6 +76,13 @@ export type IndexFolder = {
   mtime: number;
 };
 
+export type IndexFile = {
+  name: string;
+  relative: string;
+  mtime: number;
+  size: number;
+};
+
 const SKIP_DIR_NAMES = new Set([
   "node_modules",
   "dist",
@@ -87,43 +97,69 @@ export function listIndexFolders(
 ): {
   parent: string;
   folders: IndexFolder[];
+  files: IndexFile[];
 } {
   const root = getPathRoot(config);
-  const rel = parent.replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
+  let rel = "";
+  try {
+    rel = parent.trim() ? normalizeRelativePath(parent) : "";
+  } catch {
+    return { parent: "", folders: [], files: [] };
+  }
   if (rel) {
     assertRelativePathAllowed(rel, config);
   }
   const abs = rel ? resolveFromRoot(rel, root) : root;
   const inside = path.relative(root, abs);
   if (inside.startsWith("..") || path.isAbsolute(inside)) {
-    return { parent: "", folders: [] };
+    return { parent: "", folders: [], files: [] };
   }
 
   const folders: IndexFolder[] = [];
+  const files: IndexFile[] = [];
   if (!pathExists(abs)) {
-    return { parent: rel, folders };
+    return { parent: rel, folders, files };
   }
+  const videoExt = buildVideoExtSet(config.organize.videoExtensions);
+  const filenameBlacklist = config.organize.filenameBlacklist || [];
   let entries: fs.Dirent[] = [];
   try {
     entries = fs.readdirSync(abs, { withFileTypes: true });
   } catch {
-    return { parent: rel, folders };
+    return { parent: rel, folders, files };
   }
   for (const ent of entries) {
-    if (!ent.isDirectory()) continue;
     if (ent.name.startsWith(".")) continue;
-    if (SKIP_DIR_NAMES.has(ent.name)) continue;
     const childRel = rel ? `${rel}/${ent.name}` : ent.name;
+    const childAbs = path.join(abs, ent.name);
+    if (ent.isDirectory()) {
+      if (SKIP_DIR_NAMES.has(ent.name)) continue;
+      let mtime = 0;
+      try {
+        mtime = Math.floor(fs.statSync(childAbs).mtimeMs);
+      } catch {
+        /* 无权限或已删除则留 0 */
+      }
+      folders.push({ name: ent.name, relative: childRel, mtime });
+      continue;
+    }
+    if (!ent.isFile()) continue;
+    if (!isVideoFile(ent.name, videoExt)) continue;
+    if (hitsFilenameBlacklist(ent.name, filenameBlacklist)) continue;
     let mtime = 0;
+    let size = 0;
     try {
-      mtime = Math.floor(fs.statSync(path.join(abs, ent.name)).mtimeMs);
+      const st = fs.statSync(childAbs);
+      mtime = Math.floor(st.mtimeMs);
+      size = st.size;
     } catch {
       /* 无权限或已删除则留 0 */
     }
-    folders.push({ name: ent.name, relative: childRel, mtime });
+    files.push({ name: ent.name, relative: childRel, mtime, size });
   }
   folders.sort((a, b) => a.name.localeCompare(b.name, "zh-CN"));
-  return { parent: rel, folders };
+  files.sort((a, b) => a.name.localeCompare(b.name, "zh-CN"));
+  return { parent: rel, folders, files };
 }
 
 export function getPathRoot(config = loadLibrariesConfig()): string {
@@ -226,12 +262,19 @@ export function updateOrganizeConfig(
 ): LibrariesConfig["organize"] {
   const config = loadLibrariesConfig();
   const prevMode = config.organize.defaultMode;
+  const prevFallback = config.organize.defaultFallback;
   config.organize = { ...config.organize, ...patch };
+  if (typeof config.organize.metadataDir === "string" && config.organize.metadataDir.trim()) {
+    config.organize.metadataDir = normalizeRelativePath(config.organize.metadataDir);
+  }
   if (patch.cleanup) {
     config.organize.cleanup = { ...config.organize.cleanup, ...patch.cleanup };
   }
-  if (typeof patch.overwriteVideoSubtitle === "boolean") {
+  // 仅改覆盖开关且未同时指定 onConflict 时，用开关推导冲突策略
+  if (typeof patch.overwriteVideoSubtitle === "boolean" && patch.onConflict === undefined) {
     config.organize.onConflict = patch.overwriteVideoSubtitle ? "overwrite" : "skip";
+  } else if (patch.onConflict !== undefined) {
+    config.organize.overwriteVideoSubtitle = config.organize.onConflict === "overwrite";
   }
   // 全局模式变更时清掉分区 sticky，避免整理页改了却不生效
   if (patch.defaultMode && patch.defaultMode !== prevMode) {
@@ -239,6 +282,14 @@ export function updateOrganizeConfig(
       const k = config.kinds[id];
       if (k && "organizeMode" in k) {
         delete (k as { organizeMode?: unknown }).organizeMode;
+      }
+    }
+  }
+  if (patch.defaultFallback && patch.defaultFallback !== prevFallback) {
+    for (const id of KIND_IDS) {
+      const k = config.kinds[id];
+      if (k && "organizeFallback" in k) {
+        delete (k as { organizeFallback?: unknown }).organizeFallback;
       }
     }
   }

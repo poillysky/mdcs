@@ -90,6 +90,56 @@ button.dashboard-stat-card:hover {
   margin-top: 2px;
 }
 
+button.dashboard-stat-pill-link {
+  cursor: pointer;
+  border: none;
+  font: inherit;
+  transition: opacity var(--dur) var(--ease);
+}
+
+button.dashboard-stat-pill-link:hover {
+  opacity: 0.85;
+}
+
+.dashboard-activity-table-wrap.is-loading {
+  opacity: 0.72;
+}
+
+.dashboard-skeleton-row td {
+  padding: 9px 10px;
+}
+
+.ui-skeleton {
+  display: block;
+  height: 14px;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--bg-subtle) 0%,
+    var(--border) 50%,
+    var(--bg-subtle) 100%
+  );
+  background-size: 200% 100%;
+  animation: ui-skeleton-shimmer 1.1s ease-in-out infinite;
+}
+
+.dashboard-skeleton-row:nth-child(3n + 2) .ui-skeleton {
+  width: 88%;
+}
+
+.dashboard-skeleton-row:nth-child(3n) .ui-skeleton {
+  width: 72%;
+}
+
+@keyframes ui-skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
 .dashboard-stat-compare {
   font-size: 12px;
   line-height: 18px;
@@ -213,11 +263,14 @@ button.dashboard-stat-card:hover {
 
 .dashboard-activity-table .records-col-kind,
 .dashboard-activity-table .records-col-trigger,
-.dashboard-activity-table .records-col-duration,
 .dashboard-activity-table thead .records-col-kind,
-.dashboard-activity-table thead .records-col-trigger,
-.dashboard-activity-table thead .records-col-duration {
+.dashboard-activity-table thead .records-col-trigger {
   text-align: center;
+}
+
+.dashboard-activity-table .records-col-duration,
+.dashboard-activity-table thead .records-col-duration {
+  text-align: left;
 }
 
 .dashboard-activity-table .records-col-time {
@@ -231,21 +284,6 @@ button.dashboard-stat-card:hover {
   color: var(--text-secondary);
   border: 1px solid var(--border);
   font-weight: 500;
-}
-
-.dashboard-activity-table .records-pill--source-manual {
-  background: var(--bg-subtle);
-  color: var(--text-secondary);
-}
-
-.dashboard-activity-table .records-pill--source-monitor {
-  background: rgba(59, 130, 246, 0.1);
-  color: #2563eb;
-}
-
-.dashboard-activity-table .records-pill--source-qb {
-  background: rgba(139, 92, 246, 0.1);
-  color: #7c3aed;
 }
 
 .dashboard-activity-table tbody td.empty {
@@ -337,6 +375,28 @@ button.dashboard-stat-card:hover {
 .settings-tab.disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.settings-save-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.settings-save-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.settings-save-hint.muted {
+  opacity: 0.75;
 }
 
 .settings-panel {

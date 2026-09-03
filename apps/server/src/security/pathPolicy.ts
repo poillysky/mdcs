@@ -1,15 +1,39 @@
 import path from "node:path";
 import { getIndexRoot, getPathRoot, loadLibrariesConfig } from "../config/loadConfig.js";
-import { resolveFromRoot } from "../paths.js";
+import { PROJECT_ROOT, resolveFromRoot, toLibraryRelativePath, toStorageRelativePath } from "../paths.js";
 
-/** 规范化相对路径：去首尾斜杠、统一正斜杠、拒绝 .. */
-export function normalizeRelativePath(input: string): string {
-  const rel = input.replace(/\\/g, "/").replace(/^\/+|\/+$/g, "").trim();
+/** 规范化相对路径：统一斜杠、转绝对为项目相对、去首尾斜杠、拒绝 .. */
+export function normalizeRelativePath(input: string, root = PROJECT_ROOT): string {
+  const trimmed = String(input || "").trim();
+  if (!trimmed) return "";
+  const rel = toStorageRelativePath(trimmed, root);
   if (!rel) return "";
   if (rel.includes("..")) {
     throw new Error("路径不在允许范围内，请选择已配置的来源或输出目录");
   }
   return rel;
+}
+
+/** 片库相对路径：统一斜杠；若误存绝对路径则转回片库相对 */
+export function normalizeLibraryRelativePath(
+  input: string,
+  libraryAbs: string,
+  root = PROJECT_ROOT,
+): string {
+  const trimmed = String(input || "").trim();
+  if (!trimmed) return "";
+  const norm = trimmed.replace(/\\/g, "/");
+  if (path.isAbsolute(norm) || /^[a-zA-Z]:/.test(norm)) {
+    const libRel = toLibraryRelativePath(norm, libraryAbs);
+    if (libRel) return libRel;
+    const projectRel = toStorageRelativePath(norm, root);
+    if (projectRel && libraryAbs) {
+      const fromLib = toLibraryRelativePath(resolveFromRoot(projectRel, root), libraryAbs);
+      if (fromLib) return fromLib;
+    }
+    return projectRel;
+  }
+  return norm.replace(/^\/+/, "");
 }
 
 /** 收集所有允许写入/浏览的相对路径根（pathRoot、index、各分区 source/library） */

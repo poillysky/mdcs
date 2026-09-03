@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { ScrapeConfig } from "../scrape/types.js";
-import { PROJECT_ROOT, ensureDir, resolveFromRoot } from "../paths.js";
+import { PROJECT_ROOT, ensureDir, pathsReferToSameLocation, resolveFromRoot } from "../paths.js";
 import { centerCropBox, resolveFaceCropRect } from "./faceCrop.js";
 import {
   WATERMARK_PNG,
@@ -213,7 +213,15 @@ export async function processPosterImage(
   opts: ProcessPosterOpts,
 ): Promise<boolean> {
   if (opts.dryRun) return true;
-  if (opts.overwriteImages === false && fs.existsSync(dest)) {
+
+  const srcAbs = path.resolve(src);
+  const destAbs = path.resolve(dest);
+  const sameLocation = pathsReferToSameLocation(srcAbs, destAbs);
+
+  if (!fs.existsSync(srcAbs)) {
+    return false;
+  }
+  if (opts.overwriteImages === false && fs.existsSync(destAbs)) {
     return false;
   }
 
@@ -236,28 +244,53 @@ export async function processPosterImage(
     manualRect.height > 0;
 
   const allowKindCrop = opts.preferCropResult !== false;
-  const needKindCrop =
+  const wantKindCrop =
     !hasManualRect && allowKindCrop && (opts.cropMode === "right" || opts.cropMode === "face");
-  const needIndependent = !hasManualRect && Boolean(opts.cropIndependentPoster) && !needKindCrop;
-  if (!hasManualRect && !needKindCrop && !needIndependent && !labels.length) {
-    ensureDir(path.dirname(dest));
-    fs.copyFileSync(src, dest);
+  const needIndependent = !hasManualRect && Boolean(opts.cropIndependentPoster) && !wantKindCrop;
+
+  const sharp = (await import("sharp")).default;
+  const targetRatio = opts.cropRatio === "emby" ? 2 / 3 : 2.12 / 3;
+  let imgW = 0;
+  let imgH = 0;
+  if (!hasManualRect && (wantKindCrop || needIndependent)) {
+    const probe = await sharp(srcAbs).metadata();
+    imgW = probe.width || 0;
+    imgH = probe.height || 0;
+  }
+  // 已是竖版成品（如片库 poster）时不再叠裁
+  let applyKindCrop = wantKindCrop;
+  if (applyKindCrop && imgW > 0 && imgH > 0 && imgW / imgH <= targetRatio * 1.15) {
+    applyKindCrop = false;
+  }
+
+  const needsProcessing = Boolean(
+    hasManualRect || applyKindCrop || needIndependent || labels.length,
+  );
+  if (!needsProcessing) {
+    if (sameLocation) return true;
+    ensureDir(path.dirname(destAbs));
+    fs.copyFileSync(srcAbs, destAbs);
     return true;
   }
 
-  const sharp = (await import("sharp")).default;
-  ensureDir(path.dirname(dest));
+  const writeAbs = sameLocation
+    ? path.join(path.dirname(destAbs), `.${path.basename(destAbs)}.work-${process.pid}`)
+    : destAbs;
+  ensureDir(path.dirname(writeAbs));
 
-  const targetRatio = opts.cropRatio === "emby" ? 2 / 3 : 2.12 / 3;
-  const meta = await sharp(src).metadata();
-  const w = meta.width || 0;
-  const h = meta.height || 0;
+  let w = imgW;
+  let h = imgH;
+  if ((!w || !h) && (hasManualRect || applyKindCrop || needIndependent)) {
+    const meta = await sharp(srcAbs).metadata();
+    w = meta.width || 0;
+    h = meta.height || 0;
+  }
   let extract: { left: number; top: number; width: number; height: number } | null = null;
 
   if (w > 0 && h > 0) {
     if (hasManualRect && manualRect) {
       extract = clampCropRect(manualRect, w, h);
-    } else if (needKindCrop && opts.cropMode === "right") {
+    } else if (applyKindCrop && opts.cropMode === "right") {
       const cropW = Math.max(1, Math.floor(w * 0.47));
       const left0 = Math.max(0, w - cropW);
       const box = centerCropBox(cropW, h, targetRatio);
@@ -267,15 +300,15 @@ export async function processPosterImage(
         width: box.width,
         height: box.height,
       };
-    } else if (needKindCrop && opts.cropMode === "face") {
-      const { rect } = await resolveFaceCropRect(src, w, h, targetRatio);
+    } else if (applyKindCrop && opts.cropMode === "face") {
+      const { rect } = await resolveFaceCropRect(srcAbs, w, h, targetRatio);
       extract = rect;
     } else if (needIndependent) {
       extract = centerCropBox(w, h, targetRatio);
     }
   }
 
-  let img = extract ? sharp(src).extract(extract) : sharp(src);
+  let img = extract ? sharp(srcAbs).extract(extract) : sharp(srcAbs);
 
   if (labels.length) {
     const buf = await img.toBuffer();
@@ -336,11 +369,13 @@ export async function processPosterImage(
         top: Math.max(0, Math.min(ah - mh, Math.round(top))),
       });
     }
-    await after.composite(composites).jpeg({ quality: 90 }).toFile(dest);
+    await after.composite(composites).jpeg({ quality: 90 }).toFile(writeAbs);
+    if (writeAbs !== destAbs) fs.renameSync(writeAbs, destAbs);
     return true;
   }
 
-  await img.jpeg({ quality: 90 }).toFile(dest);
+  await img.jpeg({ quality: 90 }).toFile(writeAbs);
+  if (writeAbs !== destAbs) fs.renameSync(writeAbs, destAbs);
   return true;
 }
 

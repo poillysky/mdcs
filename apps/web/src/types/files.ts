@@ -20,8 +20,8 @@ export type FileRow = {
   duration?: string | null;
   /** 发行日 YYYY-MM-DD（列表从 meta 解析） */
   premiered?: string | null;
-  /** 任务来源：manual | monitor | qb（join jobs.trigger_source） */
-  triggerSource?: string | null;
+  /** 任务来源：manual | monitor（join jobs.trigger_source；无 job 时默认 manual） */
+  triggerSource?: "manual" | "monitor";
   scrape_source?: string | null;
   cover_url?: string | null;
 };
@@ -78,4 +78,26 @@ export type ScrapeMetaView = {
   ok?: boolean;
   message?: string;
   sourceSnapshots?: Record<string, SourceSnapshotView>;
+};
+
+export type FileChangeEvent = {
+  ids: number[];
+  kind?: string;
+  jobId?: string;
+  reason?: "scan" | "scrape" | "organize" | "action" | "batch";
+  ts: number;
+};
+
+export type IndexAllStatus = {
+  running: boolean;
+  kindTotal: number;
+  kindIndex: number;
+  currentKind?: string;
+  currentLabel?: string;
+  discovered: number;
+  inserted: number;
+  updated: number;
+  skipped: number;
+  message?: string;
+  error?: string;
 };

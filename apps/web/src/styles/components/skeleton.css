@@ -1,0 +1,68 @@
+/* ── 通用骨架屏（全站加载占位） ── */
+
+.ui-skeleton {
+  display: block;
+  height: 14px;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--bg-subtle) 0%,
+    var(--border) 50%,
+    var(--bg-subtle) 100%
+  );
+  background-size: 200% 100%;
+  animation: ui-skeleton-shimmer 1.1s ease-in-out infinite;
+}
+
+@keyframes ui-skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.panel-skeleton {
+  padding: 20px 16px 24px;
+}
+
+.panel-skeleton-label {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.panel-skeleton-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.panel-skeleton-line .ui-skeleton {
+  width: 100%;
+}
+
+.table-skeleton-row td,
+.dashboard-skeleton-row td {
+  padding: 9px 10px;
+}
+
+.table-skeleton-row:nth-child(3n + 2) .ui-skeleton,
+.dashboard-skeleton-row:nth-child(3n + 2) .ui-skeleton {
+  width: 88%;
+}
+
+.table-skeleton-row:nth-child(3n) .ui-skeleton,
+.dashboard-skeleton-row:nth-child(3n) .ui-skeleton {
+  width: 72%;
+}
+
+.is-refreshing {
+  opacity: 0.72;
+  transition: opacity var(--dur) var(--ease);
+}
+
+.is-refreshing.is-interactive {
+  pointer-events: none;
+}

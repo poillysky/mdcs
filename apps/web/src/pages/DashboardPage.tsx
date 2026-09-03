@@ -1,17 +1,52 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { fetchDashboard, type DashboardWeekCompare } from "../api";
 import { Pagination } from "../components/ui/Pagination";
 import { kindLabel } from "../lib/labels";
+import type { NotifyFn } from "../lib/notify";
 import type { FileRow, JobRow, KindRow } from "../types";
+import { triggerLabel, triggerPillClass } from "./records/recordsDisplay";
 
 type Props = {
   jobs: JobRow[];
   kinds: KindRow[];
   fileFailedTotal: number;
   onNavigate: (path: string) => void;
+  notify: NotifyFn;
 };
 
 const ACTIVITY_PAGE_SIZE = 20;
+const ACTIVITY_SKELETON_ROWS = 6;
+
+type DashboardCache = {
+  page: number;
+  kind: string;
+  scrapeMax: number;
+  actorTotal: number;
+  recentAdded7d: number;
+  weekCompare: DashboardWeekCompare | null;
+  activityFiles: FileRow[];
+  activityTotal: number;
+};
+
+let dashboardCache: DashboardCache | null = null;
+
+function readDashboardCache(page: number, kind: string): DashboardCache | null {
+  if (!dashboardCache) return null;
+  if (dashboardCache.page !== page || dashboardCache.kind !== kind) return null;
+  return dashboardCache;
+}
+
+function ActivitySkeletonRows() {
+  return Array.from({ length: ACTIVITY_SKELETON_ROWS }, (_, row) => (
+    <tr key={row} className="dashboard-skeleton-row" aria-hidden>
+      {Array.from({ length: 8 }, (__, col) => (
+        <td key={col}>
+          <span className="ui-skeleton" />
+        </td>
+      ))}
+    </tr>
+  ));
+}
 
 function dashboardGreeting(now = new Date()): string {
   const hour = now.getHours();
@@ -61,33 +96,6 @@ function fileAddedAt(file: FileRow): number | null {
   return file.organized_at ?? file.scraped_at ?? file.file_mtime ?? null;
 }
 
-function triggerLabel(source?: string | null): string {
-  switch (source) {
-    case "monitor":
-      return "监控";
-    case "qb":
-      return "qB";
-    case "manual":
-      return "手动";
-    default:
-      return "—";
-  }
-}
-
-function triggerPillClass(source?: string | null): string {
-  const base = "records-pill";
-  switch (source) {
-    case "monitor":
-      return `${base} records-pill--trigger records-pill--source-monitor`;
-    case "qb":
-      return `${base} records-pill--trigger records-pill--source-qb`;
-    case "manual":
-      return `${base} records-pill--source-manual`;
-    default:
-      return `${base} records-pill--muted`;
-  }
-}
-
 function displayTitle(file: FileRow): string {
   return file.titleZh?.trim() || file.title?.trim() || "—";
 }
@@ -108,62 +116,109 @@ export function DashboardPage({
   kinds,
   fileFailedTotal,
   onNavigate,
+  notify,
 }: Props) {
-  const [scrapeMax, setScrapeMax] = useState(5);
-  const [actorTotal, setActorTotal] = useState(0);
-  const [recentAdded7d, setRecentAdded7d] = useState(0);
-  const [weekCompare, setWeekCompare] = useState<DashboardWeekCompare | null>(null);
-  const [activityFiles, setActivityFiles] = useState<FileRow[]>([]);
-  const [activityTotal, setActivityTotal] = useState(0);
   const [activityPage, setActivityPage] = useState(1);
   const [activityKind, setActivityKind] = useState("");
+  const initialCache = readDashboardCache(1, "");
+  const [scrapeMax, setScrapeMax] = useState(() => initialCache?.scrapeMax ?? 5);
+  const [actorTotal, setActorTotal] = useState(() => initialCache?.actorTotal ?? 0);
+  const [recentAdded7d, setRecentAdded7d] = useState(() => initialCache?.recentAdded7d ?? 0);
+  const [weekCompare, setWeekCompare] = useState<DashboardWeekCompare | null>(
+    () => initialCache?.weekCompare ?? null,
+  );
+  const [activityFiles, setActivityFiles] = useState<FileRow[]>(() => initialCache?.activityFiles ?? []);
+  const [activityTotal, setActivityTotal] = useState(() => initialCache?.activityTotal ?? 0);
+  const [activityLoading, setActivityLoading] = useState(() => !initialCache);
+  const fetchSeq = useRef(0);
+  const loadErrorNotified = useRef(false);
 
   useEffect(() => {
+    const cached = readDashboardCache(activityPage, activityKind);
+    if (cached) {
+      setScrapeMax(cached.scrapeMax);
+      setActorTotal(cached.actorTotal);
+      setRecentAdded7d(cached.recentAdded7d);
+      setWeekCompare(cached.weekCompare);
+      setActivityFiles(cached.activityFiles);
+      setActivityTotal(cached.activityTotal);
+      setActivityLoading(false);
+    } else {
+      setActivityFiles([]);
+      setActivityTotal(0);
+      setActivityLoading(true);
+    }
+
+    const seq = ++fetchSeq.current;
     let cancelled = false;
 
-    function loadDashboardData() {
+    function loadDashboardData(opts?: { silent?: boolean }) {
+      const hasCachedRows = Boolean(readDashboardCache(activityPage, activityKind)?.activityFiles.length);
+      if (!opts?.silent && !hasCachedRows) setActivityLoading(true);
       void fetchDashboard({
         page: activityPage,
         pageSize: ACTIVITY_PAGE_SIZE,
         kind: activityKind || undefined,
       })
         .then((data) => {
-          if (cancelled) return;
+          if (cancelled || seq !== fetchSeq.current) return;
+          loadErrorNotified.current = false;
           setScrapeMax(data.scrapeMax);
           setActorTotal(data.actorTotal);
           setRecentAdded7d(data.recentAdded7d);
           setWeekCompare(data.weekCompare);
-          setActivityFiles(data.activity.files ?? []);
-          setActivityTotal(data.activity.total);
-        })
-        .catch(() => {
-          if (!cancelled) {
-            setScrapeMax(5);
-            setActorTotal(0);
-            setRecentAdded7d(0);
-            setWeekCompare(null);
-            setActivityFiles([]);
-            setActivityTotal(0);
+          const total = data.activity.total;
+          const pageCount = Math.max(1, Math.ceil(total / ACTIVITY_PAGE_SIZE));
+          const clampedPage = Math.min(activityPage, pageCount);
+          if (clampedPage !== activityPage) {
+            setActivityPage(clampedPage);
+            return;
           }
+          setActivityFiles(data.activity.files ?? []);
+          setActivityTotal(total);
+          dashboardCache = {
+            page: activityPage,
+            kind: activityKind,
+            scrapeMax: data.scrapeMax,
+            actorTotal: data.actorTotal,
+            recentAdded7d: data.recentAdded7d,
+            weekCompare: data.weekCompare,
+            activityFiles: data.activity.files ?? [],
+            activityTotal: total,
+          };
+        })
+        .catch((e) => {
+          if (cancelled || seq !== fetchSeq.current) return;
+          if (!loadErrorNotified.current) {
+            notify("error", e, "加载主界面数据失败");
+            loadErrorNotified.current = true;
+          }
+        })
+        .finally(() => {
+          if (!cancelled && seq === fetchSeq.current) setActivityLoading(false);
         });
     }
 
-    loadDashboardData();
-    const timer = setInterval(loadDashboardData, 15000);
+    loadDashboardData({ silent: Boolean(cached) });
+    const timer = setInterval(() => loadDashboardData({ silent: true }), 15000);
     return () => {
       cancelled = true;
       clearInterval(timer);
     };
-  }, [activityPage, activityKind]);
+  }, [activityPage, activityKind, notify]);
 
   const kindStats = useMemo(() => aggregateKindStats(kinds), [kinds]);
-  const scrapeActive = kindStats.scraping + kindStats.organizing;
+  /** 仅计刮削池占用的 scraping；整理 organizing 不占刮削线程槽位 */
+  const scrapeActive = kindStats.scraping;
   const manualActive = jobs.filter((j) => j.status === "running" || j.status === "queued").length;
   const manualMax = 1;
   const activityPageCount = Math.max(1, Math.ceil(activityTotal / ACTIVITY_PAGE_SIZE));
 
   const successTotal = kindStats.done;
   const failedTotal = Math.max(kindStats.failed, fileFailedTotal);
+  const activityEmptyMessage = activityKind
+    ? "该分类暂无入库记录"
+    : "刮削成功后会显示在这里";
 
   return (
     <div className="dashboard-page">
@@ -175,7 +230,7 @@ export function DashboardPage({
           <button
             type="button"
             className="dashboard-stat-card"
-            onClick={() => onNavigate("/tasks")}
+            onClick={() => onNavigate("/records?status=processing")}
           >
             <div className="dashboard-stat-label">刮削线程</div>
             <div className="dashboard-stat-value">
@@ -186,8 +241,18 @@ export function DashboardPage({
             </div>
             <div className="dashboard-stat-pills">
               <span className="jobs-stat-pill jobs-stat-pill--skip">队列: {kindStats.queue}</span>
+              <span className="jobs-stat-pill jobs-stat-pill--skip">跳过: {kindStats.skipped}</span>
               <span className="jobs-stat-pill jobs-stat-pill--success">成功: {successTotal}</span>
-              <span className="jobs-stat-pill jobs-stat-pill--error">失败: {failedTotal}</span>
+              <button
+                type="button"
+                className="jobs-stat-pill jobs-stat-pill--error dashboard-stat-pill-link"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onNavigate("/records?status=failed");
+                }}
+              >
+                失败: {failedTotal}
+              </button>
             </div>
           </button>
 
@@ -254,7 +319,9 @@ export function DashboardPage({
             ))}
           </select>
         </header>
-        <div className="records-table-wrap dashboard-activity-table-wrap">
+        <div
+          className={`records-table-wrap dashboard-activity-table-wrap${activityLoading && activityFiles.length > 0 ? " is-loading" : ""}`}
+        >
           <table className="records-table data-table dashboard-activity-table">
             <colgroup>
               <col className="records-col-index" />
@@ -279,7 +346,9 @@ export function DashboardPage({
               </tr>
             </thead>
             <tbody>
-              {activityFiles.length ? (
+              {activityLoading && activityFiles.length === 0 ? (
+                <ActivitySkeletonRows />
+              ) : activityFiles.length ? (
                 activityFiles.map((file) => (
                   <tr
                     key={file.id}
@@ -298,8 +367,8 @@ export function DashboardPage({
                       <span className="records-pill records-pill--kind">{kindLabel(file.kind)}</span>
                     </td>
                     <td className="records-col-trigger">
-                      <span className={triggerPillClass(file.triggerSource)}>
-                        {triggerLabel(file.triggerSource)}
+                      <span className={triggerPillClass(file)}>
+                        {triggerLabel(file)}
                       </span>
                     </td>
                     <td className="records-col-duration">{displayYear(file)}</td>
@@ -309,7 +378,7 @@ export function DashboardPage({
               ) : (
                 <tr>
                   <td colSpan={8} className="empty">
-                    刮削成功后会显示在这里
+                    {activityEmptyMessage}
                   </td>
                 </tr>
               )}

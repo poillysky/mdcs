@@ -1,15 +1,27 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { fetchScrapeConfig, saveScrapeConfig } from "../api";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { saveScrapeConfig } from "../api";
 import { SettingRow } from "../components/SettingRow";
+import { PanelSkeleton } from "../components/ui/PanelSkeleton";
+import {
+  useDirtyBaseline,
+  useReportSaveActions,
+  type SettingsSaveActions,
+} from "../hooks/useDirtyBaseline";
+import { useSharedScrapeConfig } from "../hooks/useSharedScrapeConfig";
+import { useCacheDiscard } from "../hooks/settingsDiscard";
+import { SCRAPE_CONFIG_KEY } from "../lib/queryCacheKeys";
 import { COPY } from "../lib/messages";
 import type { NotifyFn } from "../lib/notify";
 import type { ScrapeConfig } from "../types";
+
+export type MetadataSaveActions = SettingsSaveActions;
 
 type Props = {
   notify: NotifyFn;
   embedded?: boolean;
   value?: ScrapeConfig;
   onChange?: (next: ScrapeConfig) => void;
+  onActionsChange?: (actions: MetadataSaveActions | null) => void;
 };
 
 type Meta = NonNullable<ScrapeConfig["metadata"]>;
@@ -71,46 +83,37 @@ function Switch({
   );
 }
 
+function withMetadataDefaults(cfg: ScrapeConfig): ScrapeConfig {
+  return { ...cfg, metadata: { ...DEFAULT, ...cfg.metadata } };
+}
+
 export function MetadataSettingsPanel({
   notify,
   embedded = false,
   value,
   onChange,
+  onActionsChange,
 }: Props) {
   const controlled = embedded && Boolean(value) && Boolean(onChange);
-  const [config, setConfig] = useState<ScrapeConfig | null>(
-    value ? { ...value, metadata: { ...DEFAULT, ...value.metadata } } : null,
-  );
-  const [loading, setLoading] = useState(!controlled);
+  const { config, loading, refreshing, setConfig, reload } = useSharedScrapeConfig({
+    controlled,
+    value,
+    transform: withMetadataDefaults,
+    onError: (e) => notify("error", e, "加载元数据配置失败"),
+  });
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (!controlled) return;
-    setConfig(value ? { ...value, metadata: { ...DEFAULT, ...value.metadata } } : null);
-    setLoading(false);
-  }, [controlled, value]);
-
-  useEffect(() => {
-    if (controlled) return;
-    void (async () => {
-      setLoading(true);
-      try {
-        const data = await fetchScrapeConfig();
-        setConfig({
-          ...data.config,
-          metadata: { ...DEFAULT, ...data.config.metadata },
-        });
-      } catch (e) {
-        notify("error", e, "加载元数据配置失败");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [controlled, notify]);
+  const metaSnap = useMemo(
+    () => (config && !controlled ? { ...DEFAULT, ...config.metadata } : null),
+    [config, controlled],
+  );
+  const { dirty, markClean } = useDirtyBaseline({ current: metaSnap, enabled: !controlled });
 
   function commit(next: ScrapeConfig) {
+    if (controlled) {
+      onChange?.(next);
+      return;
+    }
     setConfig(next);
-    if (controlled) onChange?.(next);
   }
 
   function patch(partial: Partial<Meta>) {
@@ -121,28 +124,42 @@ export function MetadataSettingsPanel({
     });
   }
 
-  async function save() {
+  const save = useCallback(async () => {
     if (!config) return;
+    if (controlled) {
+      onChange?.(config);
+      return;
+    }
     setSaving(true);
     try {
       const { config: saved } = await saveScrapeConfig(config);
-      setConfig({ ...saved, metadata: { ...DEFAULT, ...saved.metadata } });
+      const normalized = withMetadataDefaults(saved);
+      setConfig(normalized);
+      markClean({ ...DEFAULT, ...normalized.metadata });
       notify("ok", "元数据配置已保存");
     } catch (e) {
       notify("error", e, "保存失败");
     } finally {
       setSaving(false);
     }
+  }, [config, controlled, markClean, notify, onChange, setConfig]);
+
+  const discard = useCacheDiscard(SCRAPE_CONFIG_KEY, reload);
+
+  useReportSaveActions(!embedded, dirty, saving, save, onActionsChange, discard);
+
+  if (loading && !config) {
+    return <PanelSkeleton label="加载元数据配置…" lines={6} />;
   }
 
-  if (loading || !config) {
-    return <div className="empty-block">加载元数据配置…</div>;
+  if (!config) {
+    return <PanelSkeleton label="元数据配置不可用" lines={4} />;
   }
 
   const m = { ...DEFAULT, ...config.metadata };
 
   return (
-    <div className="metadata-settings">
+    <div className={`metadata-settings${refreshing ? " is-refreshing" : ""}`}>
       <section className="mon-panel settings-form">
         <header className="mon-panel-head">
           <h3 className="mon-panel-title">元数据</h3>
@@ -252,9 +269,14 @@ export function MetadataSettingsPanel({
           </Section>
         </div>
       </section>
-      {!embedded ? (
+      {embedded ? (
         <div className="page-save-row">
-          <button type="button" className="btn primary" disabled={saving} onClick={() => void save()}>
+          <button
+            type="button"
+            className="btn primary"
+            disabled={!dirty || saving}
+            onClick={() => void save()}
+          >
             {saving ? "保存中…" : COPY.save}
           </button>
         </div>

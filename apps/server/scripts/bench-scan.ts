@@ -6,12 +6,20 @@ import assert from "node:assert/strict";
 import { shouldSkipScanEntry } from "../src/jobs/scanner.js";
 
 const count = Math.min(200_000, Math.max(1_000, Number(process.argv[2] || 10_000)));
-const existing = { file_mtime: 1_700_000_000_000, file_size: 1_024_000_000 };
+const existing = {
+  file_mtime: 1_700_000_000_000,
+  file_size: 1_024_000_000,
+  status: "scraped",
+  scraped_at: 1,
+};
+const ctx = { code: null, kind: "japan_censored" as const };
 
 const t0 = Date.now();
 let skipped = 0;
 for (let i = 0; i < count; i++) {
-  if (shouldSkipScanEntry(existing, existing.file_mtime, existing.file_size)) skipped += 1;
+  if (shouldSkipScanEntry(existing, existing.file_mtime, existing.file_size, false, ctx)) {
+    skipped += 1;
+  }
 }
 const ms = Date.now() - t0;
 

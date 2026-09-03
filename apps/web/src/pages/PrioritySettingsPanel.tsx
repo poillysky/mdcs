@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { fetchScrapeConfig, saveScrapeConfig } from "../api";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { saveScrapeConfig } from "../api";
 import {
   SourcesHideSwitch,
   SourcesSubpage,
@@ -8,14 +8,24 @@ import {
   SourcesSubpagePanel,
 } from "../components/SourcesSubpageLayout";
 import { SourceChainDropdown } from "../components/SourceChainDropdown";
+import {
+  useDirtyBaseline,
+  useReportSaveActions,
+  type SettingsSaveActions,
+} from "../hooks/useDirtyBaseline";
+import { useCacheDiscard } from "../hooks/settingsDiscard";
+import { useSharedScrapeConfig } from "../hooks/useSharedScrapeConfig";
+import { SCRAPE_CONFIG_KEY } from "../lib/queryCacheKeys";
 import type { NotifyFn } from "../lib/notify";
 import type { ProviderCatalogRow, ScrapeConfig } from "../types";
+
 type Props = {
   notify: NotifyFn;
   embedded?: boolean;
   value?: ScrapeConfig;
   catalog?: ProviderCatalogRow[];
   onChange?: (next: ScrapeConfig) => void;
+  onActionsChange?: (actions: SettingsSaveActions | null) => void;
 };
 
 type KindKey =
@@ -119,52 +129,50 @@ function PriorityBlock({
   );
 }
 
+function prioritySnapshot(cfg: ScrapeConfig) {
+  return {
+    fieldPriority: cfg.fieldPriority ?? {},
+    fieldBlockedSources: cfg.fieldBlockedSources ?? {},
+    kindMeta: Object.fromEntries(
+      GLOBAL_KIND_ITEMS.map((item) => [
+        item.id,
+        cfg.kindProfiles[item.id]?.metaSources ?? [],
+      ]),
+    ),
+  };
+}
+
 export function PrioritySettingsPanel({
   notify,
   embedded = false,
   value,
   catalog: catalogProp,
   onChange,
+  onActionsChange,
 }: Props) {
   const controlled = embedded && Boolean(value) && Boolean(onChange);
-  const [config, setConfig] = useState<ScrapeConfig | null>(value ?? null);
-  const [catalog, setCatalog] = useState<ProviderCatalogRow[]>(catalogProp ?? []);
-  const [loading, setLoading] = useState(!controlled);
+  const { config, loading, refreshing, setConfig, setData, raw, reload } = useSharedScrapeConfig({
+    controlled,
+    value,
+    transform: (cfg) => ({
+      ...cfg,
+      fieldBlockedSources: cfg.fieldBlockedSources ?? {},
+    }),
+    onError: (e) => notify("error", e, "加载优先级配置失败"),
+  });
+  const catalog = controlled ? (catalogProp ?? []) : (raw?.catalog ?? []);
   const [saving, setSaving] = useState(false);
   const [hideEmptyFields, setHideEmptyFields] = useState(true);
   const [hideEmptyBlocks, setHideEmptyBlocks] = useState(true);
 
-  useEffect(() => {
-    if (!controlled) return;
-    setConfig(
-      value
-        ? { ...value, fieldBlockedSources: value.fieldBlockedSources ?? {} }
-        : null,
-    );
-    setCatalog(catalogProp ?? []);
-    setLoading(false);
-  }, [controlled, value, catalogProp]);
-
-  useEffect(() => {
-    if (controlled) return;
-    void (async () => {
-      setLoading(true);
-      try {
-        const data = await fetchScrapeConfig();
-        setConfig({
-          ...data.config,
-          fieldBlockedSources: data.config.fieldBlockedSources ?? {},
-        });
-        setCatalog(data.catalog ?? []);
-      } catch (e) {
-        notify("error", e, "加载优先级配置失败");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [controlled, notify]);
-
   const fieldIds = useMemo(() => (config ? allFieldIds(config) : []), [config]);
+
+  const snap = useMemo(
+    () => (config && !controlled ? prioritySnapshot(config) : null),
+    [config, controlled],
+  );
+  const { dirty, markClean } = useDirtyBaseline({ current: snap, enabled: !controlled });
+  const discard = useCacheDiscard(SCRAPE_CONFIG_KEY, reload);
 
   function commit(next: ScrapeConfig) {
     setConfig(next);
@@ -229,7 +237,7 @@ export function PrioritySettingsPanel({
     notify("ok", controlled ? "已恢复默认优先级" : "已恢复默认优先级（请保存生效）");
   }
 
-  async function save() {
+  const save = useCallback(async () => {
     if (!config) return;
     if (controlled) {
       onChange?.(config);
@@ -241,20 +249,27 @@ export function PrioritySettingsPanel({
         ...config,
         fieldBlockedSources: config.fieldBlockedSources ?? {},
       });
-      setConfig({
+      const nextConfig = {
         ...saved,
         fieldBlockedSources: saved.fieldBlockedSources ?? {},
-      });
-      if (nextCatalog) setCatalog(nextCatalog);
+      };
+      setData((prev) =>
+        prev
+          ? { ...prev, config: nextConfig, catalog: nextCatalog ?? prev.catalog }
+          : { config: nextConfig, catalog: nextCatalog ?? [], providers: [] },
+      );
+      markClean(prioritySnapshot(nextConfig));
       notify("ok", "优先级配置已保存");
     } catch (e) {
       notify("error", e, "保存失败");
     } finally {
       setSaving(false);
     }
-  }
+  }, [config, controlled, markClean, notify, onChange, setData]);
 
-  if (loading) {
+  useReportSaveActions(!embedded, dirty, saving, save, onActionsChange, discard);
+
+  if (loading && !config) {
     return <SourcesSubpageLoading label="加载优先级配置…" />;
   }
   if (!config) {
@@ -272,7 +287,7 @@ export function PrioritySettingsPanel({
   });
 
   return (
-    <SourcesSubpage>
+    <SourcesSubpage className={refreshing ? "is-refreshing" : undefined}>
       <SourcesSubpagePanel bodyClassName=" prio-compact-body">
         <PriorityBlock
           title="优先级设置（全局）"
@@ -332,9 +347,6 @@ export function PrioritySettingsPanel({
         <SourcesSubpageActions>
           <button type="button" className="btn ghost" disabled={saving} onClick={resetDefaults}>
             重置优先级
-          </button>
-          <button type="button" className="btn primary" disabled={saving} onClick={() => void save()}>
-            {saving ? "保存中…" : "保存修改"}
           </button>
         </SourcesSubpageActions>
       ) : (

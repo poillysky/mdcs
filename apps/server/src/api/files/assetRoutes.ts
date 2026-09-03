@@ -10,9 +10,18 @@ import {
   type CoverCropRequest,
 } from "../../organize/coverCrop.js";
 import { readScrapeCache } from "../../scrape/cache.js";
+import { preferThumbCoverUrl } from "../../scrape/downloadPrefs.js";
 import type { KindId } from "../../types.js";
 import { KIND_IDS } from "../../types.js";
 import { API_CODES } from "../codes.js";
+import {
+  pickRemotePosterUrl,
+  pickRemoteThumbUrl,
+  resolveCachedCoverAbs,
+  resolveCachedThumbCoverAbs,
+  resolvePosterLocalAbs,
+  resolveThumbLocalAbs,
+} from "../coverAssetResolve.js";
 import {
   findCachedCoverAbs,
   findLibraryAssetAbs,
@@ -32,46 +41,87 @@ filesRouter.get("/:id/asset/poster", async (req, res) => {
     sendFail(res, "文件不存在", 404, API_CODES.not_found);
     return;
   }
-  const local = findLibraryAssetAbs(file, "poster");
+  const local = resolvePosterLocalAbs(file);
   if (local) {
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
     res.sendFile(path.resolve(local));
     return;
   }
   if (file.code) {
-    const cached = findCachedCoverAbs(file.code, file.kind);
+    const meta = readScrapeCache(file.code, file.kind);
+    if (meta) {
+      const remotePoster = pickRemotePosterUrl(meta);
+      if (remotePoster) {
+        const ok = await sendRemoteImage(res, remotePoster, {
+          pageUrl: meta.website,
+          sourceId: meta.fieldSources?.cover || meta.source,
+        });
+        if (ok) return;
+      }
+    }
+    const cached = resolveCachedCoverAbs(file);
     if (cached) {
       res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
       res.sendFile(path.resolve(cached));
       return;
     }
-    const meta = readScrapeCache(file.code, file.kind);
-    const remote = meta?.coverUrl?.trim();
-    if (remote && /^https?:\/\//i.test(remote)) {
-      const ok = await sendRemoteImage(res, remote, {
-        pageUrl: meta?.website,
-        sourceId: meta?.fieldSources?.cover || meta?.source,
-      });
-      if (ok) return;
+    if (meta) {
+      const remote = meta.coverUrl?.trim();
+      if (remote && /^https?:\/\//i.test(remote)) {
+        const ok = await sendRemoteImage(res, remote, {
+          pageUrl: meta.website,
+          sourceId: meta.fieldSources?.cover || meta.source,
+        });
+        if (ok) return;
+      }
     }
   }
   sendFail(res, "海报不存在", 404, API_CODES.not_found);
 });
 
-filesRouter.get("/:id/asset/thumb", (req, res) => {
+filesRouter.get("/:id/asset/thumb", async (req, res) => {
   const fileId = Number(req.params.id);
   const file = Number.isFinite(fileId) ? loadFileRow(fileId) : null;
   if (!file) {
     sendFail(res, "文件不存在", 404, API_CODES.not_found);
     return;
   }
-  const local = findLibraryAssetAbs(file, "thumb");
-  if (!local) {
-    sendFail(res, "缩略图不存在", 404, API_CODES.not_found);
+  const local = await resolveThumbLocalAbs(file);
+  if (local) {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.sendFile(path.resolve(local));
     return;
   }
-  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
-  res.sendFile(path.resolve(local));
+  if (file.code) {
+    const meta = readScrapeCache(file.code, file.kind);
+    if (meta) {
+      const remoteThumb = pickRemoteThumbUrl(meta);
+      if (remoteThumb) {
+        const ok = await sendRemoteImage(res, remoteThumb, {
+          pageUrl: meta.website,
+          sourceId: meta.fieldSources?.cover || meta.source,
+        });
+        if (ok) return;
+      }
+    }
+    const cachedThumb = await resolveCachedThumbCoverAbs(file);
+    if (cachedThumb) {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+      res.sendFile(path.resolve(cachedThumb));
+      return;
+    }
+    if (meta) {
+      const remote = preferThumbCoverUrl(meta.coverUrl?.trim() || "");
+      if (remote && /^https?:\/\//i.test(remote)) {
+        const ok = await sendRemoteImage(res, remote, {
+          pageUrl: meta.website,
+          sourceId: meta.fieldSources?.cover || meta.source,
+        });
+        if (ok) return;
+      }
+    }
+  }
+  sendFail(res, "缩略图不存在", 404, API_CODES.not_found);
 });
 
 filesRouter.get("/:id/asset/fanart/:index", (req, res) => {

@@ -1,5 +1,5 @@
 import { kindLabel } from "../../lib/labels";
-import { displayRelativePath, looksAbsolutePath } from "../../lib/paths";
+import { displayRelativePath, expandLibraryTargetPath, looksAbsolutePath, nfoFileNameForTarget } from "../../lib/paths";
 import type { PipelineRunKind, PipelineRunView } from "../../api";
 import type { FileRow, ScrapeMetaView } from "../../types";
 import type { LogItem, LogRunOption, LogStep, LogTone } from "./types";
@@ -75,10 +75,13 @@ export function toLogRunOption(run: PipelineRunView): LogRunOption {
     steps: (run.steps ?? []).map((step) => ({
       title: step.title,
       done: step.done,
-      items: (step.items ?? []).map((item) => ({
-        tone: item.tone,
-        text: sanitizePipelineLogText(item.text),
-      })),
+      items: (step.items ?? []).map((item) => {
+        const text = sanitizePipelineLogText(item.text);
+        return {
+          tone: normalizeLogItemTone(text, item.tone),
+          text,
+        };
+      }),
     })),
   };
 }
@@ -93,49 +96,117 @@ export function codeSearchVariants(code: string): string[] {
   return [...new Set([raw, compact].filter(Boolean))];
 }
 
-export function isNonCriticalSourceError(error?: string): boolean {
+export function isCriticalSourceError(error?: string): boolean {
   const err = String(error || "").trim().toLowerCase();
-  if (!err) return true;
-  const patterns = [
-    "未找到",
-    "没有找到",
-    "无数据",
-    "无结果",
-    "not found",
-    "no result",
-    "no data",
-    "no match",
-    "404",
-    "详情页",
-    "empty",
-    "stub",
-    "无元数据",
-    "无有效",
-  ];
+  if (!err) return false;
+  const patterns = ["timeout", "timed out", "time out", "abort", "cancelled", "canceled"];
   return patterns.some((p) => err.includes(p));
 }
 
-export function sourceRunTone(
-  ok: boolean,
-  error?: string,
-): LogTone {
-  if (ok) return "ok";
-  return isNonCriticalSourceError(error) ? "warn" : "fail";
+export function isNonCriticalSourceError(error?: string): boolean {
+  const err = String(error || "").trim().toLowerCase();
+  if (!err) return true;
+  return !isCriticalSourceError(err);
 }
 
-export function buildLogSteps(file: FileRow, meta: ScrapeMetaView | null): LogStep[] {
+export function sourceRunTone(ok: boolean, error?: string): LogTone {
+  if (ok) return "ok";
+  if (isCriticalSourceError(error)) return "fail";
+  return "warn";
+}
+
+/** 归档日志里旧 tone 修正：单源未抓到数据默认黄灯 */
+export function normalizeLogItemTone(text: string, tone: LogTone): LogTone {
+  if (!text.startsWith("未抓取到数据")) return tone;
+  const colon = text.indexOf(": ");
+  const err = colon >= 0 ? text.slice(colon + 2) : "";
+  if (isCriticalSourceError(err)) return "fail";
+  return "warn";
+}
+
+export function expandPipelineLogText(text: string, libraryRoot?: string): string {
+  let next = sanitizePipelineLogText(text);
+  if (!libraryRoot?.trim()) return next;
+  return next.replace(/'([^']+)'/g, (_m, inner: string) => {
+    const raw = String(inner || "").trim();
+    if (!raw) return "''";
+    const expanded = expandLibraryTargetPath(raw, libraryRoot);
+    if (expanded === raw) return `'${raw}'`;
+    return `'${displayRelativePath(expanded)}'`;
+  });
+}
+
+export function expandPipelineLogSteps(steps: LogStep[], libraryRoot?: string): LogStep[] {
+  if (!libraryRoot?.trim()) return steps;
+  return steps.map((step) => ({
+    ...step,
+    items: step.items.map((item) => ({
+      ...item,
+      text: expandPipelineLogText(item.text, libraryRoot),
+    })),
+  }));
+}
+
+const PIPELINE_STEP_ORDER = [
+  "解析番号",
+  "刮削数据",
+  "创建目录",
+  "下载图片",
+  "转移文件",
+  "生成 NFO",
+] as const;
+
+/**
+ * 归档日志常只有刮削前两步；用当前文件状态补全后续整理步骤展示。
+ * 已有归档条目的步骤优先保留（含实时源站明细）。
+ */
+export function mergeLogSteps(archived: LogStep[], synthesized: LogStep[]): LogStep[] {
+  const archivedByTitle = new Map(archived.map((s) => [s.title, s]));
+  const synthByTitle = new Map(synthesized.map((s) => [s.title, s]));
+  const merged: LogStep[] = [];
+
+  for (const title of PIPELINE_STEP_ORDER) {
+    const arch = archivedByTitle.get(title);
+    const synth = synthByTitle.get(title);
+    if (arch?.items.length) {
+      merged.push(arch);
+    } else if (synth) {
+      merged.push(synth);
+    } else if (arch) {
+      merged.push(arch);
+    }
+  }
+
+  const failStep = synthesized.find((s) => s.title === "任务失败");
+  if (failStep) merged.push(failStep);
+
+  return merged.length ? merged : synthesized;
+}
+
+export function buildLogSteps(
+  file: FileRow,
+  meta: ScrapeMetaView | null,
+  libraryRoot?: string,
+): LogStep[] {
   const runs = meta?.sourceRuns ?? [];
   const tried = meta?.sourcesTried ?? [];
   const snapshots = meta?.sourceSnapshots ?? {};
   const fieldSources = meta?.fieldSources ?? {};
   const code = file.code || meta?.code || "";
-  const targetRel = file.target_path ? displayRelativePath(file.target_path) : "";
+  const targetFull = file.target_path ? expandLibraryTargetPath(file.target_path, libraryRoot) : "";
+  const targetRel = targetFull ? displayRelativePath(targetFull) : "";
+  const nfoFileName = nfoFileNameForTarget(file.target_path ?? undefined, libraryRoot);
   const sourceRel = displayRelativePath(file.source_path);
   const hasCover = Boolean(meta?.coverUrl || meta?.coverLocal || file.cover_url);
   const fanartCount =
     (meta?.extrafanartLocal?.length || 0) || (meta?.extrafanartUrls?.length || 0);
-  const organized = Boolean(file.organized_at || (file.target_path && file.status === "done"));
-  const nfoDone = file.status === "done" || Boolean(file.organized_at);
+  const organized = file.status === "done" || Boolean(file.organized_at);
+  const pipelineDone = file.status === "done";
+  const scrapeDone = Boolean(meta?.ok);
+  const nfoDone = pipelineDone;
+  const dirDone = organized;
+  const imageDone = organized && hasCover;
+  const transferDone = organized && Boolean(targetRel);
 
   // 1. 解析番号
   const parseDone = Boolean(code);
@@ -211,7 +282,7 @@ export function buildLogSteps(file: FileRow, meta: ScrapeMetaView | null): LogSt
       text: `正在从本地库搜索字幕：[${variants.join(", ")}]`,
     });
     if (organized || file.status === "done") {
-      dirItems.push({ tone: "warn", text: "没有找到字幕文件" });
+      dirItems.push({ tone: "ok", text: "字幕搜索已完成" });
     } else {
       dirItems.push({ tone: "warn", text: "尚未搜索本地字幕" });
     }
@@ -240,7 +311,7 @@ export function buildLogSteps(file: FileRow, meta: ScrapeMetaView | null): LogSt
       text: `封面缓存已保存：'${displayRelativePath(meta.coverLocal)}'`,
     });
   }
-  if (organized && targetRel) {
+  if (organized && targetRel && hasCover) {
     const targetDir = targetRel.replace(/\/[^/]+$/, "") || targetRel;
     imageItems.push({
       tone: "ok",
@@ -251,7 +322,9 @@ export function buildLogSteps(file: FileRow, meta: ScrapeMetaView | null): LogSt
       text: `缩略图已写入：'${targetDir}/thumb.jpg'`,
     });
   } else if (meta?.coverLocal) {
-    imageItems.push({ tone: "ok", text: "等待整理：海报将写入片库目标目录" });
+    imageItems.push({ tone: "warn", text: "等待整理：海报将写入片库目标目录" });
+  } else if (hasCover && !organized) {
+    imageItems.push({ tone: "warn", text: "封面已缓存，待整理写入片库" });
   } else if (hasCover) {
     imageItems.push({ tone: "ok", text: "封面已就绪（本地海报/缩略图）" });
   } else if (meta?.ok) {
@@ -275,10 +348,10 @@ export function buildLogSteps(file: FileRow, meta: ScrapeMetaView | null): LogSt
       tone: "ok",
       text: `成功整理到 '${targetRel}'`,
     });
-  } else if (file.target_path) {
+  } else if (file.target_path && !organized) {
     transferItems.push({
-      tone: "ok",
-      text: `目标路径：'${targetRel}'`,
+      tone: "warn",
+      text: `已规划目标路径：'${targetRel}'（尚未完成转移）`,
     });
   } else if (file.status === "failed") {
     transferItems.push({
@@ -296,7 +369,7 @@ export function buildLogSteps(file: FileRow, meta: ScrapeMetaView | null): LogSt
     nfoItems.push({
       tone: "ok",
       text: targetRel
-        ? `成功生成 NFO：'${targetRel.replace(/[/\\][^/\\]*$/, "")}/movie.nfo'`
+        ? `成功生成 NFO：'${targetRel.replace(/[/\\][^/\\]*$/, "")}/${nfoFileName}'`
         : "成功生成 NFO 元数据",
     });
     const nfoFields = [
@@ -320,10 +393,10 @@ export function buildLogSteps(file: FileRow, meta: ScrapeMetaView | null): LogSt
 
   const steps: LogStep[] = [
     { title: "解析番号", done: parseDone, items: parseItems },
-    { title: "刮削数据", done: Boolean(meta?.ok), items: scrapeItems },
-    { title: "创建目录", done: Boolean(targetRel), items: dirItems },
-    { title: "下载图片", done: hasCover, items: imageItems },
-    { title: "转移文件", done: organized, items: transferItems },
+    { title: "刮削数据", done: scrapeDone, items: scrapeItems },
+    { title: "创建目录", done: dirDone, items: dirItems },
+    { title: "下载图片", done: imageDone, items: imageItems },
+    { title: "转移文件", done: transferDone, items: transferItems },
     { title: "生成 NFO", done: nfoDone, items: nfoItems },
   ];
 

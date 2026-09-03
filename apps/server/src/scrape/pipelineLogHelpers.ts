@@ -1,6 +1,7 @@
 import type { ScrapeMeta, SourceId } from "./types.js";
 import {
   appendPipelineItem,
+  getPipeline,
   markPipelineStepDone,
   pushPipelineStep,
   type PipelineLogItem,
@@ -56,26 +57,16 @@ export function codeSearchVariants(code: string): string[] {
   return [...new Set([raw, compact].filter(Boolean))];
 }
 
-/** 数据源无数据、详情页未找到等 → 黄灯 */
+/** 数据源无数据、HTTP 失败等 → 黄灯（非超时/中断） */
 export function isNonCriticalSourceError(error?: string): boolean {
+  return !isCriticalSourceError(error);
+}
+
+/** 单源超时/中断等基础设施故障 → 红灯 */
+export function isCriticalSourceError(error?: string): boolean {
   const err = String(error || "").trim().toLowerCase();
-  if (!err) return true;
-  const patterns = [
-    "未找到",
-    "没有找到",
-    "无数据",
-    "无结果",
-    "not found",
-    "no result",
-    "no data",
-    "no match",
-    "404",
-    "详情页",
-    "empty",
-    "stub",
-    "无元数据",
-    "无有效",
-  ];
+  if (!err) return false;
+  const patterns = ["timeout", "timed out", "time out", "abort", "cancelled", "canceled"];
   return patterns.some((p) => err.includes(p));
 }
 
@@ -83,8 +74,8 @@ export function sourceRunLogTone(
   run: { ok: boolean; error?: string; channel: "fast" | "slow" },
 ): PipelineLogTone {
   if (run.ok) return "ok";
-  if (isNonCriticalSourceError(run.error)) return "warn";
-  return "fail";
+  if (isCriticalSourceError(run.error)) return "fail";
+  return "warn";
 }
 
 export function startParseStep(
@@ -121,6 +112,18 @@ export function startScrapeStep(fileId: number, sourceIds: SourceId[]): void {
         text: `正在从 ${sourceIds.length} 个站点刮削数据：${sourceIds.join(", ")}`,
       },
     ],
+  });
+}
+
+export function appendScrapeCacheHitLog(fileId: number, meta: ScrapeMeta): void {
+  const scrapedMs = meta.scrapedAt ? Date.parse(meta.scrapedAt) : NaN;
+  const age =
+    Number.isFinite(scrapedMs) && scrapedMs > 0
+      ? `（缓存 ${new Date(scrapedMs).toLocaleString("zh-CN")}）`
+      : "";
+  appendPipelineItem(fileId, PIPELINE_STEPS.scrape, {
+    tone: "info",
+    text: `使用本地元数据缓存，跳过网络刮削${age}`,
   });
 }
 
@@ -187,6 +190,14 @@ export function startOrganizeSteps(fileId: number): void {
   });
 }
 
+/** 刮削阶段已写入步骤后，补登记整理阶段四步（避免 steps.length===0 误判） */
+export function ensureOrganizePipelineSteps(fileId: number): void {
+  const cur = getPipeline(fileId);
+  if (!cur?.active) return;
+  if (cur.steps.some((s) => s.title === PIPELINE_STEPS.mkdir)) return;
+  startOrganizeSteps(fileId);
+}
+
 export function appendSubtitleSearch(
   fileId: number,
   code: string,
@@ -229,27 +240,36 @@ export function appendCoverDownload(
       // 刮削阶段只写入 data/covers 缓存；poster/thumb 在整理阶段写入片库目标目录
       text: `封面缓存已保存：'${displayPipelinePath(local)}'`,
     });
-    markPipelineStepDone(fileId, PIPELINE_STEPS.images);
+  } else {
+    appendPipelineItem(fileId, PIPELINE_STEPS.images, {
+      tone: "warn",
+      text: "未下载到封面",
+    });
   }
+  markPipelineStepDone(fileId, PIPELINE_STEPS.images);
 }
 
 /** 整理阶段：海报/缩略图写入片库目标目录 */
 export function appendOrganizePoster(
   fileId: number,
-  posterRel: string,
+  posterRel: string | null,
   thumbRel?: string | null,
 ): void {
-  appendPipelineItem(fileId, PIPELINE_STEPS.images, {
-    tone: "ok",
-    text: `海报已写入：'${displayPipelinePath(posterRel)}'`,
-  });
+  if (posterRel) {
+    appendPipelineItem(fileId, PIPELINE_STEPS.images, {
+      tone: "ok",
+      text: `海报已写入：'${displayPipelinePath(posterRel)}'`,
+    });
+  }
   if (thumbRel) {
     appendPipelineItem(fileId, PIPELINE_STEPS.images, {
       tone: "ok",
       text: `缩略图已写入：'${displayPipelinePath(thumbRel)}'`,
     });
   }
-  markPipelineStepDone(fileId, PIPELINE_STEPS.images);
+  if (posterRel || thumbRel) {
+    markPipelineStepDone(fileId, PIPELINE_STEPS.images);
+  }
 }
 
 export function appendOrganizeDir(fileId: number, targetRel: string): void {
@@ -286,14 +306,33 @@ export function appendOrganizeTransfer(fileId: number, targetRel: string, mode?:
   markPipelineStepDone(fileId, PIPELINE_STEPS.transfer);
 }
 
-export function appendOrganizeNfo(fileId: number, targetRel: string, fieldSources: Record<string, string>): void {
+/** 重刮：跳过目录/转移，保留海报与 NFO 写入 */
+export function skipOrganizeTransferSteps(fileId: number): void {
+  appendPipelineItem(fileId, PIPELINE_STEPS.mkdir, {
+    tone: "info",
+    text: "重刮跳过目录创建（请用「重新整理」生成片库目录）",
+  });
+  markPipelineStepDone(fileId, PIPELINE_STEPS.mkdir);
+
+  appendPipelineItem(fileId, PIPELINE_STEPS.transfer, {
+    tone: "info",
+    text: "重刮跳过文件转移（请用「重新整理」）",
+  });
+  markPipelineStepDone(fileId, PIPELINE_STEPS.transfer);
+}
+
+export function appendOrganizeNfo(
+  fileId: number,
+  targetRel: string,
+  fieldSources: Record<string, string>,
+  nfoAbs?: string,
+): void {
   appendPipelineItem(fileId, PIPELINE_STEPS.nfo, { tone: "ok", text: "正在写入 NFO 元数据…" });
   const nfoDir = displayPipelinePath(targetRel).replace(/[/\\][^/\\]*$/, "");
+  const nfoName = nfoAbs ? path.basename(nfoAbs) : "movie.nfo";
   appendPipelineItem(fileId, PIPELINE_STEPS.nfo, {
     tone: "ok",
-    text: nfoDir
-      ? `成功生成 NFO：'${nfoDir}/movie.nfo'`
-      : "成功生成 NFO 元数据",
+    text: nfoDir ? `成功生成 NFO：'${nfoDir}/${nfoName}'` : "成功生成 NFO 元数据",
   });
   const nfoFields = ["title", "plot", "actors", "genres", "studio", "premiered", "runtime", "score"]
     .filter((k) => Boolean(fieldSources[k]))

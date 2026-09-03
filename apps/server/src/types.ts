@@ -31,6 +31,8 @@ export type OrganizeConfig = {
   metadataDir: string;
   /** 刮削失败时删除已创建的独立元数据目录 */
   deleteMetadataOnFail: boolean;
+  /** 整理成功且片库已有海报/缩略图时删除 data/covers 缓存 */
+  purgeCoverCacheAfterDone: boolean;
   overwriteVideoSubtitle: boolean;
   overwriteImages: boolean;
   /** 小于此体积（MB）的文件扫描时忽略 */
@@ -69,7 +71,7 @@ export type JobStatus =
   | "failed"
   | "cancelled";
 
-export type JobTriggerSource = "manual" | "monitor" | "qb";
+export type JobTriggerSource = "manual" | "monitor";
 
 export type KindConfig = {
   enabled: boolean;
@@ -119,6 +121,7 @@ export type ApiResponse<T = unknown> = {
   code?: string;
 };
 
+import type { JobFileStats } from "./jobs/fileStats.js";
 import type { JobOptions } from "./jobs/options.js";
 
 export type JobRecord = {
@@ -136,6 +139,7 @@ export type JobRecord = {
   message?: string;
   createdAt: number;
   updatedAt: number;
+  fileStats?: JobFileStats;
 };
 
 export type FileRecord = {

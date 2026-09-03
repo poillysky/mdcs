@@ -82,6 +82,31 @@ describe("buildTemplateContext", () => {
     assert.equal(ctx.category, "日本有码");
     assert.equal(ctx.mosaic, "有码");
   });
+
+  it("从 meta 填入发行号与导演", () => {
+    const ctx = buildTemplateContext({
+      kind: "japan_censored",
+      code: "SONE-001",
+      fileName: "SONE-001.mp4",
+      sourcePath: "inbox/sone.mp4",
+      meta: {
+        code: "SONE-001",
+        kind: "japan_censored",
+        title: "t",
+        publishNumber: "sone00001",
+        directors: ["監督A", "監督B"],
+        actors: [],
+        genres: [],
+        source: "dmm",
+        sourcesTried: [],
+        fieldSources: {},
+        scrapedAt: "",
+        ok: true,
+      },
+    });
+    assert.equal(ctx.publish_number, "sone00001");
+    assert.equal(ctx.director, "監督A, 監督B");
+  });
 });
 
 describe("buildMovieNfo", () => {

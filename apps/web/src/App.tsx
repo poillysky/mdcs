@@ -4,6 +4,11 @@ import { AppShell } from "./layout/AppShell";
 import { ToastStack } from "./components/ToastStack";
 import { localizeMessage, toastTitle } from "./lib/messages";
 import { useJobEvents } from "./hooks/useJobEvents";
+import {
+  applyIndexAllUpdate,
+  onIndexAllComplete,
+} from "./hooks/indexAllStore";
+import { refreshIndexAllStatus } from "./hooks/useSharedIndexAll";
 import { matchRoute, normalizePath } from "./lib/routes";
 import type { NotifyFn, ToastItem } from "./lib/notify";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -56,6 +61,7 @@ export function App() {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [loading, setLoading] = useState(false);
   const seq = useRef(0);
+  const dataReady = useRef(false);
   const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   const dismissToast = useCallback((id: string) => {
@@ -91,7 +97,8 @@ export function App() {
 
   const refresh = useCallback(
     async (opts?: { silent?: boolean }) => {
-      if (!opts?.silent) setLoading(true);
+      const silent = opts?.silent ?? dataReady.current;
+      if (!silent) setLoading(true);
       try {
         const [h, k, j, f, failedRes] = await Promise.all([
           fetchHealth(),
@@ -105,10 +112,11 @@ export function App() {
         setJobs(j.jobs);
         setFiles(f.files);
         setFileFailedTotal(failedRes.total);
+        dataReady.current = true;
       } catch (e) {
         notify("error", e, "无法刷新数据");
       } finally {
-        if (!opts?.silent) setLoading(false);
+        if (!silent) setLoading(false);
       }
     },
     [notify],
@@ -119,16 +127,28 @@ export function App() {
     if (normalized !== window.location.pathname) {
       window.history.replaceState({}, "", normalized);
     }
-  }, []);
+    void refresh();
+    void refreshIndexAllStatus();
+  }, [refresh]);
 
   useEffect(() => {
-    void refresh();
+    return onIndexAllComplete((index) => {
+      if (index.error) notify("error", index.error);
+      else notify("ok", index.message || "全量索引已完成");
+      void refresh({ silent: true });
+    });
+  }, [notify, refresh]);
+
+  useEffect(() => {
     const interval =
       route === "tasks" || route === "kindTasks"
         ? 30000
-        : route === "records"
-          ? 3000
-          : 15000;
+        : route === "files"
+          ? null
+          : route === "records"
+            ? null
+            : 15000;
+    if (!interval) return;
     const t = setInterval(() => void refresh({ silent: true }), interval);
     return () => clearInterval(t);
   }, [refresh, route]);
@@ -145,6 +165,7 @@ export function App() {
         return [job, ...prev].slice(0, 50);
       });
     },
+    onIndexUpdate: applyIndexAllUpdate,
   });
 
   function renderPage() {
@@ -156,6 +177,7 @@ export function App() {
             kinds={kinds}
             fileFailedTotal={fileFailedTotal}
             onNavigate={navigate}
+            notify={notify}
           />
         );
       case "tasks":
@@ -196,6 +218,7 @@ export function App() {
             kinds={kinds}
             loading={loading}
             onChanged={() => void refresh()}
+            onNavigate={navigate}
             notify={notify}
           />
         );

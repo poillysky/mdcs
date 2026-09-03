@@ -128,6 +128,18 @@ export function clearPipeline(fileId: number): void {
   store.delete(fileId);
 }
 
+/** 删除文件记录时一并清理 pipeline 内存态与磁盘归档 */
+export function deletePipelineHistory(fileId: number): void {
+  store.delete(fileId);
+  historyMem.delete(fileId);
+  const file = historyPath(fileId);
+  try {
+    if (fs.existsSync(file)) fs.unlinkSync(file);
+  } catch {
+    /* ignore */
+  }
+}
+
 export function pushPipelineStep(fileId: number, step: PipelineLogStep): void {
   const cur = store.get(fileId);
   if (!cur) return;

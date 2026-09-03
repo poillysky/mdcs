@@ -38,7 +38,8 @@ export async function handleQbCompleted(payload: QbCompletedPayload): Promise<Qb
     mode,
     dryRun: false,
     remember: false,
-    triggerSource: "qb",
+    // 产品侧已去掉 qB 来源；钩子若仍启用则记为手动
+    triggerSource: "manual",
   });
 
   return { triggered: true, jobId: job.id };

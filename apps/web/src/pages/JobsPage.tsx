@@ -1,15 +1,21 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MagnifyingGlassIcon, PlusIcon } from "@heroicons/react/20/solid";
 import { CreateJobModal } from "../components/CreateJobModal";
 import { JobActionsMenu } from "../components/JobActionsMenu";
 import { JobProgressPills } from "../components/JobProgressPills";
 import { StatusBadge } from "../components/StatusBadge";
+import { TableSkeleton } from "../components/ui/TableSkeleton";
 import { COPY } from "../lib/messages";
+import {
+  invalidateCachedQueryPrefix,
+  listQueryKey,
+  useCachedQuery,
+} from "../hooks/useCachedQuery";
 import { useJobEvents } from "../hooks/useJobEvents";
 import {
   cancelJob,
-  createJob,
   deleteJob,
+  fetchJob,
   fetchJobs,
   pauseJob,
   resumeJob,
@@ -21,9 +27,10 @@ import {
   buildJobRecordsPath,
   formatJobDuration,
   formatJobSummaryLine,
+  formatJobPathCellGroups,
+  jobProgressFilterToRecordsStatus,
   jobShortId,
   jobProgressPills,
-  resolveJobPaths,
   resolveOrganizeModeLabel,
 } from "../lib/jobDisplay";
 import type { NotifyFn } from "../lib/notify";
@@ -39,7 +46,7 @@ const STATUS_OPTIONS = [
 ];
 
 const PAGE_SIZE = 25;
-const COL_COUNT = 10;
+const COL_COUNT = 9;
 
 function formatJobTime(ms?: number): string {
   if (!ms) return "—";
@@ -59,15 +66,62 @@ type Props = {
 export function JobsPage({ kinds, loading, onChanged, onNavigate, notify }: Props) {
   const [createOpen, setCreateOpen] = useState(false);
   const [acting, setActing] = useState<string | null>(null);
-  const [jobs, setJobs] = useState<JobRow[]>([]);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [listLoading, setListLoading] = useState(false);
   const [status, setStatus] = useState("");
   const [query, setQuery] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [tick, setTick] = useState(() => Date.now());
+  const fileRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingJobRefreshRef = useRef(new Set<string>());
+  const visibleJobIdsRef = useRef(new Set<string>());
+
+  const jobsKey = useMemo(
+    () => listQueryKey("jobs", { status, q: query, page, pageSize: PAGE_SIZE }),
+    [status, query, page],
+  );
+  const {
+    data: jobsData,
+    loading: listLoading,
+    refreshing: listRefreshing,
+    reload: reloadJobs,
+  } = useCachedQuery({
+    key: jobsKey,
+    fetcher: async () => {
+      const data = await fetchJobs({
+        status: status || undefined,
+        q: query || undefined,
+        page,
+        pageSize: PAGE_SIZE,
+      });
+      return { jobs: data.jobs, total: data.total };
+    },
+    onError: (e) => notify("error", e, "加载任务失败"),
+  });
+  const [jobs, setJobs] = useState<JobRow[]>([]);
+  const total = jobsData?.total ?? 0;
+
+  useEffect(() => {
+    if (jobsData?.jobs) {
+      setJobs(jobsData.jobs);
+      setSelected((prev) => {
+        const ids = new Set(jobsData.jobs.map((j) => j.id));
+        const next = new Set<string>();
+        for (const id of prev) {
+          if (ids.has(id)) next.add(id);
+        }
+        return next;
+      });
+    }
+  }, [jobsData]);
+
+  useEffect(() => {
+    visibleJobIdsRef.current = new Set(jobs.map((j) => j.id));
+  }, [jobs]);
+
+  const loadJobs = useCallback(async () => {
+    await reloadJobs({ silent: Boolean(jobsData) });
+  }, [reloadJobs, jobsData]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -88,40 +142,50 @@ export function JobsPage({ kinds, loading, onChanged, onNavigate, notify }: Prop
     return () => clearInterval(t);
   }, []);
 
-  const loadJobs = useCallback(async () => {
-    setListLoading(true);
-    try {
-      const data = await fetchJobs({
-        status: status || undefined,
-        q: query || undefined,
-        page,
-        pageSize: PAGE_SIZE,
-      });
-      setJobs(data.jobs);
-      setTotal(data.total);
-      setSelected((prev) => {
-        const ids = new Set(data.jobs.map((j) => j.id));
-        const next = new Set<string>();
-        for (const id of prev) {
-          if (ids.has(id)) next.add(id);
-        }
-        return next;
-      });
-    } catch (e) {
-      notify("error", e, "加载任务失败");
-    } finally {
-      setListLoading(false);
+  useEffect(() => {
+    return () => {
+      if (fileRefreshTimerRef.current) clearTimeout(fileRefreshTimerRef.current);
+    };
+  }, []);
+
+  const pageStats = useMemo(() => {
+    let running = 0;
+    let done = 0;
+    let failed = 0;
+    for (const j of jobs) {
+      if (j.status === "running" || j.status === "queued") running += 1;
+      else if (j.status === "done") done += 1;
+      else if (j.status === "failed") failed += 1;
     }
-  }, [status, query, page, notify]);
+    return { running, done, failed };
+  }, [jobs]);
 
   useEffect(() => {
-    void loadJobs();
-  }, [loadJobs]);
-
-  useEffect(() => {
-    const t = setInterval(() => void loadJobs(), 30000);
+    const ms = pageStats.running > 0 ? 5000 : 30000;
+    const t = setInterval(() => void reloadJobs({ silent: true }), ms);
     return () => clearInterval(t);
-  }, [loadJobs]);
+  }, [reloadJobs, pageStats.running]);
+
+  const refreshJobsFromFileChange = useCallback((jobIds: string[]) => {
+    if (!jobIds.length) return;
+    void Promise.all(jobIds.map((id) => fetchJob(id)))
+      .then((results) => {
+        setJobs((prev) => {
+          const next = [...prev];
+          let changed = false;
+          for (const { job } of results) {
+            const idx = next.findIndex((j) => j.id === job.id);
+            if (idx < 0) continue;
+            next[idx] = job;
+            changed = true;
+          }
+          return changed ? next : prev;
+        });
+      })
+      .catch(() => {
+        /* 静默失败，避免与 WS 叠加弹 toast */
+      });
+  }, []);
 
   useJobEvents({
     onJobUpdate: (job) => {
@@ -142,19 +206,19 @@ export function JobsPage({ kinds, loading, onChanged, onNavigate, notify }: Prop
         return prev;
       });
     },
+    onFileChange: (change) => {
+      if (change.reason === "scan" || !change.jobId) return;
+      if (!visibleJobIdsRef.current.has(change.jobId)) return;
+      pendingJobRefreshRef.current.add(change.jobId);
+      if (fileRefreshTimerRef.current) clearTimeout(fileRefreshTimerRef.current);
+      fileRefreshTimerRef.current = setTimeout(() => {
+        fileRefreshTimerRef.current = null;
+        const ids = [...pendingJobRefreshRef.current];
+        pendingJobRefreshRef.current.clear();
+        refreshJobsFromFileChange(ids);
+      }, 400);
+    },
   });
-
-  const pageStats = useMemo(() => {
-    let running = 0;
-    let done = 0;
-    let failed = 0;
-    for (const j of jobs) {
-      if (j.status === "running" || j.status === "queued") running += 1;
-      else if (j.status === "done") done += 1;
-      else if (j.status === "failed") failed += 1;
-    }
-    return { running, done, failed };
-  }, [jobs]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const allSelected = jobs.length > 0 && jobs.every((j) => selected.has(j.id));
@@ -192,21 +256,11 @@ export function JobsPage({ kinds, loading, onChanged, onNavigate, notify }: Prop
       }
       if (action === "cancel") {
         await cancelJob(id);
-        notify("warn", "任务已终止");
+        notify("warn", "任务已停止");
       }
       if (action === "restart") {
-        if (job.status === "paused") {
-          await resumeJob(id);
-          notify("ok", "任务已继续");
-        } else {
-          await createJob({
-            kinds: job.kinds,
-            mode: job.mode,
-            dryRun: job.dryRun,
-            options: job.options,
-          });
-          notify("ok", "已重新提交任务");
-        }
+        await resumeJob(id);
+        notify("ok", job.status === "paused" ? "任务已继续" : "任务已重新启动");
       }
       await loadJobs();
       onChanged();
@@ -241,12 +295,23 @@ export function JobsPage({ kinds, loading, onChanged, onNavigate, notify }: Prop
     }
   }
 
-  function openJobRecords(job: JobRow) {
-    onNavigate(buildJobRecordsPath(job));
+  function openJobRecords(job: JobRow, status?: string) {
+    onNavigate(buildJobRecordsPath(job, status ? { status } : undefined));
   }
 
-  function handleCreated() {
-    void loadJobs();
+  function handleCreated(created: JobRow) {
+    setStatus("");
+    setSearchInput("");
+    setQuery("");
+    const canMerge = page === 1 && !status && !query;
+    setPage(1);
+    setJobs((prev) =>
+      canMerge
+        ? [created, ...prev.filter((j) => j.id !== created.id)].slice(0, PAGE_SIZE)
+        : [created],
+    );
+    invalidateCachedQueryPrefix("jobs:");
+    void reloadJobs({ silent: false });
     onChanged();
   }
 
@@ -314,12 +379,11 @@ export function JobsPage({ kinds, loading, onChanged, onNavigate, notify }: Prop
       </header>
 
       <section className="panel jobs-list-panel">
-        <div className="jobs-table-wrap">
+        <div className={`jobs-table-wrap${listRefreshing && jobs.length > 0 ? " is-refreshing" : ""}`}>
           <table className="jobs-table data-table">
             <colgroup>
               <col className="jobs-col-check" />
               <col className="jobs-col-index" />
-              <col className="jobs-col-path" />
               <col className="jobs-col-path" />
               <col className="jobs-col-mode" />
               <col className="jobs-col-time" />
@@ -339,8 +403,7 @@ export function JobsPage({ kinds, loading, onChanged, onNavigate, notify }: Prop
                   />
                 </th>
                 <th className="jobs-col-index">#</th>
-                <th className="jobs-col-path">扫描目录</th>
-                <th className="jobs-col-path">整理目录</th>
+                <th className="jobs-col-path">目录</th>
                 <th className="jobs-col-mode">整理模式</th>
                 <th className="jobs-col-time">创建时间</th>
                 <th className="jobs-col-duration">用时</th>
@@ -351,11 +414,7 @@ export function JobsPage({ kinds, loading, onChanged, onNavigate, notify }: Prop
             </thead>
             <tbody>
               {listLoading && jobs.length === 0 ? (
-                <tr>
-                  <td colSpan={COL_COUNT} className="empty">
-                    加载中…
-                  </td>
-                </tr>
+                <TableSkeleton colCount={COL_COUNT} rowCount={8} />
               ) : jobs.length === 0 ? (
                 <tr>
                   <td colSpan={COL_COUNT} className="empty">
@@ -364,7 +423,7 @@ export function JobsPage({ kinds, loading, onChanged, onNavigate, notify }: Prop
                 </tr>
               ) : (
                 jobs.map((j, idx) => {
-                  const paths = resolveJobPaths(j, kinds);
+                  const pathGroups = formatJobPathCellGroups(j, kinds);
                   const stats = jobProgressPills(j);
                   const busy = acting === j.id;
                   return (
@@ -391,15 +450,24 @@ export function JobsPage({ kinds, loading, onChanged, onNavigate, notify }: Prop
                           }
                         }}
                       >
-                        <div className="jobs-path-cell" title={paths.source}>
-                          {paths.source}
+                        <div className="jobs-path-groups">
+                          {pathGroups.map((paths, pathIdx) => (
+                            <div
+                              key={pathIdx}
+                              className="records-path-cell"
+                              title={paths.title}
+                            >
+                              <span className="records-path-part">{paths.source}</span>
+                              {paths.target ? (
+                                <span className="records-path-target">
+                                  <span className="records-path-arrow"> → </span>
+                                  <span className="records-path-target-text">{paths.target}</span>
+                                </span>
+                              ) : null}
+                            </div>
+                          ))}
                         </div>
                         {j.dryRun ? <span className="jobs-dryrun-tag">试运行</span> : null}
-                      </td>
-                      <td className="jobs-col-path">
-                        <div className="jobs-path-cell" title={paths.library}>
-                          {paths.library}
-                        </div>
                       </td>
                       <td className="jobs-col-mode">
                         <span className="jobs-mode-tag">{resolveOrganizeModeLabel(j, kinds)}</span>
@@ -421,7 +489,13 @@ export function JobsPage({ kinds, loading, onChanged, onNavigate, notify }: Prop
                           }
                         }}
                       >
-                        <JobProgressPills stats={stats} />
+                        <JobProgressPills
+                          stats={stats}
+                          jobStatus={j.status}
+                          onFilterClick={(filter) => {
+                            openJobRecords(j, jobProgressFilterToRecordsStatus(filter));
+                          }}
+                        />
                       </td>
                       <td className="jobs-col-status">
                         <StatusBadge status={j.status} map={JOB_TABLE_STATUS_LABELS} />

@@ -21,9 +21,7 @@ export type DashboardQueryOpts = {
 export function queryDashboard(opts: DashboardQueryOpts = {}) {
   const db = openDatabase();
   const config = loadScrapeConfig();
-  const fast = config.exportFastConcurrency ?? 3;
-  const slow = config.exportSlowConcurrency ?? 2;
-  const scrapeMax = Math.max(1, fast + slow);
+  const scrapeMax = Math.max(1, config.exportFastConcurrency ?? 4);
 
   const actorTotal = (
     db.prepare(`SELECT COUNT(*) AS c FROM actor_profiles`).get() as { c: number }

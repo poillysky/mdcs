@@ -282,15 +282,26 @@ export function writeScrapeCache(meta: ScrapeMeta): void {
   fs.writeFileSync(metaPath, `${JSON.stringify(toStore, null, 2)}\n`, "utf8");
 }
 
+export type CoverCacheSlot = "poster" | "thumb";
+
+function coverCacheStem(code: string, slot: CoverCacheSlot = "poster"): string {
+  return slot === "thumb" ? `${code}-thumb` : code;
+}
+
 /** 返回相对项目根的封面缓存路径（如 data/covers/kind/CODE.jpg） */
-export function findLocalCover(code: string, kind: KindId): string | null {
+export function findLocalCover(code: string, kind: KindId, slot: CoverCacheSlot = "poster"): string | null {
   const dir = path.join(COVERS_DIR, kind);
   if (!fs.existsSync(dir)) return null;
+  const stem = coverCacheStem(code, slot);
   for (const ext of ["jpg", "jpeg", "png", "webp"]) {
-    const p = path.join(dir, `${code}.${ext}`);
+    const p = path.join(dir, `${stem}.${ext}`);
     if (fs.existsSync(p) && fs.statSync(p).size > 0) return toProjectRelativePath(p);
   }
   return null;
+}
+
+export function findLocalThumbCover(code: string, kind: KindId): string | null {
+  return findLocalCover(code, kind, "thumb");
 }
 
 /** 本地封面缓存过小（多为流媒体预览图）时允许重下 */
@@ -306,11 +317,13 @@ export async function downloadCover(
     referer?: string;
     pageUrl?: string;
     sourceId?: string;
+    cacheSlot?: CoverCacheSlot;
   },
 ): Promise<string | null> {
   if (!coverUrl) return null;
+  const slot = opts?.cacheSlot ?? "poster";
   if (!opts?.force) {
-    const existing = findLocalCover(code, kind);
+    const existing = findLocalCover(code, kind, slot);
     if (existing) {
       try {
         if (fs.statSync(resolveProjectPath(existing)).size >= MIN_COVER_CACHE_BYTES) {
@@ -348,10 +361,13 @@ export async function downloadCover(
         proxyUrlOverride,
       });
     }
+    if (!buf?.length || buf.length < MIN_COVER_CACHE_BYTES) {
+      return null;
+    }
     const ext = coverUrl.match(/\.(jpe?g|png|webp)(\?|$)/i)?.[1]?.toLowerCase() ?? "jpg";
     const dir = path.join(COVERS_DIR, kind);
     ensureDir(dir);
-    const filePath = path.join(dir, `${code}.${ext}`);
+    const filePath = path.join(dir, `${coverCacheStem(code, slot)}.${ext}`);
     fs.writeFileSync(filePath, buf);
     return toProjectRelativePath(filePath);
   } catch {

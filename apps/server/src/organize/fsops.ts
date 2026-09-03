@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { OnConflict, OrganizeFallback, OrganizeMode } from "../types.js";
-import { ensureDir } from "../paths.js";
+import { ensureDir, pathsReferToSameLocation } from "../paths.js";
 
 export type FsOpResult = {
   ok: boolean;
@@ -164,6 +164,7 @@ export function applyFileTransfer(opts: {
 
 export function copySidecar(src: string | null, dest: string | null, dryRun?: boolean): boolean {
   if (!src || !dest || !fs.existsSync(src)) return false;
+  if (pathsReferToSameLocation(src, dest)) return true;
   if (dryRun) return true;
   ensureDir(path.dirname(dest));
   if (fs.existsSync(dest)) {

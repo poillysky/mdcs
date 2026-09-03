@@ -37,6 +37,39 @@ export function normalizeRelativePath(path: string): string {
   return toRelativePath(path).replace(/^\/+/, "").replace(/\/+$/, "");
 }
 
+/** 已是 media/index/data 或片库/索引根下的项目相对路径 */
+export function isProjectRelativePath(value?: string): boolean {
+  const norm = normalizeRelativePath(String(value || ""));
+  return (
+    /^(?:media|index|data)\//i.test(norm) ||
+    norm.includes("片商目录") ||
+    norm.includes("本地索引")
+  );
+}
+
+/**
+ * 将 DB 中的 target_path（相对片库根）展开为项目相对路径。
+ * 例：HMN/HMN-467/HMN-467.strm → media/片商目录/日本有码/HMN/HMN-467/HMN-467.strm
+ */
+export function expandLibraryTargetPath(targetRel?: string, libraryRoot?: string): string {
+  const raw = normalizeRelativePath(String(targetRel || ""));
+  if (!raw) return "";
+  if (looksAbsolutePath(raw)) return absToRelativePath(raw).replace(/^\/+/, "");
+  if (isProjectRelativePath(raw)) return raw;
+  const lib = normalizeRelativePath(String(libraryRoot || ""));
+  if (!lib) return raw;
+  return `${lib}/${raw}`;
+}
+
+/** 由片库视频路径推导 NFO 文件名（如 HMN-467.nfo） */
+export function nfoFileNameForTarget(targetRel?: string, libraryRoot?: string): string {
+  const full = expandLibraryTargetPath(targetRel, libraryRoot);
+  if (!full) return "movie.nfo";
+  const base = full.split("/").pop() || "";
+  const stem = base.replace(/\.[^.]+$/, "");
+  return stem ? `${stem}.nfo` : "movie.nfo";
+}
+
 /** UI 展示：带前导 /，空为 — */
 export function displayRelativePath(value?: string): string {
   const rel = toRelativePath(value);
@@ -68,19 +101,31 @@ export function pickDisplayPath(relative?: string, absolute?: string): { display
   return { display: "—" };
 }
 
+/** 在 / 后插入零宽字符，窄列换行时优先在路径段边界断开 */
+function pathWithWrapHints(path: string): string {
+  if (!path || path === "—") return path;
+  return path.replace(/\//g, "/\u200b");
+}
+
 export function formatRecordPaths(
   source?: string,
   target?: string,
-): { text: string; title: string } {
-  const srcShort = shortRelativePath(source || "");
-  const tgtShort = target ? shortRelativePath(target) : null;
+  libraryRoot?: string,
+): { source: string; target?: string; title: string } {
   const srcFull = displayRelativePath(source);
-  const tgtFull = target ? displayRelativePath(target) : null;
-  if (tgtShort && tgtFull) {
-    return {
-      text: `${srcShort} → ${tgtShort}`,
-      title: `${srcFull} → ${tgtFull}`,
-    };
-  }
-  return { text: srcShort || "—", title: srcFull === "—" ? "" : srcFull };
+  const tgtFull = target
+    ? displayRelativePath(expandLibraryTargetPath(target, libraryRoot))
+    : undefined;
+  const title =
+    tgtFull && srcFull && srcFull !== "—"
+      ? `${srcFull} → ${tgtFull}`
+      : srcFull === "—"
+        ? ""
+        : srcFull;
+  return {
+    source: pathWithWrapHints((srcFull === "—" ? "—" : srcFull).trim()),
+    target:
+      tgtFull && tgtFull !== "—" ? pathWithWrapHints(tgtFull.trim()) : undefined,
+    title,
+  };
 }

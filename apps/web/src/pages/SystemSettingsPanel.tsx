@@ -1,11 +1,24 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { fetchScrapeConfig, saveScrapeConfig } from "../api";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { saveScrapeConfig } from "../api";
 import { SettingRow } from "../components/SettingRow";
-import { COPY } from "../lib/messages";
+import { PanelSkeleton } from "../components/ui/PanelSkeleton";
+import {
+  useDirtyBaseline,
+  useReportSaveActions,
+  type SettingsSaveActions,
+} from "../hooks/useDirtyBaseline";
+import { useSharedScrapeConfig } from "../hooks/useSharedScrapeConfig";
+import { useCacheDiscard } from "../hooks/settingsDiscard";
+import { SCRAPE_CONFIG_KEY } from "../lib/queryCacheKeys";
 import type { NotifyFn } from "../lib/notify";
 import type { ScrapeConfig } from "../types";
 
-type Props = { notify: NotifyFn };
+export type SystemSaveActions = SettingsSaveActions;
+
+type Props = {
+  notify: NotifyFn;
+  onActionsChange?: (actions: SystemSaveActions | null) => void;
+};
 
 const DEFAULT_LLM = {
   baseUrl: "",
@@ -58,33 +71,37 @@ function Section({
   );
 }
 
-export function SystemSettingsPanel({ notify }: Props) {
-  const [config, setConfig] = useState<ScrapeConfig | null>(null);
-  const [loading, setLoading] = useState(true);
+function withSystemLlm(cfg: ScrapeConfig): ScrapeConfig {
+  const llm = {
+    baseUrl: cfg.llm?.baseUrl || readLlmLocal("baseUrl") || "",
+    apiKey: cfg.llm?.apiKey || readLlmLocal("apiKey") || "",
+    model: cfg.llm?.model || readLlmLocal("model") || DEFAULT_LLM.model,
+  };
+  syncLlmLocal(llm);
+  return { ...cfg, llm };
+}
+
+export function SystemSettingsPanel({ notify, onActionsChange }: Props) {
+  const { config, loading, refreshing, setConfig, reload } = useSharedScrapeConfig({
+    transform: withSystemLlm,
+    onError: (e) => notify("error", e, "加载系统配置失败"),
+  });
   const [saving, setSaving] = useState(false);
   const [llmTesting, setLlmTesting] = useState(false);
   const [showKey, setShowKey] = useState(false);
 
-  useEffect(() => {
-    void (async () => {
-      setLoading(true);
-      try {
-        const data = await fetchScrapeConfig();
-        const cfg = data.config;
-        const llm = {
-          baseUrl: cfg.llm?.baseUrl || readLlmLocal("baseUrl") || "",
-          apiKey: cfg.llm?.apiKey || readLlmLocal("apiKey") || "",
-          model: cfg.llm?.model || readLlmLocal("model") || DEFAULT_LLM.model,
-        };
-        setConfig({ ...cfg, llm });
-        syncLlmLocal(llm);
-      } catch (e) {
-        notify("error", e, "加载系统配置失败");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [notify]);
+  const systemSnap = useMemo(() => {
+    if (!config) return null;
+    return {
+      exportFastConcurrency: config.exportFastConcurrency,
+      llm: {
+        baseUrl: config.llm?.baseUrl || "",
+        apiKey: config.llm?.apiKey || "",
+        model: config.llm?.model || DEFAULT_LLM.model,
+      },
+    };
+  }, [config]);
+  const { dirty, markClean } = useDirtyBaseline({ current: systemSnap });
 
   function patch(next: Partial<ScrapeConfig>) {
     if (!config) return;
@@ -97,7 +114,7 @@ export function SystemSettingsPanel({ notify }: Props) {
     setConfig({ ...config, llm });
   }
 
-  async function save() {
+  const save = useCallback(async () => {
     if (!config) return;
     setSaving(true);
     try {
@@ -106,16 +123,35 @@ export function SystemSettingsPanel({ notify }: Props) {
         apiKey: config.llm?.apiKey || "",
         model: config.llm?.model || DEFAULT_LLM.model,
       };
-      const { config: saved } = await saveScrapeConfig({ ...config, llm });
+      const concurrency = Math.max(1, Math.min(16, Number(config.exportFastConcurrency) || 1));
+      const payload = {
+        ...config,
+        exportFastConcurrency: concurrency,
+        exportSlowConcurrency: concurrency,
+        llm,
+      };
+      const { config: saved } = await saveScrapeConfig(payload);
       setConfig(saved);
       syncLlmLocal(saved.llm || llm);
+      markClean({
+        exportFastConcurrency: saved.exportFastConcurrency,
+        llm: {
+          baseUrl: saved.llm?.baseUrl || "",
+          apiKey: saved.llm?.apiKey || "",
+          model: saved.llm?.model || DEFAULT_LLM.model,
+        },
+      });
       notify("ok", "系统配置已保存");
     } catch (e) {
       notify("error", e, "保存失败");
     } finally {
       setSaving(false);
     }
-  }
+  }, [config, markClean, notify, setConfig]);
+
+  const discard = useCacheDiscard(SCRAPE_CONFIG_KEY, reload);
+
+  useReportSaveActions(true, dirty, saving, save, onActionsChange, discard);
 
   async function testLlm() {
     const rawBase = (config?.llm?.baseUrl || "").trim();
@@ -149,14 +185,18 @@ export function SystemSettingsPanel({ notify }: Props) {
     }
   }
 
-  if (loading || !config) {
-    return <div className="empty-block">加载系统配置…</div>;
+  if (loading && !config) {
+    return <PanelSkeleton label="加载系统配置…" lines={6} />;
+  }
+
+  if (!config) {
+    return <PanelSkeleton label="系统配置不可用" lines={4} />;
   }
 
   const llm = { ...DEFAULT_LLM, ...config.llm };
 
   return (
-    <div className="system-settings">
+    <div className={`system-settings${refreshing ? " is-refreshing" : ""}`}>
       <section className="mon-panel settings-form">
         <header className="mon-panel-head">
           <h3 className="mon-panel-title">系统</h3>
@@ -164,11 +204,11 @@ export function SystemSettingsPanel({ notify }: Props) {
         <div className="mon-panel-body">
           <Section
             title="刮削并发"
-            hint="同时进行的刮削工作线程；按部署环境调整，下次任务生效"
+            hint="单池并行数（含过盾源）；过高可能触发限流，下次任务生效"
           >
             <SettingRow
-              label="快速并发"
-              hint="不过盾站点的并行数（通常可设高一些）"
+              label="刮削并发"
+              hint="同时进行的刮削任务数；含 FlareSolverr 过盾源，建议 2–6"
             >
               <input
                 className="org-input-sm"
@@ -176,24 +216,10 @@ export function SystemSettingsPanel({ notify }: Props) {
                 min={1}
                 max={16}
                 value={config.exportFastConcurrency}
-                onChange={(e) =>
-                  patch({ exportFastConcurrency: Math.max(1, Number(e.target.value) || 1) })
-                }
-              />
-            </SettingRow>
-            <SettingRow
-              label="慢速并发"
-              hint="经 FlareSolverr 过盾的并行数（建议偏低，避免封禁）"
-            >
-              <input
-                className="org-input-sm"
-                type="number"
-                min={1}
-                max={8}
-                value={config.exportSlowConcurrency}
-                onChange={(e) =>
-                  patch({ exportSlowConcurrency: Math.max(1, Number(e.target.value) || 1) })
-                }
+                onChange={(e) => {
+                  const n = Math.max(1, Number(e.target.value) || 1);
+                  patch({ exportFastConcurrency: n, exportSlowConcurrency: n });
+                }}
               />
             </SettingRow>
           </Section>
@@ -261,12 +287,6 @@ export function SystemSettingsPanel({ notify }: Props) {
           </Section>
         </div>
       </section>
-
-      <div className="page-save-row">
-        <button type="button" className="btn primary" disabled={saving} onClick={() => void save()}>
-          {saving ? "保存中…" : COPY.save}
-        </button>
-      </div>
     </div>
   );
 }

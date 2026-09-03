@@ -93,8 +93,9 @@
 
 | 债 | 说明 |
 |----|------|
-| 前端组件未组件化 | 大量页面直写 `className="btn …"`，复用与三态验收靠 CSS，难做 Storybook |
+| 前端组件未组件化 | 大量页面直写 `className="btn …"`，复用与三态验收靠 CSS，难做 Storybook；共用 UI 已集中到 `components/ui/`（Switch/StatusPill/PageHeader/Pagination） |
 | 样式单文件过大 | ~~`styles.css` 约 1.2 万行~~ → 已拆为 `styles/` 多模块 + `index.css`（2026-08-27） |
+| 超大业务文件 | ~~schema / Records / Naming / RecordDetail / Scrape / Actors~~ → 教科书拆分已落地；~~水印 / Files 设置页~~ → `pages/watermark/` `pages/files/`（2026-08-27）。网络层已进子目录并抽出 `hostGate`/`profiles`/`blocked`；`download`/`flaresolverr` index 仍偏厚。其余 ≥400：`JobsPage`、`WebhookSettingsPanel`、`runner.ts`、`probe.ts` 等 |
 | 路由文档缺口 | ~~七区任务未成章~~ DESIGN §4.1 已补 `/kind-tasks` |
 | 配置双写风险 | 命名 `subtitleAddChsSuffix` 等字段同步到 `download` — 已有 hint，改 UI 时须双写 |
 | `data/` 运行时产物 | DB、maps、covers 在 `.gitignore`；新环境需跑任务或导入 maps |
@@ -122,4 +123,5 @@
 | 日期 | 变更 |
 |------|------|
 | 2026-08-27 | 初版：typecheck/test 体检 + njav fixture + 文档漂移 + ROADMAP 未勾项 |
+| 2026-08-27 | 教科书模块化：schema/fields/Records/Naming/Detail/Scrape/Actors + network 子目录 barrel；test 402 pass |
 | 2026-08-27 | 收口：宽屏、水印样式扫描、theporndb 缺 Key、LLM 键对齐、文档同步；qB 设置 UI 后按需求删除 |

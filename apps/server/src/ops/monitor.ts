@@ -1,9 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
-import { loadLibrariesConfig, pickKinds } from "../config/loadConfig.js";
+import { loadLibrariesConfig, pickKinds, getPathRoot } from "../config/loadConfig.js";
 import { createJob, queryJobs } from "../jobs/scheduler.js";
 import { organizeWalkFilter, passesMinSize, walkVideoFiles } from "../library/scanFilter.js";
 import { PROJECT_ROOT, resolveFromRoot } from "../paths.js";
+import { normalizeRelativePath } from "../security/pathPolicy.js";
 import type { KindId } from "../types.js";
 import { loadOpsConfig, onOpsConfigChange } from "./loadOps.js";
 import type { MonitorEntry, OpsConfig } from "./types.js";
@@ -20,7 +21,12 @@ let started = false;
 function resolveMonitorPath(p: string): string {
   const t = p.trim();
   if (!t) return "";
-  return path.isAbsolute(t) ? t : resolveFromRoot(t, PROJECT_ROOT);
+  try {
+    const rel = normalizeRelativePath(t);
+    return resolveFromRoot(rel, getPathRoot());
+  } catch {
+    return path.isAbsolute(t) ? t : resolveFromRoot(t, getPathRoot());
+  }
 }
 
 function listAutoEntries(): MonitorEntry[] {
@@ -61,15 +67,21 @@ function takeSnapshot(rootAbs: string): Snapshot {
   return snap;
 }
 
-function hasNewFiles(entryId: string, rootAbs: string): boolean {
+function snapshotHasChanges(prev: Snapshot | undefined, next: Snapshot): boolean {
+  if (!prev) return false;
+  for (const [abs, meta] of next) {
+    if (!prev.has(abs)) return true;
+    const old = prev.get(abs)!;
+    if (old.mtime !== meta.mtime || old.size !== meta.size) return true;
+  }
+  return false;
+}
+
+function hasDirectoryChanges(entryId: string, rootAbs: string): boolean {
   const next = takeSnapshot(rootAbs);
   const prev = snapshots.get(entryId);
   snapshots.set(entryId, next);
-  if (!prev) return false;
-  for (const abs of next.keys()) {
-    if (!prev.has(abs)) return true;
-  }
-  return false;
+  return snapshotHasChanges(prev, next);
 }
 
 function resolveKinds(entry: MonitorEntry): KindId[] {
@@ -122,8 +134,8 @@ async function pollOnce(): Promise<void> {
   for (const entry of activeEntries(cfg)) {
     const abs = resolveMonitorPath(entry.path);
     if (!abs || !fs.existsSync(abs)) continue;
-    if (hasNewFiles(entry.id, abs)) {
-      await triggerEntry(entry, `检测到新增文件 ${entry.path}`);
+    if (hasDirectoryChanges(entry.id, abs)) {
+      await triggerEntry(entry, `检测到目录变更 ${entry.path}`);
     }
   }
 }
@@ -207,3 +219,5 @@ export function stopMonitorService(): void {
 export async function runMonitorPollOnce(): Promise<void> {
   await pollOnce();
 }
+
+export { snapshotHasChanges, type Snapshot as MonitorSnapshot };

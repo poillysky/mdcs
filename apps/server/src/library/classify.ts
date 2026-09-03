@@ -17,7 +17,19 @@ export type ClassifyResult = {
 
 /** 扫描分区 kind + 识别结果 → 入库 kind */
 export function resolveFileKind(partitionKind: KindId, classified: Pick<ClassifyResult, "suggestedKind">): KindId {
-  return classified.suggestedKind ?? partitionKind;
+  const suggested = classified.suggestedKind;
+  if (!suggested) return partitionKind;
+  // 国产/欧美/FC2 分区扫描时，不被路径里泛义「无码」等日文区关键词覆盖
+  if (
+    (partitionKind === "china" || partitionKind === "western" || partitionKind === "fc2") &&
+    (suggested === "japan_uncensored" ||
+      suggested === "japan_censored" ||
+      suggested === "japan_amateur" ||
+      suggested === "japan_gravure")
+  ) {
+    return partitionKind;
+  }
+  return suggested;
 }
 
 const CRACK_WORDS = ["uncensored", "破解", "crack", "无码破解", "-uc", "_uc", "uc."];
@@ -25,7 +37,8 @@ const LEAK_WORDS = ["流出", "leaked", "leak", "无码流出", "盗撮流出"];
 const UNCENSOR_WORDS = ["无码", "uncensored", "無碼", "carib", "caribbean", "1pondo", "heyzo", "tokyo-hot", "tokyohot"];
 const CENSOR_WORDS = ["有码", "有碼", "censored"];
 
-const RECOGNITION_KIND_ORDER: RecognitionKindKey[] = [
+/** 番号前缀识别顺序（更专一的厂牌/系列优先） */
+const CODE_RECOGNITION_KIND_ORDER: RecognitionKindKey[] = [
   "japan_censored",
   "japan_gravure",
   "japan_uncensored",
@@ -35,14 +48,25 @@ const RECOGNITION_KIND_ORDER: RecognitionKindKey[] = [
   "western",
 ];
 
+/** 路径关键词识别顺序（国产/欧美优先于泛义「无码」） */
+const PATH_RECOGNITION_KIND_ORDER: RecognitionKindKey[] = [
+  "fc2",
+  "china",
+  "western",
+  "japan_amateur",
+  "japan_gravure",
+  "japan_censored",
+  "japan_uncensored",
+];
+
 const KIND_HINTS: Array<{ kind: KindId; words: string[] }> = [
-  { kind: "japan_uncensored", words: ["无码", "無碼", "uncensored", "carib", "1pondo", "heyzo"] },
+  { kind: "fc2", words: ["fc2", "fc2-ppv", "fc2ppv"] },
+  { kind: "china", words: ["国产无码", "国产", "國產", "麻豆", "madou", "gvg"] },
+  { kind: "western", words: ["western", "欧美", "theporndb", "tpdb"] },
   { kind: "japan_amateur", words: ["素人", "amateur", "siro"] },
   { kind: "japan_gravure", words: ["写真", "gravure", "image.tv", "iv"] },
-  { kind: "fc2", words: ["fc2", "fc2-ppv", "fc2ppv"] },
-  { kind: "china", words: ["麻豆", "madou", "国产", "國產", "gvg"] },
-  { kind: "western", words: ["western", "欧美", "theporndb", "tpdb"] },
   { kind: "japan_censored", words: ["有码", "有碼", "censored"] },
+  { kind: "japan_uncensored", words: ["无码", "無碼", "uncensored", "carib", "1pondo", "heyzo"] },
 ];
 
 function haystack(sourcePath: string, fileName: string, code?: string | null): string {
@@ -62,7 +86,7 @@ function matchCustomCodeKind(
 ): { kind: KindId; word: string } | undefined {
   if (!code || !wordsByKind) return undefined;
   const upper = code.toUpperCase();
-  for (const key of RECOGNITION_KIND_ORDER) {
+  for (const key of CODE_RECOGNITION_KIND_ORDER) {
     const words = wordsByKind[key];
     if (!words?.length) continue;
     for (const raw of words) {
@@ -83,7 +107,7 @@ function matchCustomPathKind(
 ): { kind: KindId; word: string } | undefined {
   if (!wordsByKind) return undefined;
   const text = haystack(sourcePath, fileName, null);
-  for (const key of RECOGNITION_KIND_ORDER) {
+  for (const key of PATH_RECOGNITION_KIND_ORDER) {
     const words = wordsByKind[key];
     if (!words?.length) continue;
     for (const raw of words) {

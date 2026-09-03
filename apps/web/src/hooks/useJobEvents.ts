@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { JobEvent, JobRow } from "../types";
+import type { FileChangeEvent, IndexAllStatus, JobEvent, JobRow } from "../types";
 
 type Handlers = {
   onJobUpdate?: (job: JobRow) => void;
   onJobEvent?: (event: JobEvent) => void;
+  onFileChange?: (change: FileChangeEvent) => void;
+  onIndexUpdate?: (index: IndexAllStatus) => void;
   onConnected?: () => void;
   onDisconnected?: () => void;
 };
@@ -32,12 +34,20 @@ export function useJobEvents(handlers: Handlers) {
             type?: string;
             job?: JobRow;
             event?: JobEvent;
+            change?: FileChangeEvent;
+            index?: IndexAllStatus;
           };
           if (msg.type === "job_update" && msg.job) {
             handlersRef.current.onJobUpdate?.(msg.job);
           }
           if (msg.type === "job_event" && msg.event) {
             handlersRef.current.onJobEvent?.(msg.event);
+          }
+          if (msg.type === "file_change" && msg.change?.ids?.length) {
+            handlersRef.current.onFileChange?.(msg.change);
+          }
+          if (msg.type === "index_update" && msg.index) {
+            handlersRef.current.onIndexUpdate?.(msg.index);
           }
         } catch {
           /* ignore malformed */

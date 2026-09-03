@@ -1,3 +1,5 @@
+import { normalizeRelativePath } from "../security/pathPolicy.js";
+
 export const JOB_OPTION_TABS = [
   "organize",
   "download",
@@ -17,6 +19,26 @@ export type JobOptionsTab = (typeof JOB_OPTION_TABS)[number];
 export type JobOptions = {
   /** 全流程/扫描阶段强制重扫磁盘（不因 mtime 跳过） */
   forceScan?: boolean;
+  /** 刮削阶段忽略 scrape_cache 强制重刮 */
+  forceScrape?: boolean;
+  /**
+   * 恢复任务时跳过已完成阶段（pause/abort 后由 scheduler 写入）。
+   * 勿手动设置。
+   */
+  resumeSkipPhases?: Array<"scan" | "scrape" | "organize">;
+  /** 仅刮削指定文件 id（任务级范围） */
+  fileIds?: number[];
+  /** 等待队列插队（顺序有意义：靠前优先） */
+  priorityFileIds?: number[];
+  /** 仅对这些文件强制重刮（忽略 scrape_cache） */
+  forceScrapeFileIds?: number[];
+  /** fileIds 全部终态后自动结束任务（失败重刮专用） */
+  closeWhenFileIdsDone?: boolean;
+  /** 本轮失败重刮批次 id（完成后按 closeWhenRetryBatchDone 暂停原任务） */
+  retryBatchFileIds?: number[];
+  closeWhenRetryBatchDone?: boolean;
+  /** 扫描子目录（须在分区来源下）；缺省扫整个来源根 */
+  scanPath?: string;
   /** 各 Tab 是否使用全局配置，默认 true */
   useGlobal?: Partial<Record<JobOptionsTab, boolean>>;
   organize?: Record<string, unknown> & {
@@ -92,5 +114,56 @@ export type JobOptions = {
 
 export function normalizeJobOptions(raw: unknown): JobOptions {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
-  return raw as JobOptions;
+  const opts = { ...(raw as JobOptions) };
+  try {
+    if (typeof opts.scanPath === "string" && opts.scanPath.trim()) {
+      opts.scanPath = normalizeJobPath(opts.scanPath);
+    }
+    if (opts.organize) {
+      const org = { ...opts.organize };
+      if (typeof org.libraryRoot === "string" && org.libraryRoot.trim()) {
+        org.libraryRoot = normalizeJobPath(org.libraryRoot);
+      }
+      if (typeof org.metadataDir === "string" && org.metadataDir.trim()) {
+        org.metadataDir = normalizeJobPath(org.metadataDir);
+      }
+      opts.organize = org;
+    }
+    if (opts.download && typeof opts.download.subtitleLibraryPath === "string") {
+      const sub = opts.download.subtitleLibraryPath.trim();
+      if (sub) {
+        opts.download = {
+          ...opts.download,
+          subtitleLibraryPath: normalizeJobPath(sub),
+        };
+      }
+    }
+  } catch {
+    /* 保留原值，由消费方校验 */
+  }
+  if (Array.isArray(opts.fileIds) && opts.fileIds.length) {
+    opts.fileIds = [...opts.fileIds]
+      .filter((id): id is number => Number.isFinite(id))
+      .sort((a, b) => a - b);
+  }
+  if (Array.isArray(opts.priorityFileIds) && opts.priorityFileIds.length) {
+    opts.priorityFileIds = [...opts.priorityFileIds].filter((id): id is number =>
+      Number.isFinite(id),
+    );
+  }
+  if (Array.isArray(opts.forceScrapeFileIds) && opts.forceScrapeFileIds.length) {
+    opts.forceScrapeFileIds = [...opts.forceScrapeFileIds]
+      .filter((id): id is number => Number.isFinite(id))
+      .sort((a, b) => a - b);
+  }
+  if (Array.isArray(opts.retryBatchFileIds) && opts.retryBatchFileIds.length) {
+    opts.retryBatchFileIds = [...opts.retryBatchFileIds]
+      .filter((id): id is number => Number.isFinite(id))
+      .sort((a, b) => a - b);
+  }
+  return opts;
+}
+
+function normalizeJobPath(value: string): string {
+  return normalizeRelativePath(value);
 }

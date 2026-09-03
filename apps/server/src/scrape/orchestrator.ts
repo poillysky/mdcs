@@ -1,12 +1,6 @@
 import { getKindScrapeProfile, loadScrapeConfig } from "../config/loadScrape.js";
 import { readScrapeCache, writeScrapeCache } from "./cache.js";
-import {
-  allFastNoDetail,
-  shouldRunDeferredPass,
-  splitSourcesByChannel,
-  sourceNeedsFlare,
-  type ScrapeChannel,
-} from "./channels.js";
+import type { ScrapeChannel } from "./channels.js";
 import { collectScrapeSourceIds, mergeResultsForKind } from "./merge.js";
 import { attachSourceSnapshots } from "./sourceSnapshots.js";
 import { runPool } from "./pool.js";
@@ -19,7 +13,7 @@ import type { KindId } from "../types.js";
 export type ScrapeOptions = {
   force?: boolean;
   signal?: AbortSignal;
-  /** fast=跳过过盾；slow=只跑过盾；auto=快不够再补慢（API 默认） */
+  /** 保留兼容；刮削已统一为单通道，该参数不再影响行为 */
   channel?: ScrapeChannel;
   priorBySource?: Map<SourceId, ProviderResult>;
   priorTried?: SourceId[];
@@ -246,8 +240,7 @@ export async function scrapeCodeDetailed(
     coverSources,
   ).filter((id) => !disabled.has(id));
 
-  const fastConc = Math.max(1, cfg.exportFastConcurrency || 4);
-  const slowConc = Math.max(1, cfg.exportSlowConcurrency || 2);
+  const concurrency = Math.max(1, cfg.exportFastConcurrency || 4);
 
   const bySource = new Map<SourceId, ProviderResult>(opts.priorBySource ?? []);
   const sourcesTried: SourceId[] = [...(opts.priorTried ?? [])];
@@ -272,67 +265,13 @@ export async function scrapeCodeDetailed(
     sourceRuns.push(...part.runs);
   };
 
-  const runFastPass = async () => {
-    const { use, deferredFlare } = splitSourcesByChannel(allSources, "fast");
-    if (use.length) {
-      applyRun(
-        await runSources(code, kind, use, "fast", fastConc, opts.signal, opts.onSourceComplete),
-      );
-    }
-    return deferredFlare;
-  };
-
-  const runSlowPass = async (flareIds: SourceId[]) => {
-    const ids = flareIds.filter((id) => !sourcesTried.includes(id));
-    if (!ids.length) return;
+  const pending = allSources.filter((id) => !sourcesTried.includes(id));
+  if (pending.length) {
     applyRun(
-      await runSources(code, kind, ids, "slow", slowConc, opts.signal, opts.onSourceComplete),
+      await runSources(code, kind, pending, "fast", concurrency, opts.signal, opts.onSourceComplete),
     );
-  };
-
-  if (channel === "fast") {
-    const deferredFlare = await runFastPass();
-    const meta = mergeNow();
-    const fastResults = [...bySource.values()];
-    if (meta.ok) {
-      writeScrapeCache(meta);
-      return { meta, bySource, sourcesTried };
-    }
-    if (deferredFlare.length > 0 && !allFastNoDetail(fastResults, fastResults.length)) {
-      return {
-        meta: { ...meta, ok: false, message: "needs_flare" },
-        bySource,
-        sourcesTried,
-      };
-    }
-    return { meta: { ...meta, message: meta.message ?? "not_found" }, bySource, sourcesTried };
   }
-
-  if (channel === "slow") {
-    const flareIds = allSources.filter((id) => sourceNeedsFlare(id));
-    await runSlowPass(flareIds);
-    const meta = mergeNow();
-    if (meta.ok) writeScrapeCache(meta);
-    return { meta, bySource, sourcesTried };
-  }
-
-  // auto：快通道不够再补慢；元数据已 ok 时也补跑未试过的过盾源（多源快照）
-  const deferredFlare = await runFastPass();
-  let meta = mergeNow();
-  if (
-    shouldRunDeferredPass({
-      metaOk: meta.ok,
-      coverUrl: meta.coverUrl,
-      allSources,
-      sourcesTried,
-      deferredFlare,
-      fastResults: [...bySource.values()],
-      fastRanCount: bySource.size,
-    })
-  ) {
-    await runSlowPass(deferredFlare);
-    meta = mergeNow();
-  }
+  const meta = mergeNow();
   if (meta.ok) writeScrapeCache(meta);
   return { meta, bySource, sourcesTried };
 }

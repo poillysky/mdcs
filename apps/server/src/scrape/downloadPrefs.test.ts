@@ -6,6 +6,7 @@ import {
   orderCoverDownloadCandidates,
   pickCoverUrlForDownload,
   preferHighResCoverUrl,
+  preferThumbCoverUrl,
 } from "./downloadPrefs.js";
 
 describe("isAmazonCoverUrl", () => {
@@ -34,6 +35,20 @@ describe("preferHighResCoverUrl", () => {
     const pl = "https://example.com/a/pl.jpg";
     assert.equal(preferHighResCoverUrl(pl), pl);
     assert.equal(preferHighResCoverUrl("https://example.com/cover.png"), "https://example.com/cover.png");
+  });
+});
+
+describe("preferThumbCoverUrl", () => {
+  it("pl.jpg 降级为 ps.jpg", () => {
+    assert.equal(
+      preferThumbCoverUrl("https://pics.dmm.co.jp/digital/video/ssis001/ssis001pl.jpg"),
+      "https://pics.dmm.co.jp/digital/video/ssis001/ssis001ps.jpg",
+    );
+  });
+
+  it("已是 ps 不改", () => {
+    const ps = "https://pics.dmm.co.jp/digital/video/ssis001/ssis001ps.jpg";
+    assert.equal(preferThumbCoverUrl(ps), ps);
   });
 });
 

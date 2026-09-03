@@ -1,6 +1,6 @@
 import type { RecordTaskActionOptions } from "../RecordTaskActionModal";
 import type { PipelineRunKind } from "../../api";
-import type { FileRow, ScrapeMetaView } from "../../types";
+import type { FileRow, KindRow, ScrapeMetaView } from "../../types";
 
 export type DetailField = {
   key: string;
@@ -31,6 +31,7 @@ export type RecordDetailViewProps = {
   loading: boolean;
   detailId: number;
   listItems: FileRow[];
+  kinds?: KindRow[];
   highlightSource: string | null;
   onHighlightSource: (source: string | null) => void;
   onClose: () => void;

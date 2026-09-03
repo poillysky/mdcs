@@ -1,8 +1,9 @@
 import path from "node:path";
 import { loadScrapeConfig, resolveEffectiveKindProfile, resolveKindScrapePrefs } from "../config/loadScrape.js";
+import { resolveFromRoot, toLibraryRelativePath } from "../paths.js";
 import { readScrapeCache } from "../scrape/cache.js";
+import type { ScrapeMeta } from "../scrape/types.js";
 import type { JobOptions } from "../jobs/options.js";
-import { resolveProjectPath } from "../paths.js";
 import type {
   KindId,
   OnConflict,
@@ -19,6 +20,33 @@ import {
   buildVideoNameSuffix,
   joinLibraryTarget,
 } from "./template.js";
+import { resolveOrganizeCoverSource } from "./coverCache.js";
+
+function resolvePlanCover(opts: {
+  meta: ScrapeMeta | null;
+  projectRoot: string;
+  metaDir: string;
+  fileName: string;
+  posterFileName: (videoFileName: string, coverExt: string) => string;
+}): { coverSource: string | null; posterAbs: string | null } {
+  const defaultPosterAbs = path.join(opts.metaDir, opts.posterFileName(opts.fileName, ".jpg"));
+  const coverSource = resolveOrganizeCoverSource({
+    meta: opts.meta,
+    projectRoot: opts.projectRoot,
+    posterAbsCandidate: defaultPosterAbs,
+  });
+  const wantsPoster = Boolean(coverSource || opts.meta?.coverUrl);
+  const posterAbs = wantsPoster
+    ? path.join(
+        opts.metaDir,
+        opts.posterFileName(
+          opts.fileName,
+          coverSource ? path.extname(coverSource) || ".jpg" : ".jpg",
+        ),
+      )
+    : null;
+  return { coverSource, posterAbs };
+}
 
 export type OrganizePlanItem = {
   fileId: number;
@@ -99,7 +127,7 @@ export function buildPlanForFile(
 
   const sourceAbs = path.isAbsolute(row.source_path)
     ? row.source_path
-    : path.join(opts.projectRoot, row.source_path);
+    : resolveFromRoot(row.source_path, opts.projectRoot);
 
   const subPath = (
     (!opts.jobOptions?.useGlobal?.download && opts.jobOptions?.download?.subtitleLibraryPath) ||
@@ -109,7 +137,7 @@ export function buildPlanForFile(
   const subtitleAbs = subPath
     ? path.isAbsolute(subPath)
       ? subPath
-      : path.join(opts.projectRoot, subPath)
+      : resolveFromRoot(subPath, opts.projectRoot)
     : "";
   const hasSubtitle = subtitleAbs
     ? findSubtitlesForCode(subtitleAbs, row.code).length > 0
@@ -175,9 +203,7 @@ export function buildPlanForFile(
   ) as OnConflict;
 
   const ext = path.extname(row.file_name) || ".mp4";
-  const coverLocal = meta?.coverLocal || null;
-  const coverSource = coverLocal ? resolveProjectPath(coverLocal, opts.projectRoot) : null;
-  const imageNameMode = globalNaming.imageNameMode || "none";
+  const imageNameMode = effectiveNaming.imageNameMode || "none";
   const videoStem = (name: string) => path.parse(name).name;
   const posterFileName = (videoFileName: string, coverExt: string) => {
     const e = coverExt.startsWith(".") ? coverExt : `.${coverExt || "jpg"}`;
@@ -191,9 +217,13 @@ export function buildPlanForFile(
     const stem = videoStem(fileName);
     const metaRoot = resolveMetadataRoot(opts.organize?.metadataDir, opts.projectRoot, absDir);
     const nfoAbs = path.join(metaRoot, `${stem}.nfo`);
-    const posterAbs = coverSource
-      ? path.join(metaRoot, posterFileName(fileName, path.extname(coverSource) || ".jpg"))
-      : null;
+    const { coverSource, posterAbs } = resolvePlanCover({
+      meta,
+      projectRoot: opts.projectRoot,
+      metaDir: metaRoot,
+      fileName,
+      posterFileName,
+    });
     return {
       fileId: row.id,
       kind: row.kind,
@@ -201,7 +231,7 @@ export function buildPlanForFile(
       sourceAbs,
       sourceRel: row.source_path,
       targetAbs: sourceAbs,
-      targetRel: row.source_path.replace(/\\/g, "/"),
+      targetRel: toLibraryRelativePath(sourceAbs, kind.libraryAbs) || "",
       nfoAbs,
       posterAbs,
       coverSource,
@@ -221,7 +251,7 @@ export function buildPlanForFile(
   let libraryAbs = kind.libraryAbs;
   if (!useGlobalOrg && org?.libraryRoot?.trim()) {
     const root = org.libraryRoot.trim();
-    libraryAbs = path.isAbsolute(root) ? root : path.join(opts.projectRoot, root);
+    libraryAbs = path.isAbsolute(root) ? root : resolveFromRoot(root, opts.projectRoot);
   }
 
   const { relativeDir, fileName, absVideo, absDir } = joinLibraryTarget(
@@ -230,7 +260,7 @@ export function buildPlanForFile(
     fileTemplate,
     ext,
     ctx,
-    { maxDirectoryLength: globalNaming.maxDirectoryLength || 0 },
+    { maxDirectoryLength: effectiveNaming.maxDirectoryLength || 0 },
   );
   const metaRoot = resolveMetadataRoot(opts.organize?.metadataDir, opts.projectRoot, absDir);
   const stem = videoStem(fileName);
@@ -239,9 +269,13 @@ export function buildPlanForFile(
       ? path.join(metaRoot, relativeDir)
       : metaRoot;
   const nfoAbs = path.join(metaDir, `${stem}.nfo`);
-  const posterAbs = coverSource
-    ? path.join(metaDir, posterFileName(fileName, path.extname(coverSource) || ".jpg"))
-    : null;
+  const { coverSource, posterAbs } = resolvePlanCover({
+    meta,
+    projectRoot: opts.projectRoot,
+    metaDir,
+    fileName,
+    posterFileName,
+  });
 
   const targetRel = relativeDir ? `${relativeDir}/${fileName}` : fileName;
 
@@ -276,5 +310,5 @@ function resolveMetadataRoot(
 ): string {
   const raw = (metadataDir || "").trim();
   if (!raw) return fallbackAbs;
-  return path.isAbsolute(raw) ? raw : path.join(projectRoot, raw);
+  return path.isAbsolute(raw) ? raw : resolveFromRoot(raw, projectRoot);
 }

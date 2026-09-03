@@ -13,6 +13,14 @@ export type JobRow = {
   triggerSource?: string;
   createdAt?: number;
   updatedAt?: number;
+  fileStats?: {
+    total: number;
+    success: number;
+    failed: number;
+    queued: number;
+    processing: number;
+    skipped: number;
+  };
 };
 
 export type JobEvent = {

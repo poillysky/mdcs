@@ -49,6 +49,51 @@ export function walkVideoFiles(rootDir: string, filter: WalkVideoFilter): string
   return out;
 }
 
+const WALK_YIELD_EVERY = 2048;
+
+function yieldEventLoop(): Promise<void> {
+  return new Promise((resolve) => setImmediate(resolve));
+}
+
+/** 异步 walk：周期性让出事件循环，避免全量索引卡死 HTTP/页面 */
+export async function walkVideoFilesAsync(
+  rootDir: string,
+  filter: WalkVideoFilter,
+  opts?: { signal?: AbortSignal; onDiscovered?: (count: number) => void },
+): Promise<string[]> {
+  const out: string[] = [];
+  if (!fs.existsSync(rootDir)) return out;
+  const stack = [rootDir];
+  let sinceYield = 0;
+  while (stack.length) {
+    if (opts?.signal?.aborted) return out;
+    const dir = stack.pop()!;
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const ent of entries) {
+      const full = path.join(dir, ent.name);
+      if (ent.isDirectory()) {
+        stack.push(full);
+      } else if (ent.isFile() && isVideoFile(ent.name, filter.extensions)) {
+        if (hitsFilenameBlacklist(ent.name, filter.blacklist)) continue;
+        out.push(full);
+      }
+      sinceYield += 1;
+      if (sinceYield >= WALK_YIELD_EVERY) {
+        sinceYield = 0;
+        opts?.onDiscovered?.(out.length);
+        await yieldEventLoop();
+        if (opts?.signal?.aborted) return out;
+      }
+    }
+  }
+  return out;
+}
+
 /** .strm 仅为播放列表指针，体积极小，不参与最小体积过滤 */
 export function isMinSizeExempt(absPath: string): boolean {
   return path.extname(absPath).toLowerCase() === ".strm";

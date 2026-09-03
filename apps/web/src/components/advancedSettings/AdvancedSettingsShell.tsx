@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Modal } from "../Modal";
+import { PanelSkeleton } from "../ui/PanelSkeleton";
 import { JOB_ADVANCED_TABS, type JobOptionsTab } from "../../lib/jobOptions";
 
 type TabItem = { id: JobOptionsTab; label: string };
@@ -76,7 +77,7 @@ export function AdvancedSettingsShell({
         </label>
 
         <div className="kind-settings-body advanced-job-panel">
-          {loading ? <div className="empty-block">加载配置…</div> : children}
+          {loading ? <PanelSkeleton label="加载配置…" lines={4} /> : children}
         </div>
       </div>
     </Modal>

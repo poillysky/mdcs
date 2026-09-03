@@ -7,6 +7,7 @@ import {
   isFileRetryable,
   isFileStopable,
 } from "./recordsDisplay";
+import { isFilePipelineWaiting } from "../../lib/filePipelineStatus";
 
 type RowMenuProps = {
   file: FileRow;
@@ -45,6 +46,7 @@ export function RecordsRowMenu({
   const canStop = isFileStopable(file.status);
   const canReorganize = isFileReorganizable(file);
   const canRetry = isFileRetryable(file.status);
+  const isWaiting = isFilePipelineWaiting(file.status);
 
   const items: Array<{
     id: RowMenuAction;
@@ -71,7 +73,7 @@ export function RecordsRowMenu({
       disabled: !canReorganize || busy,
       title: canReorganize ? undefined : "需有番号",
     },
-    { id: "delete", label: "删除", disabled: busy },
+    { id: "delete", label: "删除", disabled: busy || isWaiting, title: isWaiting ? "等待中的记录无需删除" : undefined },
   ];
 
   function run(action: RowMenuAction) {

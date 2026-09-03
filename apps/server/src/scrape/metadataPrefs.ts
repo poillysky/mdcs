@@ -182,7 +182,7 @@ export async function applyMetadataPrefs(
       return {
         ...next,
         ok: false,
-        message: "严格模式：缺少封面",
+        message: "缺少封面（已开启「必须有封面」）",
       };
     }
   }

@@ -1,15 +1,27 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { fetchScrapeConfig, saveScrapeConfig } from "../api";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { saveScrapeConfig } from "../api";
 import { SettingRow } from "../components/SettingRow";
+import { PanelSkeleton } from "../components/ui/PanelSkeleton";
+import {
+  useDirtyBaseline,
+  useReportSaveActions,
+  type SettingsSaveActions,
+} from "../hooks/useDirtyBaseline";
+import { useSharedScrapeConfig } from "../hooks/useSharedScrapeConfig";
+import { useCacheDiscard } from "../hooks/settingsDiscard";
+import { SCRAPE_CONFIG_KEY } from "../lib/queryCacheKeys";
 import { COPY } from "../lib/messages";
 import type { NotifyFn } from "../lib/notify";
 import type { ScrapeConfig } from "../types";
+
+export type NfoSaveActions = SettingsSaveActions;
 
 type Props = {
   notify: NotifyFn;
   embedded?: boolean;
   value?: ScrapeConfig;
   onChange?: (next: ScrapeConfig) => void;
+  onActionsChange?: (actions: NfoSaveActions | null) => void;
 };
 type Nfo = NonNullable<ScrapeConfig["nfo"]>;
 type IncludeKey = keyof Nfo["include"];
@@ -149,49 +161,41 @@ function CheckGrid({
   );
 }
 
+function withNfoDefaults(cfg: ScrapeConfig): ScrapeConfig {
+  const nfo = mergeNfo(cfg.nfo);
+  if (!cfg.nfo && cfg.nfoMergeStrategy) {
+    nfo.mergeStrategy = cfg.nfoMergeStrategy;
+  }
+  return { ...cfg, nfo };
+}
+
 export function NfoSettingsPanel({
   notify,
   embedded = false,
   value,
   onChange,
+  onActionsChange,
 }: Props) {
   const controlled = embedded && Boolean(value) && Boolean(onChange);
-  const [config, setConfig] = useState<ScrapeConfig | null>(null);
-  const [loading, setLoading] = useState(!controlled);
+  const { config, loading, refreshing, setConfig, reload } = useSharedScrapeConfig({
+    controlled,
+    value,
+    transform: withNfoDefaults,
+    onError: (e) => notify("error", e, "加载 NFO 配置失败"),
+  });
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (!controlled || !value) return;
-    const nfo = mergeNfo(value.nfo);
-    if (!value.nfo && value.nfoMergeStrategy) {
-      nfo.mergeStrategy = value.nfoMergeStrategy;
-    }
-    setConfig({ ...value, nfo });
-    setLoading(false);
-  }, [controlled, value]);
-
-  useEffect(() => {
-    if (controlled) return;
-    void (async () => {
-      setLoading(true);
-      try {
-        const data = await fetchScrapeConfig();
-        const nfo = mergeNfo(data.config.nfo);
-        if (!data.config.nfo && data.config.nfoMergeStrategy) {
-          nfo.mergeStrategy = data.config.nfoMergeStrategy;
-        }
-        setConfig({ ...data.config, nfo });
-      } catch (e) {
-        notify("error", e, "加载 NFO 配置失败");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [controlled, notify]);
+  const nfoSnap = useMemo(
+    () => (config && !controlled ? mergeNfo(config.nfo) : null),
+    [config, controlled],
+  );
+  const { dirty, markClean } = useDirtyBaseline({ current: nfoSnap, enabled: !controlled });
 
   function commit(next: ScrapeConfig) {
+    if (controlled) {
+      onChange?.(next);
+      return;
+    }
     setConfig(next);
-    if (controlled) onChange?.(next);
   }
 
   function patchNfo(partial: Partial<Nfo>) {
@@ -214,27 +218,42 @@ export function NfoSettingsPanel({
     patchNfo({ tagExtras: { ...config.nfo.tagExtras, [key]: v } });
   }
 
-  async function save() {
+  const save = useCallback(async () => {
     if (!config) return;
+    if (controlled) {
+      onChange?.(config);
+      return;
+    }
     setSaving(true);
     try {
+      const nfo = mergeNfo(config.nfo);
       const payload = {
         ...config,
-        nfo: mergeNfo(config.nfo),
-        nfoMergeStrategy: mergeNfo(config.nfo).mergeStrategy,
+        nfo,
+        nfoMergeStrategy: nfo.mergeStrategy,
       };
       const { config: saved } = await saveScrapeConfig(payload);
-      setConfig({ ...saved, nfo: mergeNfo(saved.nfo) });
+      const normalized = withNfoDefaults(saved);
+      setConfig(normalized);
+      markClean(mergeNfo(normalized.nfo));
       notify("ok", "NFO 配置已保存");
     } catch (e) {
       notify("error", e, "保存失败");
     } finally {
       setSaving(false);
     }
+  }, [config, controlled, markClean, notify, onChange, setConfig]);
+
+  const discard = useCacheDiscard(SCRAPE_CONFIG_KEY, reload);
+
+  useReportSaveActions(!embedded, dirty, saving, save, onActionsChange, discard);
+
+  if (loading && !config) {
+    return <PanelSkeleton label="加载 NFO 配置…" lines={6} />;
   }
 
-  if (loading || !config) {
-    return <div className="empty-block">加载 NFO 配置…</div>;
+  if (!config) {
+    return <PanelSkeleton label="NFO 配置不可用" lines={4} />;
   }
 
   const nfo = mergeNfo(config.nfo);
@@ -242,7 +261,7 @@ export function NfoSettingsPanel({
   const te = nfo.tagExtras;
 
   return (
-    <div className="nfo-settings">
+    <div className={`nfo-settings${refreshing ? " is-refreshing" : ""}`}>
       <section className="mon-panel settings-form">
         <header className="mon-panel-head">
           <h3 className="mon-panel-title">NFO</h3>
@@ -450,9 +469,14 @@ export function NfoSettingsPanel({
           </Section>
         </div>
       </section>
-      {!embedded ? (
+      {embedded ? (
         <div className="page-save-row">
-          <button type="button" className="btn primary" disabled={saving} onClick={() => void save()}>
+          <button
+            type="button"
+            className="btn primary"
+            disabled={!dirty || saving}
+            onClick={() => void save()}
+          >
             {saving ? "保存中…" : COPY.save}
           </button>
         </div>

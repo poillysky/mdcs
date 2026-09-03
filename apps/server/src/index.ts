@@ -6,6 +6,8 @@ import { loadOpsConfig } from "./ops/loadOps.js";
 import { startMonitorService } from "./ops/monitor.js";
 import { startEmbyActorScheduler } from "./ops/embyActorScheduler.js";
 import { onJobEvent, onJobUpdate } from "./jobs/scheduler.js";
+import { onFileChange } from "./files/events.js";
+import { onIndexAllUpdate } from "./jobs/indexAll.js";
 import { openDatabase } from "./db/init.js";
 import { PROJECT_ROOT } from "./paths.js";
 import { syncMetaDirFromDisk } from "./scrape/cache.js";
@@ -39,6 +41,20 @@ onJobEvent((event) => {
 
 onJobUpdate((job) => {
   const payload = JSON.stringify({ ok: true, type: "job_update", job });
+  for (const client of wss.clients) {
+    if (client.readyState === client.OPEN) client.send(payload);
+  }
+});
+
+onFileChange((change) => {
+  const payload = JSON.stringify({ ok: true, type: "file_change", change });
+  for (const client of wss.clients) {
+    if (client.readyState === client.OPEN) client.send(payload);
+  }
+});
+
+onIndexAllUpdate((index) => {
+  const payload = JSON.stringify({ ok: true, type: "index_update", index });
   for (const client of wss.clients) {
     if (client.readyState === client.OPEN) client.send(payload);
   }

@@ -1,12 +1,16 @@
 import { KIND_LABELS } from "../../lib/labels";
+import type { SettingsSaveActions } from "../../hooks/useDirtyBaseline";
 import type { NotifyFn } from "../../lib/notify";
 import type { ScrapeConfig } from "../../types";
+
+export type NamingSaveActions = SettingsSaveActions;
 
 export type Props = {
   notify: NotifyFn;
   embedded?: boolean;
   value?: ScrapeConfig;
   onChange?: (next: ScrapeConfig) => void;
+  onActionsChange?: (actions: NamingSaveActions | null) => void;
 };
 
 export type Naming = NonNullable<ScrapeConfig["naming"]>;
@@ -62,7 +66,7 @@ export const DEFAULT_NAMING: Naming = {
   resolutionTextMap: "720P, 1080P, 4K, 8K",
   resolutionEnabled: { "720P": true, "1080P": true, "4K": true, "8K": true },
   resolutionInactiveLabel: "1080P",
-  resolutionSuffixTemplate: "",
+  resolutionSuffixTemplate: "-{resolution}",
   resolutionSuffixEnabled: { "720P": true, "1080P": true, "4K": true, "8K": true },
   resolutionSource: "prefer_path",
   resolutionFallback: true,

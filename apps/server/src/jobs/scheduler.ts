@@ -3,10 +3,20 @@ import { EventEmitter } from "node:events";
 import { pickKinds } from "../config/loadConfig.js";
 import { openDatabase } from "../db/init.js";
 import { PROJECT_ROOT } from "../paths.js";
-import { scanKind } from "./scanner.js";
-import { runScrapeForKinds } from "../scrape/runner.js";
+import { scanKind, scanKindAsync, resolveKindScanAbs, type ScanProgress } from "./scanner.js";
+import { runScrapeDrainForKinds } from "../scrape/runner.js";
 import { runOrganizeForKinds } from "../organize/runner.js";
 import { normalizeJobOptions, type JobOptions } from "./options.js";
+import {
+  attachFileStats,
+  computeJobFileStats,
+  countScopeIndexTotal,
+  enrichJobWithFileStats,
+  stripJobFileStats,
+} from "./fileStats.js";
+import { reconcileJobFilesAfterAbort, releaseJobInflightFiles, reconcileScrapeCacheSuccessStates, failJobScrapedWithoutDone } from "./jobFiles.js";
+import { areJobFileIdsTerminal, areRetryBatchTerminal, clearRetryBatchMarkers } from "./jobOptionsStore.js";
+import { countScopeWalkTotal, invalidateScopeWalkCache } from "./scopeWalkTotal.js";
 import { dispatchJobWebhooks } from "../ops/webhook.js";
 import { loadOpsConfig, saveOpsConfig } from "../ops/loadOps.js";
 import type {
@@ -25,7 +35,7 @@ export type CreateJobInput = {
   dryRun?: boolean;
   options?: JobOptions;
   triggerSource?: JobTriggerSource;
-  /** 是否写入「复用上次」快照；监控/qB 自动任务应关 */
+  /** 是否写入「复用上次」快照；监控自动任务应关 */
   remember?: boolean;
 };
 
@@ -41,7 +51,7 @@ function emit(event: JobEvent) {
 }
 
 function emitJobUpdate(job: JobRecord) {
-  emitter.emit("job_update", job);
+  emitter.emit("job_update", enrichJobWithFileStats(job));
 }
 
 export function onJobUpdate(listener: (job: JobRecord) => void): () => void {
@@ -59,8 +69,7 @@ function rowToJob(row: Record<string, unknown>): JobRecord {
     options = undefined;
   }
   const triggerRaw = row.trigger_source != null ? String(row.trigger_source).trim() : "manual";
-  const triggerSource: JobTriggerSource =
-    triggerRaw === "monitor" || triggerRaw === "qb" ? triggerRaw : "manual";
+  const triggerSource: JobTriggerSource = triggerRaw === "monitor" ? "monitor" : "manual";
   return {
     id: String(row.id),
     kinds: JSON.parse(String(row.kinds)) as KindId[],
@@ -84,12 +93,23 @@ export function onJobEvent(listener: (event: JobEvent) => void): () => void {
   return () => emitter.off("event", listener);
 }
 
-export function getJob(jobId: string): JobRecord | null {
+function getJobRaw(jobId: string): JobRecord | null {
   const db = openDatabase();
   const row = db.prepare(`SELECT * FROM jobs WHERE id = ?`).get(jobId) as
     | Record<string, unknown>
     | undefined;
   return row ? rowToJob(row) : null;
+}
+
+export function getJob(jobId: string): JobRecord | null {
+  const job = getJobRaw(jobId);
+  return job ? enrichJobWithFileStats(job) : null;
+}
+
+/** 任务 options 变更后刷新订阅方（如失败重刮插队） */
+export function refreshJobBroadcast(jobId: string): void {
+  const job = getJob(jobId);
+  if (job) emitJobUpdate(job);
 }
 
 export type JobQuery = {
@@ -138,7 +158,7 @@ export function queryJobs(opts: JobQuery = {}): {
     .prepare(`SELECT * FROM jobs ${whereSql} ORDER BY created_at DESC LIMIT ? OFFSET ?`)
     .all(...params, pageSize, offset) as Record<string, unknown>[];
 
-  return { jobs: rows.map(rowToJob), total, page, pageSize };
+  return { jobs: attachFileStats(rows.map(rowToJob)), total, page, pageSize };
 }
 
 export function listJobs(limit = 20): JobRecord[] {
@@ -147,9 +167,15 @@ export function listJobs(limit = 20): JobRecord[] {
 
 function updateJob(jobId: string, patch: Partial<JobRecord> & { message?: string }) {
   const db = openDatabase();
-  const current = getJob(jobId);
+  const current = getJobRaw(jobId);
   if (!current) return;
   const next = { ...current, ...patch, updatedAt: now() };
+  const fs = computeJobFileStats(next);
+  next.processed = fs.success + fs.failed;
+  next.failed = Math.max(next.failed, fs.failed);
+  if (patch.total !== undefined) {
+    next.total = patch.total;
+  }
   db.prepare(`
     UPDATE jobs SET
       status = @status,
@@ -171,6 +197,54 @@ function updateJob(jobId: string, patch: Partial<JobRecord> & { message?: string
     updated_at: next.updatedAt,
   });
   emitJobUpdate(next);
+}
+
+function throttleScanProgress(
+  onProgress: (stats: ScanProgress) => void,
+  intervalMs = 1000,
+): (stats: ScanProgress) => void {
+  let lastAt = 0;
+  return (stats) => {
+    const t = Date.now();
+    if (t - lastAt < intervalMs) return;
+    lastAt = t;
+    onProgress(stats);
+  };
+}
+
+type JobPhase = "scan" | "scrape" | "organize";
+
+function patchJobOptions(jobId: string, patch: JobOptions): JobOptions | undefined {
+  const current = getJobRaw(jobId);
+  if (!current) return undefined;
+  const options = { ...(current.options ?? {}), ...patch };
+  const db = openDatabase();
+  db.prepare(`UPDATE jobs SET options_json = ?, updated_at = ? WHERE id = ?`).run(
+    JSON.stringify(options),
+    now(),
+    jobId,
+  );
+  return options;
+}
+
+function markPhaseComplete(jobId: string, phase: JobPhase): void {
+  const job = getJobRaw(jobId);
+  if (!job) return;
+  const prev = job.options?.resumeSkipPhases ?? [];
+  if (prev.includes(phase)) return;
+  patchJobOptions(jobId, { resumeSkipPhases: [...prev, phase] });
+}
+
+function clearResumeSkipPhases(jobId: string): void {
+  const job = getJobRaw(jobId);
+  if (!job?.options?.resumeSkipPhases?.length) return;
+  const { resumeSkipPhases: _drop, ...rest } = job.options;
+  const db = openDatabase();
+  db.prepare(`UPDATE jobs SET options_json = ?, updated_at = ? WHERE id = ?`).run(
+    JSON.stringify(rest),
+    now(),
+    jobId,
+  );
 }
 
 export async function createJob(input: CreateJobInput): Promise<JobRecord> {
@@ -217,40 +291,47 @@ export async function createJob(input: CreateJobInput): Promise<JobRecord> {
   });
 
   if (input.remember !== false) {
-    try {
-      const cfg = loadOpsConfig();
-      const kindsArg = Array.isArray(input.kinds) && input.kinds.length ? input.kinds : ["*enabled"];
-      saveOpsConfig({
-        ...cfg,
-        lastJob: {
-          kinds: kindsArg.map(String),
-          mode: job.mode,
-          dryRun: job.dryRun,
-          options: (job.options ?? {}) as Record<string, unknown>,
-          savedAt: ts,
-        },
-      });
-    } catch {
-      /* 记忆失败不阻断建任务 */
-    }
+    const kindsArg = Array.isArray(input.kinds) && input.kinds.length ? input.kinds : ["*enabled"];
+    const lastJob = {
+      kinds: kindsArg.map(String),
+      mode: job.mode,
+      dryRun: job.dryRun,
+      options: (job.options ?? {}) as Record<string, unknown>,
+      savedAt: ts,
+    };
+    setTimeout(() => {
+      try {
+        const cfg = loadOpsConfig();
+        saveOpsConfig({ ...cfg, lastJob });
+      } catch {
+        /* 记忆失败不阻断建任务 */
+      }
+    }, 0);
   }
 
   emitJobUpdate(job);
 
-  void runJob(job.id).catch((err) => {
-    updateJob(job.id, {
-      status: "failed",
-      message: err instanceof Error ? err.message : String(err),
-    });
-    emit({
-      ts: new Date().toISOString(),
-      level: "error",
-      text: `任务失败: ${job.id}`,
-      jobId: job.id,
+  scheduleRunJob(job.id);
+
+  return enrichJobWithFileStats(job);
+}
+
+function scheduleRunJob(jobId: string): void {
+  // 延迟到下一轮事件循环，确保 POST /api/jobs 先返回再跑重扫描
+  setTimeout(() => {
+    void runJob(jobId).catch((err) => {
+      updateJob(jobId, {
+        status: "failed",
+        message: err instanceof Error ? err.message : String(err),
+      });
+      emit({
+        ts: new Date().toISOString(),
+        level: "error",
+        text: `任务失败: ${jobId}`,
+        jobId,
+      });
     });
   });
-
-  return job;
 }
 
 export async function runJob(jobId: string): Promise<void> {
@@ -259,62 +340,118 @@ export async function runJob(jobId: string): Promise<void> {
 
   const ac = new AbortController();
   running.set(jobId, ac);
-  updateJob(jobId, { status: "running" });
-  emit({ ts: new Date().toISOString(), level: "info", text: "任务开始", jobId });
 
   const kinds = pickKinds(job.kinds);
   const results: ScanResult[] = [];
-  let processed = 0;
-  let skipped = 0;
+  let totalScanned = 0;
+  let scanSkipped = 0;
   let failed = 0;
+  let organizeProcessed = 0;
+  const skipPhases = new Set(job.options?.resumeSkipPhases ?? []);
+  const shouldScan =
+    (job.mode === "scan_only" || job.mode === "full" || job.mode === "rescan") &&
+    !skipPhases.has("scan");
+  const shouldScrape =
+    (job.mode === "scrape_only" || job.mode === "full") && !skipPhases.has("scrape");
+  const parallelScanScrape = job.mode === "full" && shouldScan && shouldScrape;
+
+  if (shouldScan) {
+    invalidateScopeWalkCache(job);
+    const startTotal = Math.max(
+      countScopeWalkTotal(job, { fresh: true }) ?? 0,
+      countScopeIndexTotal(job) ?? 0,
+    );
+    updateJob(jobId, {
+      status: "running",
+      skipped: 0,
+      total: startTotal,
+    });
+  } else if (job.mode === "scrape_only") {
+    const fileIds = Array.isArray(job.options?.fileIds)
+      ? job.options.fileIds.filter((id): id is number => Number.isFinite(id))
+      : [];
+    const startTotal = Math.max(
+      countScopeWalkTotal(job, { fresh: true }) ?? 0,
+      countScopeIndexTotal(job) ?? 0,
+    );
+    updateJob(jobId, {
+      status: "running",
+      ...(fileIds.length
+        ? { total: fileIds.length }
+        : startTotal > 0
+          ? { total: startTotal }
+          : {}),
+    });
+  } else {
+    invalidateScopeWalkCache(job);
+    const startTotal = Math.max(
+      countScopeWalkTotal(job, { fresh: true }) ?? 0,
+      countScopeIndexTotal(job) ?? 0,
+    );
+    updateJob(jobId, {
+      status: "running",
+      ...(startTotal > 0 &&
+      (job.mode === "full" || job.mode === "scan_only" || job.mode === "rescan")
+        ? { total: startTotal }
+        : {}),
+    });
+  }
+  emit({ ts: new Date().toISOString(), level: "info", text: "任务开始", jobId });
+
+  const shouldStopScrapeDrain = () => {
+    const fresh = getJobRaw(jobId);
+    if (!fresh?.options) return false;
+    if (fresh.options.closeWhenRetryBatchDone) {
+      return areRetryBatchTerminal(fresh.options);
+    }
+    return Boolean(
+      fresh.options.closeWhenFileIdsDone && areJobFileIdsTerminal(fresh.options),
+    );
+  };
+
+  const pauseRetryBatchIfDone = (): boolean => {
+    const fresh = getJobRaw(jobId);
+    if (!fresh?.options?.closeWhenRetryBatchDone) return false;
+    if (!areRetryBatchTerminal(fresh.options)) return false;
+    clearRetryBatchMarkers(jobId);
+    updateJob(jobId, {
+      status: "paused",
+      message: "失败重刮已完成，任务已暂停",
+    });
+    emit({
+      ts: new Date().toISOString(),
+      level: "info",
+      text: "失败重刮批次完成，任务已暂停",
+      jobId,
+    });
+    return true;
+  };
 
   try {
-    if (job.mode === "scan_only" || job.mode === "full" || job.mode === "rescan") {
-      for (const kind of kinds) {
-        if (ac.signal.aborted) break;
-        emit({
-          ts: new Date().toISOString(),
-          level: "info",
-          text: `扫描 ${kind.label} (${kind.sourceRoot})`,
-          jobId,
-          kind: kind.id,
-        });
-        const r = scanKind(kind, PROJECT_ROOT, {
-          force: job.mode === "rescan" || Boolean(job.options?.forceScan),
-          jobId,
-        });
-        results.push(r);
-        processed += r.scanned;
-        skipped += r.skipped;
-        updateJob(jobId, {
-          total: processed,
-          processed,
-          skipped,
-          failed,
-          message: `${kind.label}: 扫描 ${r.scanned}，新增 ${r.inserted}，跳过 ${r.skipped}`,
-        });
-        emit({
-          ts: new Date().toISOString(),
-          level: "ok",
-          text: `${kind.label}: 扫描 ${r.scanned}，新增 ${r.inserted}，更新 ${r.updated}`,
-          jobId,
-          kind: kind.id,
-        });
-      }
-    }
-
-    if (job.mode === "scrape_only" || job.mode === "full") {
+    if (parallelScanScrape) {
       const kindIds = kinds.map((k) => k.id);
+      let scanComplete = false;
+
       emit({
         ts: new Date().toISOString(),
         level: "info",
-        text: `开始刮削 ${kindIds.length} 个分区`,
+        text: "索引与刮削并行执行",
         jobId,
       });
-      const scrapeResults = await runScrapeForKinds(kindIds, {
+
+      const scrapePromise = runScrapeDrainForKinds(kindIds, {
         signal: ac.signal,
         jobId,
+        force: Boolean(job.options?.forceScrape),
         jobOptions: job.options,
+        chainOrganize: job.mode === "full",
+        dryRun: job.dryRun,
+        isScanComplete: () => scanComplete,
+        onBatch: () => {
+          reconcileScrapeCacheSuccessStates(jobId);
+          updateJob(jobId, { skipped: scanSkipped, failed });
+        },
+        shouldStopDrain: shouldStopScrapeDrain,
         onProgress: (text) =>
           emit({
             ts: new Date().toISOString(),
@@ -323,10 +460,63 @@ export async function runJob(jobId: string): Promise<void> {
             jobId,
           }),
       });
+
+      try {
+        for (const kind of kinds) {
+          if (ac.signal.aborted) break;
+          const scanPath =
+            typeof job.options?.scanPath === "string" ? job.options.scanPath.trim() : "";
+          const scanLabel = scanPath || kind.sourceRoot;
+          emit({
+            ts: new Date().toISOString(),
+            level: "info",
+            text: `扫描 ${kind.label} (${scanLabel})`,
+            jobId,
+            kind: kind.id,
+          });
+          const scanAbs = scanPath ? resolveKindScanAbs(kind, scanPath) : undefined;
+          const r = await scanKindAsync(kind, PROJECT_ROOT, {
+            force: Boolean(job.options?.forceScan),
+            jobId,
+            scanAbs,
+            signal: ac.signal,
+            notifyChanges: false,
+            onProgress: throttleScanProgress((stats) => {
+              updateJob(jobId, {
+                total: Math.max(totalScanned + stats.discovered, stats.discovered),
+                skipped: scanSkipped + stats.skipped,
+                failed,
+              });
+            }),
+          });
+          results.push(r);
+          totalScanned += r.scanned;
+          scanSkipped += r.skipped;
+          updateJob(jobId, {
+            total: totalScanned,
+            skipped: scanSkipped,
+            failed,
+            message: `${kind.label}: 扫描 ${r.scanned}，新增 ${r.inserted}，跳过 ${r.skipped}`,
+          });
+          emit({
+            ts: new Date().toISOString(),
+            level: "ok",
+            text: `${kind.label}: 扫描 ${r.scanned}，新增 ${r.inserted}，更新 ${r.updated}`,
+            jobId,
+            kind: kind.id,
+          });
+        }
+        if (!ac.signal.aborted) {
+          invalidateScopeWalkCache(job);
+          markPhaseComplete(jobId, "scan");
+        }
+      } finally {
+        scanComplete = true;
+      }
+
+      const scrapeResults = await scrapePromise;
       for (const r of scrapeResults) {
-        processed += r.scraped + r.failed;
         failed += r.failed;
-        skipped += r.skipped;
         emit({
           ts: new Date().toISOString(),
           level: r.failed ? "warn" : "ok",
@@ -335,58 +525,218 @@ export async function runJob(jobId: string): Promise<void> {
           kind: r.kind,
         });
       }
-    }
-
-    if (job.mode === "organize_only" || job.mode === "full") {
-      const kindIds = kinds.map((k) => k.id);
-      emit({
-        ts: new Date().toISOString(),
-        level: "info",
-        text: `${job.dryRun ? "dry-run 整理" : "开始整理"} ${kindIds.length} 个分区`,
-        jobId,
-      });
-      const orgResults = await runOrganizeForKinds(kindIds, {
-        signal: ac.signal,
-        dryRun: job.dryRun,
-        jobId,
-        jobOptions: job.options,
-        onProgress: (text) =>
+      if (!ac.signal.aborted) markPhaseComplete(jobId, "scrape");
+      updateJob(jobId, { total: totalScanned, skipped: scanSkipped, failed });
+    } else {
+      if (shouldScan) {
+        for (const kind of kinds) {
+          if (ac.signal.aborted) break;
+          const scanPath =
+            typeof job.options?.scanPath === "string" ? job.options.scanPath.trim() : "";
+          const scanLabel = scanPath || kind.sourceRoot;
           emit({
             ts: new Date().toISOString(),
             level: "info",
-            text,
+            text: `扫描 ${kind.label} (${scanLabel})`,
             jobId,
-          }),
-      });
-      for (const r of orgResults) {
-        processed += r.organized + r.failed;
-        failed += r.failed;
-        skipped += r.skipped;
+            kind: kind.id,
+          });
+          const scanAbs = scanPath ? resolveKindScanAbs(kind, scanPath) : undefined;
+          const r = await scanKindAsync(kind, PROJECT_ROOT, {
+            force: job.mode === "rescan" || Boolean(job.options?.forceScan),
+            jobId,
+            scanAbs,
+            signal: ac.signal,
+            notifyChanges: false,
+            onProgress: throttleScanProgress((stats) => {
+              updateJob(jobId, {
+                total: Math.max(totalScanned + stats.discovered, stats.discovered),
+                skipped: scanSkipped + stats.skipped,
+                failed,
+              });
+            }),
+          });
+          results.push(r);
+          totalScanned += r.scanned;
+          scanSkipped += r.skipped;
+          updateJob(jobId, {
+            total: totalScanned,
+            skipped: scanSkipped,
+            failed,
+            message: `${kind.label}: 扫描 ${r.scanned}，新增 ${r.inserted}，跳过 ${r.skipped}`,
+          });
+          emit({
+            ts: new Date().toISOString(),
+            level: "ok",
+            text: `${kind.label}: 扫描 ${r.scanned}，新增 ${r.inserted}，更新 ${r.updated}`,
+            jobId,
+            kind: kind.id,
+          });
+        }
+        if (!ac.signal.aborted) {
+          invalidateScopeWalkCache(job);
+          markPhaseComplete(jobId, "scan");
+        }
+      } else if (
+        (job.mode === "scan_only" || job.mode === "full" || job.mode === "rescan") &&
+        skipPhases.has("scan")
+      ) {
         emit({
           ts: new Date().toISOString(),
-          level: r.failed ? "warn" : "ok",
-          text: `${r.kind}: 整理 ${r.organized}/${r.total}，跳过 ${r.skipped}，失败 ${r.failed}${job.dryRun ? "（dry-run）" : ""}`,
+          level: "info",
+          text: "跳过扫描（恢复任务：该阶段已完成）",
           jobId,
-          kind: r.kind,
+        });
+      }
+
+      if (shouldScrape) {
+        const kindIds = kinds.map((k) => k.id);
+        emit({
+          ts: new Date().toISOString(),
+          level: "info",
+          text: `开始刮削 ${kindIds.length} 个分区`,
+          jobId,
+        });
+        const scrapeResults = await runScrapeDrainForKinds(kindIds, {
+          signal: ac.signal,
+          jobId,
+          force: Boolean(job.options?.forceScrape),
+          jobOptions: job.options,
+          chainOrganize: job.mode === "full",
+          dryRun: job.dryRun,
+          isScanComplete: () => true,
+          onBatch: () => {
+            reconcileScrapeCacheSuccessStates(jobId);
+            updateJob(jobId, { skipped: scanSkipped, failed });
+          },
+          shouldStopDrain: shouldStopScrapeDrain,
+          onProgress: (text) =>
+            emit({
+              ts: new Date().toISOString(),
+              level: "info",
+              text,
+              jobId,
+            }),
+        });
+        for (const r of scrapeResults) {
+          failed += r.failed;
+          emit({
+            ts: new Date().toISOString(),
+            level: r.failed ? "warn" : "ok",
+            text: `${r.kind}: 刮削 ${r.scraped}/${r.total}，失败 ${r.failed}`,
+            jobId,
+            kind: r.kind,
+          });
+        }
+        if (!ac.signal.aborted) markPhaseComplete(jobId, "scrape");
+        updateJob(jobId, { total: totalScanned, skipped: scanSkipped, failed });
+      } else if (
+        (job.mode === "scrape_only" || job.mode === "full") &&
+        skipPhases.has("scrape")
+      ) {
+        emit({
+          ts: new Date().toISOString(),
+          level: "info",
+          text: "跳过刮削（恢复任务：该阶段已完成）",
+          jobId,
         });
       }
     }
 
+    if (pauseRetryBatchIfDone()) return;
+
+    if (job.mode === "organize_only" || job.mode === "full") {
+      if (skipPhases.has("organize")) {
+        emit({
+          ts: new Date().toISOString(),
+          level: "info",
+          text: "跳过整理（恢复任务：该阶段已完成）",
+          jobId,
+        });
+      } else {
+        const kindIds = kinds.map((k) => k.id);
+        emit({
+          ts: new Date().toISOString(),
+          level: "info",
+          text: `${job.dryRun ? "dry-run 整理" : "开始整理"} ${kindIds.length} 个分区`,
+          jobId,
+        });
+        const orgResults = await runOrganizeForKinds(kindIds, {
+          signal: ac.signal,
+          dryRun: job.dryRun,
+          jobId,
+          jobOptions: job.options,
+          onProgress: (text) =>
+            emit({
+              ts: new Date().toISOString(),
+              level: "info",
+              text,
+              jobId,
+            }),
+        });
+        for (const r of orgResults) {
+          organizeProcessed += r.organized + r.failed;
+          failed += r.failed;
+          emit({
+            ts: new Date().toISOString(),
+            level: r.failed ? "warn" : "ok",
+            text: `${r.kind}: 整理 ${r.organized}/${r.total}，跳过 ${r.skipped}，失败 ${r.failed}${job.dryRun ? "（dry-run）" : ""}`,
+            jobId,
+            kind: r.kind,
+          });
+        }
+        if (job.mode === "full" && !job.dryRun) {
+          const stranded = failJobScrapedWithoutDone(jobId);
+          if (stranded > 0) {
+            failed += stranded;
+            emit({
+              ts: new Date().toISOString(),
+              level: "warn",
+              text: `${stranded} 条刮削后未完成整理，已标为失败`,
+              jobId,
+            });
+          }
+        }
+        if (!ac.signal.aborted) markPhaseComplete(jobId, "organize");
+      }
+    }
+
+    if (!ac.signal.aborted) clearResumeSkipPhases(jobId);
+
+    if (ac.signal.aborted) {
+      const raw = getJobRaw(jobId);
+      releaseJobInflightFiles(jobId, raw?.status === "cancelled");
+      reconcileJobFilesAfterAbort(jobId, { detachJobId: raw?.status === "cancelled" });
+    }
+
+    const fs = computeJobFileStats({
+      id: jobId,
+      mode: job.mode,
+      total: totalScanned,
+      skipped: scanSkipped,
+      kinds: job.kinds,
+      options: job.options,
+    });
+
+    const ephemeralRetry = Boolean(getJobRaw(jobId)?.options?.closeWhenFileIdsDone);
+
     updateJob(jobId, {
       status: ac.signal.aborted ? "cancelled" : "done",
-      total: processed,
-      processed,
-      failed,
-      skipped,
+      total: fs.total,
+      processed: fs.success + fs.failed,
+      failed: fs.failed,
+      skipped: fs.skipped,
       message:
-        job.mode === "scan_only" || job.mode === "rescan"
-          ? `扫描完成，共 ${processed} 个视频文件`
+        ephemeralRetry
+          ? `失败重刮完成，成功 ${fs.success}，失败 ${fs.failed}`
+          : job.mode === "scan_only" || job.mode === "rescan"
+          ? `扫描完成，共 ${fs.total} 个视频文件，已索引 ${fs.queued + fs.success}`
           : job.mode === "scrape_only"
-            ? `刮削完成，成功 ${processed - failed}，失败 ${failed}`
+            ? `刮削完成，成功 ${fs.success}，失败 ${fs.failed}`
             : job.mode === "organize_only"
-              ? `${job.dryRun ? "dry-run " : ""}整理完成，成功 ${processed - failed}，失败 ${failed}`
+              ? `${job.dryRun ? "dry-run " : ""}整理完成，成功 ${organizeProcessed - failed}，失败 ${fs.failed}`
               : job.mode === "full"
-                ? `全流程完成，处理 ${processed}，失败 ${failed}${job.dryRun ? "（含 dry-run 整理）" : ""}`
+                ? `全流程完成，刮削成功 ${fs.success}，失败 ${fs.failed}${job.dryRun ? "（含 dry-run 整理）" : ""}`
                 : "阶段功能待接入",
     });
     emit({
@@ -400,6 +750,8 @@ export async function runJob(jobId: string): Promise<void> {
       void dispatchJobWebhooks(doneJob);
     }
   } catch (err) {
+    releaseJobInflightFiles(jobId, false);
+    reconcileJobFilesAfterAbort(jobId, { detachJobId: false });
     updateJob(jobId, {
       status: "failed",
       message: err instanceof Error ? err.message : String(err),
@@ -417,6 +769,8 @@ export async function runJob(jobId: string): Promise<void> {
 export function pauseJob(jobId: string): JobRecord | null {
   const ac = running.get(jobId);
   if (ac) ac.abort();
+  releaseJobInflightFiles(jobId);
+  reconcileJobFilesAfterAbort(jobId, { detachJobId: false });
   updateJob(jobId, { status: "paused" });
   return getJob(jobId);
 }
@@ -424,6 +778,8 @@ export function pauseJob(jobId: string): JobRecord | null {
 export function cancelJob(jobId: string): JobRecord | null {
   const ac = running.get(jobId);
   if (ac) ac.abort();
+  releaseJobInflightFiles(jobId, true);
+  reconcileJobFilesAfterAbort(jobId, { detachJobId: true });
   updateJob(jobId, { status: "cancelled" });
   return getJob(jobId);
 }
@@ -432,7 +788,7 @@ export function resumeJob(jobId: string): JobRecord | null {
   const job = getJob(jobId);
   if (!job) return null;
   updateJob(jobId, { status: "queued" });
-  void runJob(jobId);
+  scheduleRunJob(jobId);
   return getJob(jobId);
 }
 
@@ -440,7 +796,7 @@ export function deleteJob(jobId: string): boolean {
   const job = getJob(jobId);
   if (!job) return false;
   if (job.status === "running" || job.status === "queued") {
-    throw new Error("请先终止任务");
+    throw new Error("请先停止任务");
   }
 
   const ac = running.get(jobId);
@@ -448,6 +804,9 @@ export function deleteJob(jobId: string): boolean {
     ac.abort();
     running.delete(jobId);
   }
+
+  releaseJobInflightFiles(jobId, true);
+  reconcileJobFilesAfterAbort(jobId, { detachJobId: true });
 
   const db = openDatabase();
   db.prepare(`DELETE FROM jobs WHERE id = ?`).run(jobId);

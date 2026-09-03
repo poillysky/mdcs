@@ -119,6 +119,40 @@
   font-weight: 600;
 }
 
+.nav-item--busy {
+  position: relative;
+}
+
+.nav-busy-dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  margin-left: auto;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 40%, transparent);
+  animation: nav-busy-pulse 1.4s ease-in-out infinite;
+}
+
+.sidebar:not(.open) .nav-busy-dot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  margin-left: 0;
+}
+
+@keyframes nav-busy-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 35%, transparent);
+  }
+  50% {
+    opacity: 0.75;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 0%, transparent);
+  }
+}
+
 .nav-icon {
   width: 20px;
   height: 20px;

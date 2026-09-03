@@ -418,7 +418,7 @@
 .records-table.data-table {
   table-layout: fixed;
   width: 100%;
-  min-width: 1180px;
+  min-width: 956px;
 }
 
 .records-table col.records-col-check {
@@ -430,7 +430,7 @@
 }
 
 .records-table col.records-col-code {
-  width: 168px;
+  width: 84px;
 }
 
 .records-table col.records-col-actors {
@@ -438,7 +438,7 @@
 }
 
 .records-table col.records-col-path {
-  width: 280px;
+  width: 140px;
 }
 
 .records-table col.records-col-trigger {
@@ -490,10 +490,22 @@
 .records-table thead .records-col-code,
 .records-table tbody .records-col-code {
   box-sizing: border-box;
-  width: 168px;
-  min-width: 168px;
-  max-width: 168px;
+  width: 84px;
+  min-width: 84px;
+  max-width: 84px;
   text-align: left;
+  white-space: normal;
+  overflow: visible;
+  vertical-align: middle;
+}
+
+.records-col-path,
+.records-table thead .records-col-path,
+.records-table tbody .records-col-path {
+  box-sizing: border-box;
+  width: 140px;
+  min-width: 140px;
+  max-width: 140px;
   overflow: hidden;
 }
 
@@ -565,11 +577,19 @@
   white-space: nowrap;
 }
 
+.records-table.data-table td.records-col-code {
+  height: 1px;
+  overflow: visible;
+  white-space: normal;
+  vertical-align: middle;
+}
+
 .records-code-link {
   display: block;
   width: 100%;
   max-width: 100%;
   padding: 0;
+  margin: 0;
   min-height: 0;
   height: auto;
   border: none;
@@ -580,11 +600,11 @@
   font: inherit;
   font-size: 13px;
   font-weight: 600;
-  line-height: 20px;
+  line-height: 1.35;
   text-align: left;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .records-row-clickable:hover .records-code-link {
@@ -598,15 +618,23 @@
   font-size: 13px;
 }
 
+.records-table tbody .records-col-path {
+  vertical-align: top;
+}
+
 .records-path-cell {
-  display: block;
   max-width: 100%;
   font-size: 12px;
-  line-height: 18px;
+  line-height: 1.2;
   color: var(--text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.records-path-part--target,
+.records-path-arrow {
+  color: var(--text-muted);
 }
 
 .records-pill {
@@ -627,6 +655,16 @@
   color: var(--tag-info-fg);
 }
 
+.records-pill--source-manual {
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+}
+
+.records-pill--source-monitor {
+  background: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
+}
+
 .records-pill--success {
   background: var(--tag-success-bg);
   color: var(--tag-success-fg);
@@ -640,6 +678,11 @@
 .records-pill--processing {
   background: rgba(59, 130, 246, 0.12);
   color: #2563eb;
+}
+
+.records-pill--waiting {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
 }
 
 .records-pill--muted {
@@ -1015,14 +1058,9 @@
     white-space: normal;
   }
 
-  .kind-tasks-table .jobs-stat-pills {
-    flex-wrap: wrap;
-    gap: 3px;
-    row-gap: 3px;
-  }
-
-  .kind-tasks-table .jobs-stat-pill--total {
-    order: -1;
+  .kind-tasks-table .jobs-stat-pills--grid {
+    min-width: 0;
+    max-width: 100%;
   }
 
   .kind-tasks-table .kind-tasks-run,

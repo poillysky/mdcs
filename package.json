@@ -5,7 +5,7 @@
   "description": "独立 AV 刮削整理服务（前后端分离）",
   "scripts": {
     "dev": "npm run dev:all",
-    "dev:all": "concurrently -n server,web -c blue,green \"npm run dev --prefix apps/server\" \"npm run dev --prefix apps/web\"",
+    "dev:all": "concurrently -n server,web -c blue,green \"npm run dev --prefix apps/server\" \"node scripts/wait-health.mjs && npm run dev --prefix apps/web\"",
     "dev:server": "npm run dev --prefix apps/server",
     "dev:web": "npm run dev --prefix apps/web",
     "start": "npm run start --prefix apps/server",

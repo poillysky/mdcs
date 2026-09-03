@@ -163,7 +163,7 @@
 .jobs-table.data-table {
   table-layout: fixed;
   width: 100%;
-  min-width: 1180px;
+  min-width: 1040px;
 }
 
 .jobs-table.kind-tasks-table {
@@ -279,7 +279,17 @@
 }
 
 .jobs-table col.jobs-col-path {
-  width: 168px;
+  width: 140px;
+}
+
+.jobs-col-path,
+.jobs-table thead .jobs-col-path,
+.jobs-table tbody .jobs-col-path {
+  box-sizing: border-box;
+  width: 140px;
+  min-width: 140px;
+  max-width: 140px;
+  overflow: hidden;
 }
 
 .jobs-table col.jobs-col-mode {
@@ -287,15 +297,29 @@
 }
 
 .jobs-table col.jobs-col-time {
-  width: 148px;
+  width: 104px;
 }
 
 .jobs-table col.jobs-col-duration {
-  width: 96px;
+  width: 56px;
+}
+
+.jobs-col-duration,
+.jobs-table thead .jobs-col-duration,
+.jobs-table tbody .jobs-col-duration {
+  box-sizing: border-box;
+  width: 56px;
+  min-width: 56px;
+  max-width: 56px;
+  padding-left: 4px;
+  padding-right: 4px;
+  text-align: left;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 .jobs-table col.jobs-col-progress {
-  width: 292px;
+  width: 232px;
 }
 
 .jobs-table col.jobs-col-status {
@@ -394,6 +418,13 @@
   font-size: 13px;
 }
 
+.jobs-path-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 100%;
+}
+
 .jobs-path-cell {
   display: block;
   max-width: 100%;
@@ -420,7 +451,8 @@
 }
 
 .jobs-col-progress {
-  white-space: nowrap;
+  white-space: normal;
+  vertical-align: middle;
 }
 
 .jobs-stat-pills {
@@ -431,16 +463,58 @@
   max-width: 100%;
 }
 
+.jobs-stat-pills--grid {
+  display: grid;
+  grid-template-columns: repeat(3, 72px);
+  grid-auto-rows: 26px;
+  gap: 4px;
+  width: fit-content;
+  max-width: 100%;
+}
+
 .jobs-stat-pill {
+  box-sizing: border-box;
   display: inline-flex;
-  flex: 0 0 auto;
   align-items: center;
-  padding: 2px 6px;
-  border-radius: 4px;
+  justify-content: center;
+  width: 100%;
+  height: 26px;
+  min-height: 26px;
+  max-height: 26px;
+  min-width: 0;
+  padding: 0 4px;
+  border: 1px solid transparent;
+  border-radius: 6px;
   font-size: 11px;
   font-weight: 500;
-  line-height: 16px;
+  line-height: 1;
   white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.jobs-stat-pills--grid button.jobs-stat-pill {
+  margin: 0;
+  min-height: 0;
+  padding: 0 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.jobs-stat-pills--grid button.jobs-stat-pill:hover:not(:disabled) {
+  border-color: currentColor;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.jobs-stat-pills--grid button.jobs-stat-pill:active:not(:disabled) {
+  transform: translateY(0.5px);
 }
 
 .jobs-col-op .jobs-actions-menu {
@@ -459,27 +533,44 @@
   font-weight: 600;
 }
 
-.jobs-stat-pill--success {
+.jobs-stat-pill--success,
+.jobs-stat-pills--grid button.jobs-stat-pill.jobs-stat-pill--success,
+.jobs-stat-pills--grid button.jobs-stat-pill.jobs-stat-pill--success:hover:not(:disabled) {
   background: var(--success-soft);
   color: var(--success);
 }
 
-.jobs-stat-pill--skip {
+.jobs-stat-pill--skip,
+.jobs-stat-pills--grid button.jobs-stat-pill.jobs-stat-pill--skip,
+.jobs-stat-pills--grid button.jobs-stat-pill.jobs-stat-pill--skip:hover:not(:disabled) {
   background: rgba(148, 163, 184, 0.16);
   color: var(--text-muted);
 }
 
-.jobs-stat-pill--error {
+.jobs-stat-pill--queued,
+.jobs-stat-pills--grid button.jobs-stat-pill.jobs-stat-pill--queued,
+.jobs-stat-pills--grid button.jobs-stat-pill.jobs-stat-pill--queued:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+}
+
+.jobs-stat-pill--error,
+.jobs-stat-pills--grid button.jobs-stat-pill.jobs-stat-pill--error,
+.jobs-stat-pills--grid button.jobs-stat-pill.jobs-stat-pill--error:hover:not(:disabled) {
   background: rgba(239, 68, 68, 0.12);
   color: #dc2626;
 }
 
-.jobs-stat-pill--processing {
+.jobs-stat-pill--processing,
+.jobs-stat-pills--grid button.jobs-stat-pill.jobs-stat-pill--processing,
+.jobs-stat-pills--grid button.jobs-stat-pill.jobs-stat-pill--processing:hover:not(:disabled) {
   background: rgba(59, 130, 246, 0.12);
   color: #2563eb;
 }
 
-.jobs-stat-pill--total {
+.jobs-stat-pill--total,
+.jobs-stat-pills--grid button.jobs-stat-pill.jobs-stat-pill--total,
+.jobs-stat-pills--grid button.jobs-stat-pill.jobs-stat-pill--total:hover:not(:disabled) {
   background: rgba(139, 92, 246, 0.12);
   color: #7c3aed;
 }

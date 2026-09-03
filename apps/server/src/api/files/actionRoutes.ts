@@ -35,7 +35,7 @@ filesRouter.post("/:id/rescrape", async (req, res) => {
 
   try {
     const { scrapeOneFile } = await import("../../scrape/runner.js");
-    const { organizeOneFile, runOrganizeForKind } = await import("../../organize/runner.js");
+    const { completeScrapeWithNfo, organizeOneFile } = await import("../../organize/runner.js");
 
     beginPipeline(row.id, mode, runKind);
 
@@ -78,35 +78,34 @@ filesRouter.post("/:id/rescrape", async (req, res) => {
           fileId: row.id,
           mode,
           organized: false,
-          message: scraped.meta.message ?? "刮削未成功，已跳过整理",
+          message: scraped.meta.message ?? "刮削未成功",
         });
         return;
       }
 
-      const org = await runOrganizeForKind(row.kind, {
-        fileIds: [row.id],
+      const out = await completeScrapeWithNfo(row.id, {
         jobOptions: {
           useGlobal: { organize: false, nfo: true, watermark: true, download: true },
           organize: { onConflict: "overwrite" },
         },
       });
       const meta = readScrapeCache(row.code, row.kind) ?? scraped.meta;
-      const organized = org.organized > 0;
+      const nfoDone = out.ok;
       sendOk(res, {
         meta,
         fileId: row.id,
         mode,
-        organized,
+        organized: nfoDone,
         organize: {
-          organized: org.organized,
-          failed: org.failed,
-          skipped: org.skipped,
+          organized: nfoDone ? 1 : 0,
+          failed: out.failed ? 1 : 0,
+          skipped: 0,
         },
-        message: organized
-          ? "已完整重刮并整理"
-          : org.failed
-            ? "刮削成功，整理失败"
-            : "刮削成功，整理未执行（检查库路径/冲突策略）",
+        message: nfoDone
+          ? "已重新刮削并更新封面与 NFO"
+          : out.failed
+            ? out.message ?? "刮削成功，NFO 生成失败"
+            : "刮削成功，NFO 未写入",
       });
     } finally {
       endPipeline(row.id);

@@ -1,17 +1,29 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import {
   fetchEmbyLibraries,
-  fetchOpsConfig,
   saveOpsConfig,
   syncEmbyActors,
   testEmbyActorsConnection,
 } from "../api";
 import { SettingRow } from "../components/SettingRow";
-import { COPY } from "../lib/messages";
+import { PanelSkeleton } from "../components/ui/PanelSkeleton";
+import {
+  useDirtyBaseline,
+  useReportSaveActions,
+  type SettingsSaveActions,
+} from "../hooks/useDirtyBaseline";
+import { useSharedOpsConfig } from "../hooks/useSharedOpsConfig";
+import { useCacheDiscard } from "../hooks/settingsDiscard";
+import { OPS_CONFIG_KEY } from "../lib/queryCacheKeys";
 import type { NotifyFn } from "../lib/notify";
 import type { OpsConfig } from "../types";
 
-type Props = { notify: NotifyFn };
+export type ActorsSaveActions = SettingsSaveActions;
+
+type Props = {
+  notify: NotifyFn;
+  onActionsChange?: (actions: ActorsSaveActions | null) => void;
+};
 type ActorsCfg = OpsConfig["actors"];
 
 const DEFAULT_ACTORS: ActorsCfg = {
@@ -71,9 +83,15 @@ function Switch({
   );
 }
 
-export function ActorsSettingsPanel({ notify }: Props) {
-  const [config, setConfig] = useState<OpsConfig | null>(null);
-  const [loading, setLoading] = useState(true);
+function withMergedActors(cfg: OpsConfig): OpsConfig {
+  return { ...cfg, actors: mergeActors(cfg.actors) };
+}
+
+export function ActorsSettingsPanel({ notify, onActionsChange }: Props) {
+  const { config, loading, refreshing, setConfig, reload } = useSharedOpsConfig({
+    transform: withMergedActors,
+    onError: (e) => notify("error", e, "加载演员配置失败"),
+  });
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -81,39 +99,37 @@ export function ActorsSettingsPanel({ notify }: Props) {
   const [libraries, setLibraries] = useState<Array<{ id: string; name: string }>>([]);
   const [loadingLibs, setLoadingLibs] = useState(false);
 
-  useEffect(() => {
-    void (async () => {
-      setLoading(true);
-      try {
-        const data = await fetchOpsConfig();
-        setConfig({ ...data.config, actors: mergeActors(data.config.actors) });
-      } catch (e) {
-        notify("error", e, "加载演员配置失败");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [notify]);
+  const actorsSnap = useMemo(
+    () => (config ? mergeActors(config.actors) : null),
+    [config],
+  );
+  const { dirty, markClean } = useDirtyBaseline({ current: actorsSnap });
 
   function patchActors(partial: Partial<ActorsCfg>) {
     if (!config) return;
     setConfig({ ...config, actors: mergeActors({ ...config.actors, ...partial }) });
   }
 
-  async function save() {
+  const save = useCallback(async () => {
     if (!config) return;
     setSaving(true);
     try {
       const payload = { ...config, actors: mergeActors(config.actors) };
       const { config: saved } = await saveOpsConfig(payload);
-      setConfig({ ...saved, actors: mergeActors(saved.actors) });
+      const merged = { ...saved, actors: mergeActors(saved.actors) };
+      setConfig(merged);
+      markClean(mergeActors(merged.actors));
       notify("ok", "演员配置已保存");
     } catch (e) {
       notify("error", e, "保存失败");
     } finally {
       setSaving(false);
     }
-  }
+  }, [config, markClean, notify, setConfig]);
+
+  const discard = useCacheDiscard(OPS_CONFIG_KEY, reload);
+
+  useReportSaveActions(true, dirty, saving, save, onActionsChange, discard);
 
   async function loadLibraries(a: ActorsCfg) {
     if (!a.embyUrl.trim() || !a.embyApiKey.trim()) return;
@@ -171,8 +187,12 @@ export function ActorsSettingsPanel({ notify }: Props) {
     }
   }
 
-  if (loading || !config) {
-    return <div className="empty-block">加载演员配置…</div>;
+  if (loading && !config) {
+    return <PanelSkeleton label="加载演员配置…" lines={6} />;
+  }
+
+  if (!config) {
+    return <PanelSkeleton label="演员配置不可用" lines={4} />;
   }
 
   const a = mergeActors(config.actors);
@@ -181,7 +201,7 @@ export function ActorsSettingsPanel({ notify }: Props) {
   const busy = testing || syncing;
 
   return (
-    <div className="actors-settings">
+    <div className={`actors-settings${refreshing ? " is-refreshing" : ""}`}>
       <section className="mon-panel settings-form">
         <header className="mon-panel-head">
           <h3 className="mon-panel-title">演员</h3>
@@ -339,11 +359,6 @@ export function ActorsSettingsPanel({ notify }: Props) {
           </Section>
         </div>
       </section>
-      <div className="page-save-row">
-        <button type="button" className="btn primary" disabled={saving} onClick={() => void save()}>
-          {saving ? "保存中…" : COPY.save}
-        </button>
-      </div>
     </div>
   );
 }

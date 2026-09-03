@@ -4,6 +4,73 @@
 
 ---
 
+## 2026-08-29 — 画廊 thumb 横版：独立 ps.jpg 源，拒绝竖版副本
+
+- **背景**：HMN-047 二次刮削后 `thumb.jpg` 与 `poster.jpg` 同为 176×249 竖图；画廊横图变竖条。
+- **决策/结论**：
+  - 根因：thumb 与 poster 共用 `pl.jpg`/裁剪源，且 API 在 thumb 缺失时回退 poster。
+  - thumb 单独下载 `ps.jpg`（`resolveThumbDownloadUrl` + `data/covers/{code}-thumb.*` 缓存），整理不裁剪。
+  - API/画廊：竖版 thumb 视为无效，回退远程 `ps.jpg`；画廊列表不再用 poster 顶替 thumb。
+- **待办/遗留**：已写坏的片库 thumb 需删后重刮；重启后端后详情页可先走远程 ps 显示。
+
+## 2026-08-29 — 二次刮削海报叠裁：片库 poster 不可作裁剪源
+
+- **背景**：同一文件第二次刮削后海报内容被裁掉更多；HMN-047 等 poster 从 376×532 再叠裁。
+- **决策/结论**：
+  - 根因：整理后 `coverLocal` 被清，二次整理把片库 `poster.jpg`（已裁竖版）当封面源再跑 right/face 裁剪。
+  - `resolveOrganizeCoverSource` 仅认 `data/covers`；片库 poster/thumb 拒绝作输入，无缓存时按 `coverUrl` 重下。
+  - `processPosterImage` 对已是竖版（宽高比 ≤ target×1.15）的源跳过 kind 裁剪，防叠裁。
+- **待办/遗留**：已叠裁的片库需删 poster/thumb 或强制重刮恢复；无。
+
+## 2026-08-29 — 封面坏图根因：过小下载 + 片库坏图当源
+
+- **背景**：详情页海报/缩略图发糊；HMN-002/003 片库 `poster.jpg`/`thumb.jpg` 仅 521B～1.3KB（38×53 级）。
+- **决策/结论**：
+  - 根因链：`downloadCover` 曾把 DMM 错误页/占位（几百字节）写入 `data/covers` → 整理裁剪写出极小片库图 → `purgeCoverCacheAfterOrganize` 清缓存后 `resolveOrganizeCoverSource` 仍把坏片库 poster 当源 → 恶性循环。
+  - 统一最小体积 **20KB**（`MIN_COVER_IMAGE_BYTES`）：`coverCache`、`downloadCover` 写入前拒绝、`libraryAssets` 展示跳过、`writeLibraryImagesForPlan` 坏图强制 `force` 重下。
+  - 已有坏图：API 自动回退远程 `pl.jpg`/`ps.jpg`；要修复片库需删坏 poster/thumb 后重整理或强制重刮。
+- **待办/遗留**：无。
+
+## 2026-08-27 — 刮削线程占坑：跳转 + 回收 inflight
+
+- **背景**：Dashboard「刮削线程 1/6」点进 `/tasks` 看不到占线程的记录；库中有残留 `scraping`（如 CJOD-021）。
+- **决策/结论**：
+  - 卡片改为下钻 `/records?status=processing`（API：`scraping|organizing|planned`）。
+  - 启动时回收：`scraping→pending`、`organizing→planned`；刮削/整理结束再清本批残留。
+- **待办/遗留**：无。
+
+## 2026-08-27 — 来源列补全：仅手动 / 监控
+
+- **背景**：Dashboard「来源」常空；用户确认不要 qB，只要手动与监控。
+- **决策/结论**：
+  - 根因：历史库 `files.job_id` 全空、`jobs` 表为空，join `trigger_source` 无数据。
+  - 展示：`resolveTriggerSource` — 有 `triggerSource` 用真实值；否则按分区启用+有 sourceRoot 推断「监控」，否则「手动」。
+  - 类型/写入：`JobTriggerSource` 仅 `manual|monitor`；旧 `qb` 读作 manual；Dashboard/Records 共用 pill。
+  - 新任务仍写 `jobs.trigger_source` + 处理时 stamp `files.job_id`（扫描/刮削/整理已有）。
+- **待办/遗留**：ops.qb 钩子后端仍保留但默认关闭；产品来源语义不再暴露 qB。
+
+## 2026-08-27 — 结构优化续：水印/文件页 + 网络主题拆分
+
+- **背景**：教科书拆分后仍有结构债；按优先级继续优化清晰度。
+- **决策/结论**：
+  - `WatermarkSettingsPanel` → `pages/watermark/`（入口 ~69；hooks + sections + previewLayout）
+  - `FilesPage` → `pages/files/`（入口 ~81；Header/Scan/Tree + useFilesPage）
+  - 网络层：`download/hostGate.ts`（限流/跳过直连）；`siteMirror/profiles.ts`（种子配置）；旧路径 barrel 不变
+- **验证**：web/server typecheck；server tests 全量跑通（见本轮）
+- **待办/遗留**：`download/index` 仍 ~930、`flaresolverr/index` ~1000；Jobs/Webhook/runner/probe 等 ≥400 可按需再拆
+
+## 2026-08-27 — 教科书式模块化 Phase1–5
+
+- **背景**：在 P0–P4 初版之上，按「入口 ≤200、展示 ≤250、原路径 re-export」继续拆结构债。
+- **决策/结论**：
+  - Phase1：`config/schema/`；`advancedSettings/fields` 按域拆 + barrel
+  - Phase2：`pages/records/`、`pages/naming/`、`components/recordDetail/` 编排入口
+  - Phase3：`components/ui/`；`pages/scrape/` + `pages/actors/`；根路径 thin re-export
+  - Phase4：`network/download|flaresolverr|siteMirror` 整文件迁入子目录 + 旧路径 `export *`；`flaresolverr/blocked.ts` 抽出纯函数
+  - Phase5：更新 `FRAMEWORK-AUDIT`；后续已补水印/Files 目录化与网络 `hostGate`/`profiles`
+- **验证**：web/server `typecheck` 通过；server `npm test` **402/402**
+- **待办/遗留**：`download`/`flaresolverr` index 仍偏厚；Jobs/Webhook/runner/probe 等可按需再拆
+
 ## 2026-08-27 — 模块化重构 P0–P4
 
 - **背景**：超大文件拆模块，提取通用逻辑，行为不变的纯重构。
@@ -21,9 +88,9 @@
 - **背景**：主界面「建议后续（可选）」三项：聚合接口、活动服务端排序分页、真实来源字段。
 - **决策/结论**：
   - `GET /api/dashboard` 一次返回 scrapeMax、actorTotal、周对比、recentActivity（分页/分类筛选）。
-  - `jobs.trigger_source`（manual|monitor|qb）；监控/qB 建任务写入；files 列表 join 得 `triggerSource`。
+  - `jobs.trigger_source`（manual|monitor；旧 qb 归一为 manual）；监控建任务写入；files 列表 join 得 `triggerSource`。
   - 活动按 `COALESCE(organized_at, scraped_at, file_mtime) DESC` 排序；前端改 `fetchDashboard`，去掉 3 次独立 fetch。
-- **待办/遗留**：历史任务/无 job_id 的文件来源显示「—」；Records 页仍按 id 排序（未改）。
+- **待办/遗留**：历史无 job_id 时前端按分区推断手动/监控（已补）；Records 页仍按 id 排序（未改）。
 
 ---
 

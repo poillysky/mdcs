@@ -88,6 +88,13 @@
   color: var(--text-muted);
 }
 
+.src-mgmt-scrape-enabled {
+  margin-top: 12px;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text);
+}
+
 .src-mgmt-actions {
   display: flex;
   align-items: center;

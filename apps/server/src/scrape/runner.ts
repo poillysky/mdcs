@@ -1,8 +1,19 @@
-import { getKindScrapeProfile, loadScrapeConfig, resolveKindScrapePrefs } from "../config/loadScrape.js";
+import {
+  getKindScrapeProfile,
+  loadScrapeConfig,
+  resolveEffectiveDownload,
+  resolveKindScrapePrefs,
+} from "../config/loadScrape.js";
 import { resolveOrganizeForKind } from "../config/loadConfig.js";
 import { openDatabase } from "../db/init.js";
+import { withPersistLock } from "../db/persistLock.js";
+import { notifyFileChanges } from "../files/events.js";
 import type { JobOptions } from "../jobs/options.js";
-import { deleteMetadataOnScrapeFail } from "../organize/deleteMetaOnFail.js";
+import { normalizeRelativePath } from "../security/pathPolicy.js";
+import { releaseInflightFileState, releaseJobInflightFiles, releaseStuckInflightFileState } from "../jobs/jobFiles.js";
+import { buildScrapeQueueOrderClause } from "../files/pipelineState.js";
+import { loadJobOptions } from "../jobs/jobOptionsStore.js";
+import { deleteMetadataOnScrapeFail, resolveOrganizeForScrapeFail } from "../organize/deleteMetaOnFail.js";
 import { downloadCover, pickLargestCoverUrl, writeScrapeCache } from "./cache.js";
 import { attachSourceSnapshots } from "./sourceSnapshots.js";
 import { pickCoverUrlForDownload, orderCoverDownloadCandidates, type DownloadPrefs } from "./downloadPrefs.js";
@@ -13,15 +24,21 @@ import {
   appendCoverDownload,
   appendPipelineFailure,
   appendSourceRunItem,
+  appendScrapeCacheHitLog,
   finishScrapeStep,
   PIPELINE_STEPS,
-  startOrganizeSteps,
+  ensureOrganizePipelineSteps,
   startParseStep,
   startScrapeStep,
 } from "./pipelineLogHelpers.js";
-import { getPipeline } from "./pipelineProgress.js";
+import {
+  beginPipeline,
+  endPipeline,
+  getPipeline,
+  getPipelineHistory,
+  markPipelineStepDone,
+} from "./pipelineProgress.js";
 import { scrapeCodeDetailed } from "./orchestrator.js";
-import { listUntriedFlareSources } from "./channels.js";
 import { runPool } from "./pool.js";
 import { getProbeCooldownIds } from "./probe.js";
 import type { ProviderResult, ScrapeMeta, SourceId } from "./types.js";
@@ -39,40 +56,79 @@ type ScrapeProgress = (text: string) => void;
 
 type FileRow = { id: number; code: string; kind: KindId; mosaic?: string; source_path?: string };
 
-type SlowHandoff = {
-  row: FileRow;
-  bySource: Map<SourceId, ProviderResult>;
-  sourcesTried: SourceId[];
-  priorRuns: NonNullable<ScrapeMeta["sourceRuns"]>;
-};
+function scanPathClause(jobOptions?: JobOptions): { sql: string; params: string[] } {
+  const raw = jobOptions?.scanPath?.trim();
+  if (!raw) return { sql: "", params: [] };
+  const rel = normalizeRelativePath(raw);
+  return {
+    sql: ` AND (source_path = ? OR source_path LIKE ?)`,
+    params: [rel, `${rel}/%`],
+  };
+}
+
+function mergeScrapeResult(into: Map<KindId, ScrapeRunResult>, r: ScrapeRunResult): void {
+  const prev = into.get(r.kind);
+  if (!prev) {
+    into.set(r.kind, { ...r });
+    return;
+  }
+  into.set(r.kind, {
+    kind: r.kind,
+    total: prev.total + r.total,
+    scraped: prev.scraped + r.scraped,
+    failed: prev.failed + r.failed,
+    skipped: prev.skipped + r.skipped,
+  });
+}
+
+function batchPipelineKind(fileId: number): "initial" | "rescrape" {
+  const history = getPipelineHistory(fileId);
+  return history.some((r) => r.kind === "initial") ? "rescrape" : "initial";
+}
+
+function beginBatchFilePipeline(
+  row: FileRow,
+  cfg: ReturnType<typeof loadScrapeConfig>,
+  metaSourcesOverride?: SourceId[],
+): void {
+  if (getPipeline(row.id)?.active) return;
+  beginPipeline(row.id, "rescrape", batchPipelineKind(row.id));
+  startParseStep(row.id, row.source_path || "", row.code, row.kind);
+  const profile = getKindScrapeProfile(row.kind);
+  const disabled = new Set(cfg.disabledProviders ?? []);
+  for (const id of getProbeCooldownIds()) disabled.add(id);
+  const override = metaSourcesOverride?.length ? metaSourcesOverride : undefined;
+  const kindFieldPriority =
+    profile.useGlobal?.sources === false ? profile.fieldPriority : undefined;
+  const plannedSources = collectScrapeSourceIds(
+    cfg.fieldPriority,
+    kindFieldPriority,
+    override ?? profile.metaSources,
+    override ?? profile.coverSources,
+  ).filter((id) => !disabled.has(id));
+  startScrapeStep(row.id, plannedSources);
+}
+
+function endBatchFilePipeline(fileId: number, meta?: ScrapeMeta): void {
+  if (!getPipeline(fileId)?.active) return;
+  if (meta) finishScrapeStep(fileId, meta);
+  endPipeline(fileId);
+}
 
 function resolveDownloadPrefs(
   cfg: ReturnType<typeof loadScrapeConfig>,
   kind: KindId,
   jobOptions?: JobOptions,
 ): DownloadPrefs {
-  const kindPrefs = resolveKindScrapePrefs(kind, cfg);
-  const global = kindPrefs.download;
-  const useGlobal = jobOptions?.useGlobal?.download !== false;
-  const job = jobOptions?.download;
-  const base: DownloadPrefs = {
-    downloadPoster: global.downloadPoster,
-    downloadThumb: global.downloadThumb,
-    preferHighResPoster: global.preferHighResPoster,
-    skipAmazon: global.skipAmazon,
-    amazonHdPoster: global.amazonHdPoster,
-    tenhowHdPoster: global.tenhowHdPoster,
-    amazonStrictMode: global.amazonStrictMode,
-  };
-  if (useGlobal || !job) return base;
+  const dl = resolveEffectiveDownload(kind, cfg, jobOptions);
   return {
-    downloadPoster: job.downloadPoster ?? base.downloadPoster,
-    downloadThumb: job.downloadThumb ?? base.downloadThumb,
-    preferHighResPoster: job.preferHighResPoster ?? base.preferHighResPoster,
-    skipAmazon: job.skipAmazon ?? base.skipAmazon,
-    amazonHdPoster: job.amazonHdPoster ?? base.amazonHdPoster,
-    tenhowHdPoster: job.tenhowHdPoster ?? base.tenhowHdPoster,
-    amazonStrictMode: job.amazonStrictMode ?? base.amazonStrictMode,
+    downloadPoster: dl.downloadPoster,
+    downloadThumb: dl.downloadThumb,
+    preferHighResPoster: dl.preferHighResPoster,
+    skipAmazon: dl.skipAmazon,
+    amazonHdPoster: dl.amazonHdPoster,
+    tenhowHdPoster: dl.tenhowHdPoster,
+    amazonStrictMode: dl.amazonStrictMode,
   };
 }
 
@@ -84,6 +140,11 @@ export async function runScrapeForKind(
     force?: boolean;
     jobId?: string;
     jobOptions?: JobOptions;
+    /** 每轮最多处理条数；用于与扫描并行时的增量刮削 */
+    batchLimit?: number;
+    /** full 模式：刮削成功后立即整理，终态仅 done / failed */
+    chainOrganize?: boolean;
+    dryRun?: boolean;
   } = {},
 ): Promise<ScrapeRunResult> {
   const db = openDatabase();
@@ -106,18 +167,39 @@ export async function runScrapeForKind(
             opts.jobOptions?.metadata?.autoTranslate ?? kindPrefs.metadata.autoTranslateTitle,
         }),
   };
-  const fastConc = Math.max(1, cfg.exportFastConcurrency || 4);
-  const slowConc = Math.max(1, cfg.exportSlowConcurrency || 2);
+  const concurrency = Math.max(1, cfg.exportFastConcurrency || 4);
   const jobId = opts.jobId?.trim() || null;
 
-  const rows = db
-    .prepare(`
-      SELECT id, code, kind, mosaic FROM files
-      WHERE kind = ? AND code IS NOT NULL
-        AND status IN ('pending', 'failed', 'scraping')
-      ORDER BY id ASC
-    `)
-    .all(kind) as FileRow[];
+  const scopedIds = Array.isArray(opts.jobOptions?.fileIds)
+    ? [...opts.jobOptions.fileIds]
+        .filter((id): id is number => Number.isFinite(id))
+        .sort((a, b) => a - b)
+    : [];
+  const pathFilter = scanPathClause(opts.jobOptions);
+  const batchLimit = Math.max(0, opts.batchLimit ?? 0);
+  const priorityIds = opts.jobOptions?.priorityFileIds ?? [];
+  const queueOrder = buildScrapeQueueOrderClause(priorityIds);
+  const forceScrapeIds = new Set(opts.jobOptions?.forceScrapeFileIds ?? []);
+  const forceScrape = Boolean(opts.force) || forceScrapeIds.size > 0;
+
+  const rows = scopedIds.length
+    ? (db
+        .prepare(
+          `SELECT id, code, kind, mosaic, source_path FROM files
+           WHERE kind = ? AND code IS NOT NULL
+             AND status IN ('pending', 'indexed', 'failed', 'scraping')
+             AND id IN (${scopedIds.map(() => "?").join(",")})
+           ORDER BY ${queueOrder.sql}${batchLimit > 0 ? ` LIMIT ${batchLimit}` : ""}`,
+        )
+        .all(kind, ...scopedIds, ...queueOrder.params) as FileRow[])
+    : (db
+        .prepare(
+          `SELECT id, code, kind, mosaic, source_path FROM files
+           WHERE kind = ? AND code IS NOT NULL
+             AND status IN ('pending', 'indexed', 'failed', 'scraping')${pathFilter.sql}
+           ORDER BY ${queueOrder.sql}${batchLimit > 0 ? ` LIMIT ${batchLimit}` : ""}`,
+        )
+        .all(kind, ...pathFilter.params, ...queueOrder.params) as FileRow[]);
 
   const codeCache = new Map<string, ScrapeMeta>();
   let scraped = 0;
@@ -129,6 +211,10 @@ export async function runScrapeForKind(
       job_id = COALESCE(@job_id, job_id)
     WHERE id = @id
   `);
+
+  function touchFile(id: number) {
+    notifyFileChanges(id, { kind, jobId: jobId ?? undefined, reason: "scrape" });
+  }
 
   async function maybeDownloadCover(
     row: FileRow,
@@ -203,7 +289,9 @@ export async function runScrapeForKind(
     }
     if (!local && !meta.coverLocal) return { ...meta, coverUrl: finalUrl };
     const next = { ...meta, coverUrl: usedUrl, coverLocal: local ?? meta.coverLocal };
-    if (next.ok) writeScrapeCache(next);
+    if (next.ok) {
+      await withPersistLock(() => writeScrapeCache(next));
+    }
     return next;
   }
 
@@ -225,32 +313,78 @@ export async function runScrapeForKind(
         signal: opts.signal,
       });
     }
-    if (finalMeta.ok) {
-      writeScrapeCache(finalMeta);
-      scraped += 1;
-      updateStatus.run({
-        id: row.id,
-        status: "scraped",
-        error: null,
-        scraped_at: Date.now(),
-        job_id: jobId,
-      });
-    } else {
+    await withPersistLock(async () => {
+      if (finalMeta.ok) {
+        writeScrapeCache(finalMeta);
+        scraped += 1;
+        updateStatus.run({
+          id: row.id,
+          status: "scraped",
+          error: null,
+          scraped_at: Date.now(),
+          job_id: jobId,
+        });
+        touchFile(row.id);
+        if (opts.chainOrganize) {
+          const { organizeScrapedFileOrFail } = await import("../organize/runner.js");
+          const out = await organizeScrapedFileOrFail(row.id, {
+            jobId: jobId ?? undefined,
+            jobOptions: opts.jobOptions,
+            dryRun: opts.dryRun,
+            signal: opts.signal,
+          });
+          if (out.failed) {
+            failed += 1;
+            scraped -= 1;
+          }
+        }
+      } else {
+        failed += 1;
+        updateStatus.run({
+          id: row.id,
+          status: "failed",
+          error: finalMeta.message ?? "刮削失败",
+          scraped_at: null,
+          job_id: jobId,
+        });
+        touchFile(row.id);
+        try {
+          deleteMetadataOnScrapeFail(row.code, kind, resolveOrganizeForScrapeFail(kind, opts.jobOptions));
+        } catch {
+          /* ignore cleanup errors */
+        }
+      }
+      endBatchFilePipeline(row.id, finalMeta);
+      codeCache.set(row.code, finalMeta);
+    });
+  }
+
+  async function markWorkerFailed(row: FileRow, err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    await withPersistLock(async () => {
       failed += 1;
       updateStatus.run({
         id: row.id,
         status: "failed",
-        error: finalMeta.message ?? "刮削失败",
+        error: message,
         scraped_at: null,
         job_id: jobId,
       });
+      touchFile(row.id);
       try {
-        deleteMetadataOnScrapeFail(row.code, kind, resolveOrganizeForKind(kind));
+        deleteMetadataOnScrapeFail(
+          row.code,
+          kind,
+          resolveOrganizeForScrapeFail(kind, opts.jobOptions),
+        );
       } catch {
         /* ignore cleanup errors */
       }
-    }
-    codeCache.set(row.code, finalMeta);
+      if (getPipeline(row.id)?.active) {
+        appendPipelineFailure(row.id, PIPELINE_STEPS.scrape, { tone: "fail", text: message });
+        endPipeline(row.id);
+      }
+    });
   }
 
   function markScraping(row: FileRow) {
@@ -261,81 +395,52 @@ export async function runScrapeForKind(
       scraped_at: null,
       job_id: jobId,
     });
+    touchFile(row.id);
   }
-
-  const slowQueue: SlowHandoff[] = [];
 
   await runPool(
     rows,
-    fastConc,
+    concurrency,
     async (row) => {
       if (opts.signal?.aborted) return;
-      markScraping(row);
-      opts.onProgress?.(`刮削(快) ${row.code}`);
+      try {
+        markScraping(row);
+        beginBatchFilePipeline(row, cfg, metaSourcesOverride);
+        opts.onProgress?.(`刮削 ${row.code}`);
 
-      const cached = codeCache.get(row.code);
-      if (cached) {
-        await applyMeta(row, cached);
-        return;
-      }
+        const cached = codeCache.get(row.code);
+        if (cached) {
+          appendScrapeCacheHitLog(row.id, cached);
+          if (opts.signal?.aborted) return;
+          await applyMeta(row, cached);
+          return;
+        }
 
-      const detail = await scrapeCodeDetailed(row.code, row.kind, {
-        force: opts.force,
-        signal: opts.signal,
-        channel: "fast",
-        metaSourcesOverride,
-      });
-
-      const profile = getKindScrapeProfile(row.kind);
-      const override = metaSourcesOverride?.length ? metaSourcesOverride : undefined;
-      const metaSources = override ?? profile.metaSources;
-      const coverSources = override ?? profile.coverSources;
-      const allSources = [...new Set([...metaSources, ...coverSources])];
-      const pendingFlare = listUntriedFlareSources(allSources, detail.sourcesTried);
-
-      if (detail.meta.message === "needs_flare" || pendingFlare.length > 0) {
-        slowQueue.push({
-          row,
-          bySource: detail.bySource,
-          sourcesTried: detail.sourcesTried,
-          priorRuns: detail.meta.sourceRuns ?? [],
+        const detail = await scrapeCodeDetailed(row.code, row.kind, {
+          force: forceScrape || forceScrapeIds.has(row.id),
+          signal: opts.signal,
+          metaSourcesOverride,
+          onSourceComplete: (run) => appendSourceRunItem(row.id, run),
         });
-        return;
+        if (opts.signal?.aborted) return;
+        await applyMeta(row, detail.meta, detail.bySource);
+      } catch (err) {
+        await markWorkerFailed(row, err);
       }
-
-      await applyMeta(row, detail.meta, detail.bySource);
-    },
-    opts.signal,
-  );
-
-  await runPool(
-    slowQueue,
-    slowConc,
-    async (item) => {
-      if (opts.signal?.aborted) return;
-      opts.onProgress?.(`刮削(慢) ${item.row.code}`);
-
-      const cached = codeCache.get(item.row.code);
-      if (cached) {
-        await applyMeta(item.row, cached);
-        return;
-      }
-
-      const detail = await scrapeCodeDetailed(item.row.code, item.row.kind, {
-        force: opts.force,
-        signal: opts.signal,
-        channel: "slow",
-        priorBySource: item.bySource,
-        priorTried: item.sourcesTried,
-        priorRuns: item.priorRuns,
-        metaSourcesOverride,
-      });
-      await applyMeta(item.row, detail.meta, detail.bySource);
     },
     opts.signal,
   );
 
   if (opts.signal?.aborted) skipped = rows.length - scraped - failed;
+
+  for (const row of rows) {
+    if (opts.signal?.aborted) releaseInflightFileState(row.id);
+    else releaseStuckInflightFileState(row.id);
+    if (getPipeline(row.id)?.active) endPipeline(row.id);
+  }
+  if (opts.signal?.aborted && jobId) {
+    releaseJobInflightFiles(jobId);
+  }
 
   return {
     kind,
@@ -354,6 +459,8 @@ export async function runScrapeForKinds(
     force?: boolean;
     jobId?: string;
     jobOptions?: JobOptions;
+    chainOrganize?: boolean;
+    dryRun?: boolean;
   } = {},
 ): Promise<ScrapeRunResult[]> {
   const results: ScrapeRunResult[] = [];
@@ -363,6 +470,63 @@ export async function runScrapeForKinds(
     results.push(await runScrapeForKind(kind, opts));
   }
   return results;
+}
+
+/** 扫描进行中周期性拉取已索引文件刮削，扫描结束后排空剩余队列 */
+export async function runScrapeDrainForKinds(
+  kinds: KindId[],
+  opts: {
+    signal?: AbortSignal;
+    onProgress?: ScrapeProgress;
+    force?: boolean;
+    jobId?: string;
+    jobOptions?: JobOptions;
+    chainOrganize?: boolean;
+    dryRun?: boolean;
+    isScanComplete: () => boolean;
+    batchSize?: number;
+    idleMs?: number;
+    onBatch?: () => void;
+    /** 失败重刮专用：范围 fileIds 全部终态后停止 drain */
+    shouldStopDrain?: () => boolean;
+  },
+): Promise<ScrapeRunResult[]> {
+  const batchSize = Math.max(1, opts.batchSize ?? 100);
+  const idleMs = Math.max(100, opts.idleMs ?? 400);
+  const merged = new Map<KindId, ScrapeRunResult>();
+
+  while (!opts.signal?.aborted) {
+    if (opts.shouldStopDrain?.()) break;
+    let worked = 0;
+    let jobOptions = opts.jobOptions;
+    if (opts.jobId) {
+      const fresh = loadJobOptions(opts.jobId);
+      if (fresh) jobOptions = fresh;
+    }
+    for (const kind of kinds) {
+      if (opts.signal?.aborted) break;
+      const r = await runScrapeForKind(kind, {
+        signal: opts.signal,
+        onProgress: opts.onProgress,
+        force: opts.force,
+        jobId: opts.jobId,
+        jobOptions,
+        chainOrganize: opts.chainOrganize,
+        dryRun: opts.dryRun,
+        batchLimit: batchSize,
+      });
+      mergeScrapeResult(merged, r);
+      worked += r.total;
+    }
+    if (opts.shouldStopDrain?.()) break;
+    if (opts.isScanComplete() && worked === 0) break;
+    if (worked > 0) opts.onBatch?.();
+    if (worked === 0) {
+      await new Promise((resolve) => setTimeout(resolve, idleMs));
+    }
+  }
+
+  return [...merged.values()];
 }
 
 /** 从详情页 URL 推断优先刮削源 */
@@ -428,9 +592,9 @@ export async function scrapeOneFile(
       : undefined;
   }
 
+  // 保留 target_path / organized_at，重刮后 NFO 仍写入已有片库路径
   db.prepare(
-    `UPDATE files SET status = 'scraping', error = NULL, scraped_at = NULL,
-       target_path = NULL, organized_at = NULL WHERE id = ?`,
+    `UPDATE files SET status = 'scraping', error = NULL, scraped_at = NULL WHERE id = ?`,
   ).run(fileId);
 
   if (pipelineActive) {
@@ -453,7 +617,6 @@ export async function scrapeOneFile(
   const detail = await scrapeCodeDetailed(row.code, kind, {
     force,
     signal: opts.signal,
-    channel: "auto",
     metaSourcesOverride,
     onSourceComplete: pipelineActive
       ? (run) => appendSourceRunItem(fileId, run)
@@ -478,7 +641,7 @@ export async function scrapeOneFile(
   }
 
   if (finalMeta.ok) {
-    if (pipelineActive) startOrganizeSteps(fileId);
+    if (pipelineActive) ensureOrganizePipelineSteps(fileId);
     const covers = [
       ...new Set(
         [...detail.bySource.values()]
@@ -538,6 +701,7 @@ export async function scrapeOneFile(
     }
     if (pipelineActive && !finalMeta.coverUrl && !finalMeta.coverLocal) {
       appendPipelineFailure(fileId, PIPELINE_STEPS.images, { tone: "warn", text: "未下载到封面" });
+      markPipelineStepDone(fileId, PIPELINE_STEPS.images);
     }
     finalMeta = await applyMetadataPrefs(finalMeta, metadataPrefs, cfg, {
       signal: opts.signal,
@@ -545,19 +709,25 @@ export async function scrapeOneFile(
   }
 
   if (finalMeta.ok) {
-    writeScrapeCache(finalMeta);
-    db.prepare(
-      `UPDATE files SET status = 'scraped', error = NULL, scraped_at = ? WHERE id = ?`,
-    ).run(Date.now(), fileId);
+    await withPersistLock(() => {
+      writeScrapeCache(finalMeta);
+      db.prepare(
+        `UPDATE files SET status = 'scraped', error = NULL, scraped_at = ? WHERE id = ?`,
+      ).run(Date.now(), fileId);
+      notifyFileChanges(fileId, { kind, reason: "scrape" });
+    });
   } else {
-    db.prepare(
-      `UPDATE files SET status = 'failed', error = ?, scraped_at = NULL WHERE id = ?`,
-    ).run(finalMeta.message ?? "刮削失败", fileId);
-    try {
-      deleteMetadataOnScrapeFail(row.code, kind, resolveOrganizeForKind(kind));
-    } catch {
-      /* ignore */
-    }
+    await withPersistLock(() => {
+      db.prepare(
+        `UPDATE files SET status = 'failed', error = ?, scraped_at = NULL WHERE id = ?`,
+      ).run(finalMeta.message ?? "刮削失败", fileId);
+      notifyFileChanges(fileId, { kind, reason: "scrape" });
+      try {
+        deleteMetadataOnScrapeFail(row.code, kind, resolveOrganizeForKind(kind));
+      } catch {
+        /* ignore */
+      }
+    });
   }
 
   return { meta: finalMeta, ok: Boolean(finalMeta.ok) };

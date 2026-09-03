@@ -186,7 +186,7 @@ MDCS
 
 | 卡片 | 示例文案 | 数据字段 | **【MDCS】** |
 |------|----------|----------|---------------|
-| 刮削线程 | `0/5 空闲` | `scrapeActive/scrapeMax` | 可点击下钻任务页 |
+| 刮削线程 | `0/5 空闲` | `scrapeActive/scrapeMax` | 可点击下钻 `/records?status=processing` |
 | 手动任务线程 | `0/1 空闲` | `manualActive/manualMax` | — |
 | 入库记录 | `83051 最近新增` | `totalDone/recentDelta` | 按七路径汇总 |
 | 演员 | `N 位老师` | `actorCount` | 本地档案数；可点进演员页 |

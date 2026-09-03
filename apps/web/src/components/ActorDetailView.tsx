@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ArrowLeftIcon } from "@heroicons/react/20/solid";
 import { fetchActorDetail, fetchFiles, scrapeActors } from "../api";
+import { PanelSkeleton } from "./ui/PanelSkeleton";
 import { kindLabel } from "../lib/labels";
 import { resolveCoverImageSrc, resolveProxiedImageSrc } from "../lib/metaDisplay";
 import type { ActorRow, FileRow } from "../types";
@@ -118,8 +119,8 @@ export function ActorDetailView({ name, onClose, onNavigate, notify }: Props) {
         </button>
       </nav>
 
-      {loading ? (
-        <div className="actor-detail-empty">加载中…</div>
+      {loading && !actor ? (
+        <PanelSkeleton label="加载演员详情…" lines={8} />
       ) : !actor ? (
         <div className="actor-detail-empty">未找到该演员</div>
       ) : (

@@ -107,7 +107,7 @@ export function JobActionsMenu({ job, busy, onTerminate, onRestart, onCopy, onDe
   }> = [
     {
       id: "terminate",
-      label: "终止",
+      label: "停止",
       disabled: !canTerminate(job) || busy,
       title: canTerminate(job) ? undefined : "任务已结束",
     },
@@ -122,7 +122,7 @@ export function JobActionsMenu({ job, busy, onTerminate, onRestart, onCopy, onDe
       id: "delete",
       label: "删除",
       disabled: !canDelete(job) || busy,
-      title: canDelete(job) ? undefined : "请先终止任务",
+      title: canDelete(job) ? undefined : "请先停止任务",
       danger: true,
     },
   ];

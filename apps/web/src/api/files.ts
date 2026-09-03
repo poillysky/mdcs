@@ -49,8 +49,11 @@ export function fetchFiles(params?: {
   q?: string;
   jobId?: string;
   sourceRoot?: string;
+  directOnly?: boolean;
   page?: number;
   pageSize?: number;
+  excludeIndexed?: boolean;
+  sort?: "code" | "id" | "activity";
 }) {
   const q = new URLSearchParams();
   if (params?.kind) q.set("kind", params.kind);
@@ -58,6 +61,9 @@ export function fetchFiles(params?: {
   if (params?.q) q.set("q", params.q);
   if (params?.jobId) q.set("jobId", params.jobId);
   if (params?.sourceRoot) q.set("sourceRoot", params.sourceRoot);
+  if (params?.directOnly) q.set("directOnly", "1");
+  if (params?.excludeIndexed) q.set("excludeIndexed", "1");
+  if (params?.sort) q.set("sort", params.sort);
   q.set("page", String(params?.page ?? 1));
   q.set("pageSize", String(params?.pageSize ?? 50));
   return api<{ total: number; page: number; pageSize: number; files: FileRow[] }>(
@@ -149,7 +155,14 @@ export function retryFile(id: number) {
 }
 
 export function retryFiles(ids: number[]) {
-  return api<{ updated: number; ids: number[] }>("/api/files/retry", {
+  return api<{
+    updated: number;
+    ids: number[];
+    jobId: string | null;
+    merged?: boolean;
+    resumed?: boolean;
+    error?: "no_candidates" | "no_origin_job";
+  }>("/api/files/retry", {
     method: "POST",
     body: JSON.stringify({ ids }),
   });
@@ -170,9 +183,17 @@ export function reorganizeFiles(ids: number[]) {
 }
 
 export function deleteFiles(ids: number[]) {
-  return api<{ deleted: number; ids: number[] }>("/api/files/delete", {
+  return api<{ reverted: number; skipped: number; ids: number[] }>("/api/files/delete", {
     method: "POST",
     body: JSON.stringify({ ids }),
+  });
+}
+
+/** 对当前范围内 indexed 文件创建刮削任务 */
+export function scrapeIndexedFiles(opts: { kind: string; sourceRoot?: string }) {
+  return api<{ queued: number; matched?: number; jobId: string | null }>("/api/files/scrape-indexed", {
+    method: "POST",
+    body: JSON.stringify(opts),
   });
 }
 
@@ -227,4 +248,29 @@ export function ensureFileSourceSnapshots(id: number) {
     `/api/files/${id}/source-snapshots`,
     { method: "POST", body: "{}" },
   );
+}
+
+export type IndexAllStatus = {
+  running: boolean;
+  kindTotal: number;
+  kindIndex: number;
+  currentKind?: string;
+  currentLabel?: string;
+  discovered: number;
+  inserted: number;
+  updated: number;
+  skipped: number;
+  message?: string;
+  error?: string;
+};
+
+export function startIndexAll(kinds: string[]) {
+  return api<{ index: IndexAllStatus }>("/api/files/index-all", {
+    method: "POST",
+    body: JSON.stringify({ kinds }),
+  });
+}
+
+export function fetchIndexAllStatus() {
+  return api<{ index: IndexAllStatus }>("/api/files/index-all/status");
 }

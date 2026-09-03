@@ -3,7 +3,7 @@ import type { SourceId } from "./types.js";
 
 export type ScrapeChannel = "fast" | "slow" | "auto";
 
-/** access=proxy_flare 的源走慢通道，避免堵住 FAST 队列。 */
+/** access=proxy_flare 的源需过盾（FlareSolverr）。 */
 export function sourceNeedsFlare(id: SourceId): boolean {
   return getCatalogEntry(id)?.access === "proxy_flare";
 }

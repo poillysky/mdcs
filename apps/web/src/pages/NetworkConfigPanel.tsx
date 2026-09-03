@@ -1,15 +1,33 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { fetchScrapeConfig, saveScrapeConfig, testNetworkConnection } from "../api";
 import { SettingRow } from "../components/SettingRow";
+import { PanelSkeleton } from "../components/ui/PanelSkeleton";
+import { useCachedQuery } from "../hooks/useCachedQuery";
+import { useCacheDiscard } from "../hooks/settingsDiscard";
+import {
+  useDirtyBaseline,
+  useReportSaveActions,
+  type SettingsSaveActions,
+} from "../hooks/useDirtyBaseline";
 import { COPY } from "../lib/messages";
+import { SCRAPE_CONFIG_KEY } from "../lib/queryCacheKeys";
 import type { NotifyFn } from "../lib/notify";
 import type { ScrapeConfig } from "../types";
 
+export type NetworkSaveActions = SettingsSaveActions;
+
 type Props = {
   notify: NotifyFn;
+  onActionsChange?: (actions: NetworkSaveActions | null) => void;
 };
 
 type TestTarget = "direct" | "proxy" | "flare";
+
+type NetworkSnapshot = {
+  proxyUrl: string;
+  flareSolverrUrl: string;
+  requestTimeoutSec: number;
+};
 
 function Section({
   title,
@@ -31,46 +49,53 @@ function Section({
   );
 }
 
-export function NetworkConfigPanel({ notify }: Props) {
-  const [config, setConfig] = useState<ScrapeConfig | null>(null);
-  const [loading, setLoading] = useState(true);
+function networkSnapshot(cfg: ScrapeConfig): NetworkSnapshot {
+  return {
+    proxyUrl: cfg.proxyUrl || "",
+    flareSolverrUrl: cfg.flareSolverrUrl || "",
+    requestTimeoutSec: Math.max(5, Math.min(120, Number(cfg.requestTimeoutSec) || 30)),
+  };
+}
+
+export function NetworkConfigPanel({ notify, onActionsChange }: Props) {
+  const { data, loading, refreshing, setData, reload } = useCachedQuery({
+    key: SCRAPE_CONFIG_KEY,
+    fetcher: fetchScrapeConfig,
+    onError: (e) => notify("error", e, "加载失败"),
+  });
+  const config = data?.config ?? null;
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState<TestTarget | null>(null);
-
-  async function load() {
-    setLoading(true);
-    try {
-      const data = await fetchScrapeConfig();
-      setConfig(data.config);
-    } catch (e) {
-      notify("error", e, "加载失败");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    void load();
-  }, []);
+  const snapshot = config ? networkSnapshot(config) : null;
+  const { dirty, markClean } = useDirtyBaseline({ current: snapshot });
 
   function patch(next: Partial<ScrapeConfig>) {
-    if (!config) return;
-    setConfig({ ...config, ...next });
+    if (!data) return;
+    setData({ ...data, config: { ...data.config, ...next } });
   }
 
-  async function save() {
+  const save = useCallback(async () => {
     if (!config) return;
     setSaving(true);
     try {
-      const { config: saved } = await saveScrapeConfig(config);
-      setConfig(saved);
+      const payload = {
+        ...config,
+        requestTimeoutSec: Math.max(5, Math.min(120, Number(config.requestTimeoutSec) || 30)),
+      };
+      const { config: saved } = await saveScrapeConfig(payload);
+      setData((prev) => (prev ? { ...prev, config: saved } : prev));
+      markClean(networkSnapshot(saved));
       notify("ok", "网络配置已保存");
     } catch (e) {
       notify("error", e, "保存失败");
     } finally {
       setSaving(false);
     }
-  }
+  }, [config, markClean, notify, setData]);
+
+  const discard = useCacheDiscard(SCRAPE_CONFIG_KEY, reload);
+
+  useReportSaveActions(true, dirty, saving, save, onActionsChange, discard);
 
   async function runTest(target: TestTarget) {
     if (!config) return;
@@ -80,7 +105,7 @@ export function NetworkConfigPanel({ notify }: Props) {
         target,
         proxyUrl: config.proxyUrl,
         flareSolverrUrl: config.flareSolverrUrl,
-        timeoutSec: config.requestTimeoutSec,
+        timeoutSec: Math.max(5, Math.min(120, Number(config.requestTimeoutSec) || 30)),
       });
       notify(result.ok ? "ok" : "warn", `${result.message}（${result.ms}ms）`, COPY.testConnection);
     } catch (e) {
@@ -90,8 +115,12 @@ export function NetworkConfigPanel({ notify }: Props) {
     }
   }
 
-  if (loading || !config) {
-    return <div className="empty-block">加载网络配置…</div>;
+  if (loading && !config) {
+    return <PanelSkeleton label="加载网络配置…" lines={6} />;
+  }
+
+  if (!config) {
+    return <PanelSkeleton label="网络配置不可用" lines={4} />;
   }
 
   const busy = testing !== null;
@@ -99,7 +128,7 @@ export function NetworkConfigPanel({ notify }: Props) {
   const flareReady = Boolean(config.flareSolverrUrl.trim());
 
   return (
-    <div className="network-settings">
+    <div className={`network-settings${refreshing ? " is-refreshing" : ""}`}>
       <section className="mon-panel settings-form">
         <header className="mon-panel-head">
           <h3 className="mon-panel-title">网络</h3>
@@ -130,14 +159,18 @@ export function NetworkConfigPanel({ notify }: Props) {
                 autoComplete="off"
               />
             </SettingRow>
-            <SettingRow label="请求超时" hint="网络请求超时后自动取消（秒）">
+            <SettingRow label="请求超时" hint="网络请求超时后自动取消（秒，最少 5）">
               <input
                 className="org-input-sm"
                 type="number"
-                min={3}
+                min={5}
                 max={120}
                 value={config.requestTimeoutSec}
-                onChange={(e) => patch({ requestTimeoutSec: Number(e.target.value) || 30 })}
+                onChange={(e) =>
+                  patch({
+                    requestTimeoutSec: Math.max(5, Math.min(120, Number(e.target.value) || 30)),
+                  })
+                }
               />
             </SettingRow>
           </Section>
@@ -185,11 +218,6 @@ export function NetworkConfigPanel({ notify }: Props) {
           </Section>
         </div>
       </section>
-      <div className="page-save-row">
-        <button type="button" className="btn primary" disabled={saving} onClick={() => void save()}>
-          {saving ? "保存中…" : COPY.save}
-        </button>
-      </div>
     </div>
   );
 }

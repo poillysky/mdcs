@@ -13,6 +13,7 @@ export type OrganizeConfig = {
   onConflict: string;
   metadataDir: string;
   deleteMetadataOnFail: boolean;
+  purgeCoverCacheAfterDone: boolean;
   overwriteVideoSubtitle: boolean;
   overwriteImages: boolean;
   minFileSizeMb: number;
@@ -29,9 +30,17 @@ export type IndexFolder = {
   mtime?: number;
 };
 
+export type IndexFile = {
+  name: string;
+  relative: string;
+  mtime: number;
+  size: number;
+};
+
 export type IndexBrowse = {
   parent: string;
   folders: IndexFolder[];
+  files: IndexFile[];
 };
 
 export type KindRow = {
@@ -40,8 +49,8 @@ export type KindRow = {
   enabled: boolean;
   sourceRoot: string;
   libraryRoot: string;
-  sourceAbs: string;
-  libraryAbs: string;
+  sourceAbs?: string;
+  libraryAbs?: string;
   organizeMode: string;
   organizeFallback?: string;
   useGlobalOrganize?: boolean;

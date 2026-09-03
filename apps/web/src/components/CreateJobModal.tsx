@@ -15,7 +15,7 @@ import { COPY } from "../lib/messages";
 import { defaultJobOptions, type JobOptions } from "../lib/jobOptions";
 import { normalizeRelativePath } from "../lib/paths";
 import type { NotifyFn } from "../lib/notify";
-import type { OpsConfig } from "../types";
+import type { JobRow, OpsConfig } from "../types";
 
 const ORGANIZE_MODES = ["hardlink", "softlink", "inplace", "copy", "move"] as const;
 
@@ -39,7 +39,7 @@ type Props = {
   /** 从目录浏览带入的相对路径 */
   contextFolder?: string;
   onClose: () => void;
-  onCreated: () => void;
+  onCreated: (job: JobRow) => void;
   notify: NotifyFn;
 };
 
@@ -96,6 +96,7 @@ export function CreateJobModal({
   open,
   kinds,
   loading,
+  defaultMode = "full",
   defaultKindIds,
   contextFolder,
   onClose,
@@ -178,15 +179,16 @@ export function CreateJobModal({
       setReuseKey(kind.id);
     } else {
       setSelectedKindId("");
-      setSourcePath(folderNorm);
       setLibraryPath("");
       setOrganizeMode("hardlink");
       setReuseKey("none");
     }
 
-    if (folderNorm && (!kind || normalizePath(kind.sourceRoot || "") !== folderNorm)) {
+    if (folderNorm) {
       setSourcePath(folderNorm);
       if (kindFromFolder) setSelectedKindId(kindFromFolder.id);
+    } else if (!kind) {
+      setSourcePath("");
     }
 
     void (async () => {
@@ -244,12 +246,17 @@ export function CreateJobModal({
     }
 
     const library = normalizePath(libraryPath);
-    if (!library) {
+    const mode = defaultMode || "full";
+    const needsLibrary = mode === "full" || mode === "organize_only";
+    if (needsLibrary && !library) {
       notify("error", "请选择整理目录");
       return;
     }
 
-    const options = buildJobOptions(organizeMode, library, jobOptions);
+    const options = {
+      ...buildJobOptions(organizeMode, library, jobOptions),
+      scanPath: source,
+    };
     const willMove = organizeMode === "move";
     if (willMove && !dryRun) {
       const ok = window.confirm(
@@ -259,16 +266,16 @@ export function CreateJobModal({
     }
 
     setCreating(true);
+    onClose();
     try {
-      await createJob({
+      const { job } = await createJob({
         kinds: [kind.id],
-        mode: "full",
+        mode,
         dryRun,
         options,
       });
       notify("ok", "已提交手动任务");
-      onCreated();
-      onClose();
+      onCreated(job);
     } catch (e) {
       notify("error", e, "提交失败");
     } finally {

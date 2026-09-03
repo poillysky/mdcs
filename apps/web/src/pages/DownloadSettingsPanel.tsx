@@ -1,15 +1,23 @@
-import { useEffect, useState } from "react";
-import { fetchScrapeConfig, saveScrapeConfig } from "../api";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { saveScrapeConfig } from "../api";
 import { FolderPicker } from "../components/FolderPicker";
 import { SettingRow } from "../components/SettingRow";
+import { PanelSkeleton } from "../components/ui/PanelSkeleton";
+import { useSharedScrapeConfig } from "../hooks/useSharedScrapeConfig";
+import { useCacheDiscard } from "../hooks/settingsDiscard";
+import type { SettingsSaveActions } from "../hooks/useDirtyBaseline";
+import { SCRAPE_CONFIG_KEY } from "../lib/queryCacheKeys";
 import type { NotifyFn } from "../lib/notify";
 import type { ScrapeConfig } from "../types";
+
+export type DownloadSaveActions = SettingsSaveActions;
 
 type Props = {
   notify: NotifyFn;
   embedded?: boolean;
   value?: ScrapeConfig;
   onChange?: (next: ScrapeConfig) => void;
+  onActionsChange?: (actions: DownloadSaveActions | null) => void;
 };
 
 const DEFAULT_DOWNLOAD: NonNullable<ScrapeConfig["download"]> = {
@@ -28,10 +36,64 @@ const DEFAULT_DOWNLOAD: NonNullable<ScrapeConfig["download"]> = {
   preferCropResult: true,
 };
 
+const POSTER_CROP_ROWS = [
+  {
+    id: "japan_censored",
+    label: "常规有码 JAV",
+    hint: "碟封右侧多为海报，建议右侧裁剪",
+  },
+  {
+    id: "japan_gravure",
+    label: "写真",
+    hint: "建议右侧裁剪",
+  },
+  {
+    id: "japan_uncensored",
+    label: "无码作品",
+    hint: "可保留原图或人脸识别，推荐不裁剪",
+  },
+  {
+    id: "japan_amateur",
+    label: "素人作品",
+    hint: "尺寸不规则，建议人脸识别裁剪",
+  },
+  {
+    id: "fc2",
+    label: "FC2",
+    hint: "尺寸不规则，建议人脸识别裁剪",
+  },
+  {
+    id: "china",
+    label: "国产作品",
+    hint: "多为完整宽图，建议不裁剪",
+  },
+  {
+    id: "western",
+    label: "欧美作品",
+    hint: "建议不裁剪",
+  },
+] as const;
+
+type DownloadSnapshot = {
+  download: NonNullable<ScrapeConfig["download"]>;
+  coverDownloadStrategy: string;
+  posterCrops: Record<string, string>;
+};
+
 function withDownloadDefaults(cfg: ScrapeConfig): ScrapeConfig {
   return {
     ...cfg,
     download: { ...DEFAULT_DOWNLOAD, ...cfg.download },
+  };
+}
+
+function downloadSnapshot(cfg: ScrapeConfig): DownloadSnapshot {
+  return {
+    download: { ...DEFAULT_DOWNLOAD, ...cfg.download },
+    coverDownloadStrategy: cfg.coverDownloadStrategy || "priority",
+    posterCrops: Object.fromEntries(
+      POSTER_CROP_ROWS.map((row) => [row.id, cfg.kindProfiles[row.id]?.posterCrop || "right"]),
+    ),
   };
 }
 
@@ -40,44 +102,47 @@ export function DownloadSettingsPanel({
   embedded = false,
   value,
   onChange,
+  onActionsChange,
 }: Props) {
   const controlled = embedded && Boolean(value) && Boolean(onChange);
-  const [config, setConfig] = useState<ScrapeConfig | null>(
-    value ? withDownloadDefaults(value) : null,
-  );
-  const [loading, setLoading] = useState(!controlled);
+  const { config, loading, refreshing, setConfig, reload } = useSharedScrapeConfig({
+    controlled,
+    value,
+    transform: withDownloadDefaults,
+    onError: (e) => notify("error", e, "加载下载配置失败"),
+  });
+  const [baseline, setBaseline] = useState<DownloadSnapshot | null>(null);
   const [saving, setSaving] = useState(false);
+  const dirtyRef = useRef(false);
+
+  const dirty = useMemo(() => {
+    if (!config || !baseline || controlled) return false;
+    return JSON.stringify(downloadSnapshot(config)) !== JSON.stringify(baseline);
+  }, [config, baseline, controlled]);
+
+  dirtyRef.current = dirty;
 
   useEffect(() => {
-    if (!controlled) return;
-    setConfig(value ? withDownloadDefaults(value) : null);
-    setLoading(false);
-  }, [controlled, value]);
-
-  useEffect(() => {
-    if (controlled) return;
-    void (async () => {
-      setLoading(true);
-      try {
-        const data = await fetchScrapeConfig();
-        setConfig(withDownloadDefaults(data.config));
-      } catch (e) {
-        notify("error", e, "加载下载配置失败");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [controlled, notify]);
+    if (!config || controlled) return;
+    const next = downloadSnapshot(config);
+    if (!dirtyRef.current) {
+      setBaseline(next);
+    } else {
+      setBaseline((prev) => prev ?? next);
+    }
+  }, [config, controlled]);
 
   function commit(next: ScrapeConfig) {
+    if (controlled) {
+      onChange?.(next);
+      return;
+    }
     setConfig(next);
-    if (controlled) onChange?.(next);
   }
 
   function patchDownload(partial: Partial<NonNullable<ScrapeConfig["download"]>>) {
     if (!config) return;
     const next = { ...DEFAULT_DOWNLOAD, ...config.download, ...partial };
-    // Amazon 高清开启时允许 Amazon 图；关闭则过滤
     if (typeof partial.amazonHdPoster === "boolean") {
       next.skipAmazon = !partial.amazonHdPoster;
     } else if (typeof partial.skipAmazon === "boolean") {
@@ -89,12 +154,11 @@ export function DownloadSettingsPanel({
     });
   }
 
-  async function save() {
+  const save = useCallback(async () => {
     if (!config) return;
     setSaving(true);
     try {
       const dl = { ...DEFAULT_DOWNLOAD, ...config.download };
-      // .chs 仅在命名页配置；保存下载时保持与 naming 一致，避免覆盖
       const next: ScrapeConfig = {
         ...config,
         download: {
@@ -105,32 +169,51 @@ export function DownloadSettingsPanel({
         },
       };
       const { config: saved } = await saveScrapeConfig(next);
-      setConfig({
-        ...saved,
-        download: { ...DEFAULT_DOWNLOAD, ...saved.download },
-      });
+      const normalized = withDownloadDefaults(saved);
+      setConfig(normalized);
+      setBaseline(downloadSnapshot(normalized));
       notify("ok", "下载配置已保存（下次刮削任务生效）");
     } catch (e) {
       notify("error", e, "保存失败");
     } finally {
       setSaving(false);
     }
+  }, [config, notify, setConfig]);
+
+  const resetLocal = useCallback(() => {
+    dirtyRef.current = false;
+    setBaseline(null);
+  }, []);
+  const discard = useCacheDiscard(SCRAPE_CONFIG_KEY, reload, resetLocal);
+
+  useEffect(() => {
+    if (embedded || !onActionsChange) return;
+    onActionsChange({ dirty, saving, save, discard });
+    return () => onActionsChange(null);
+  }, [dirty, saving, save, discard, embedded, onActionsChange]);
+
+  if (loading && !config) {
+    return <PanelSkeleton label="加载下载配置…" lines={6} />;
   }
 
-  if (loading || !config) {
-    return <div className="empty-block">加载下载配置…</div>;
+  if (!config) {
+    return <PanelSkeleton label="下载配置不可用" lines={4} />;
   }
 
   const dl = { ...DEFAULT_DOWNLOAD, ...config.download };
 
   return (
-    <div className="download-settings">
+    <div className={`download-settings${refreshing ? " is-refreshing" : ""}`}>
       <section className="mon-panel">
         <header className="mon-panel-head">
           <h3 className="mon-panel-title">下载内容</h3>
+          <div className="mon-panel-lead">从刮削源下载的资源类型；整理时分别写入 poster.jpg / thumb.jpg</div>
         </header>
         <div className="mon-panel-body">
-          <SettingRow label="海报 / 封面图">
+          <SettingRow
+            label="海报 / 封面图 / poster"
+            hint="整理时写入 poster.jpg（分区裁剪 + 海报水印）"
+          >
             <label className="switch">
               <input
                 type="checkbox"
@@ -140,7 +223,10 @@ export function DownloadSettingsPanel({
               <span />
             </label>
           </SettingRow>
-          <SettingRow label="缩略图" hint="建议开启">
+          <SettingRow
+            label="缩略图 / thumb"
+            hint="建议开启；整理时写入 thumb.jpg（不裁剪，列表用小图）"
+          >
             <label className="switch">
               <input
                 type="checkbox"
@@ -150,7 +236,10 @@ export function DownloadSettingsPanel({
               <span />
             </label>
           </SettingRow>
-          <SettingRow label="背景图 fanart" hint="开启后下载 Provider 的 extrafanart 剧照到 extrafanart/ 目录">
+          <SettingRow
+            label="剧照 / extrafanart"
+            hint="整理时将 Provider 剧照下载到 extrafanart/ 目录"
+          >
             <label className="switch">
               <input
                 type="checkbox"
@@ -165,7 +254,8 @@ export function DownloadSettingsPanel({
 
       <section className="mon-panel">
         <header className="mon-panel-head">
-          <h3 className="mon-panel-title">缩略图 / 封面策略</h3>
+          <h3 className="mon-panel-title">缩略图下载策略</h3>
+          <div className="mon-panel-lead">封面/thumb 有多个候选链接时的选图方式</div>
         </header>
         <div className="mon-panel-body">
           <SettingRow label="选图策略">
@@ -174,8 +264,8 @@ export function DownloadSettingsPanel({
               value={config.coverDownloadStrategy || "priority"}
               onChange={(e) => commit({ ...config, coverDownloadStrategy: e.target.value })}
             >
-              <option value="priority">按字段优先级</option>
-              <option value="size">按图片质量（较慢）</option>
+              <option value="priority">根据字段优先级</option>
+              <option value="size">根据图片质量（较慢）</option>
             </select>
           </SettingRow>
         </div>
@@ -244,52 +334,14 @@ export function DownloadSettingsPanel({
           <h3 className="mon-panel-title">海报裁剪</h3>
         </header>
         <div className="mon-panel-body">
-          {(
-            [
-              {
-                id: "japan_censored",
-                label: "常规有码 JAV",
-                hint: "碟封右侧多为海报，建议右侧裁剪",
-              },
-              {
-                id: "japan_gravure",
-                label: "写真",
-                hint: "建议右侧裁剪",
-              },
-              {
-                id: "japan_uncensored",
-                label: "无码作品",
-                hint: "可保留原图或人脸识别，推荐不裁剪",
-              },
-              {
-                id: "japan_amateur",
-                label: "素人作品",
-                hint: "尺寸不规则，建议人脸识别裁剪",
-              },
-              {
-                id: "fc2",
-                label: "FC2",
-                hint: "尺寸不规则，建议人脸识别裁剪",
-              },
-              {
-                id: "china",
-                label: "国产作品",
-                hint: "多为完整宽图，建议不裁剪",
-              },
-              {
-                id: "western",
-                label: "欧美作品",
-                hint: "建议不裁剪",
-              },
-            ] as const
-          ).map((row) => {
+          {POSTER_CROP_ROWS.map((row) => {
             const profile = config.kindProfiles[row.id];
-            const value = profile?.posterCrop || "right";
+            const cropValue = profile?.posterCrop || "right";
             return (
               <SettingRow key={row.id} label={row.label} hint={row.hint}>
                 <select
                   className="org-select"
-                  value={value}
+                  value={cropValue}
                   onChange={(e) => {
                     const posterCrop = e.target.value;
                     const prev = config.kindProfiles[row.id];
@@ -386,9 +438,14 @@ export function DownloadSettingsPanel({
         </div>
       </section>
 
-      {!embedded ? (
+      {embedded ? (
         <div className="page-save-row">
-          <button type="button" className="btn primary" disabled={saving} onClick={() => void save()}>
+          <button
+            type="button"
+            className="btn primary"
+            disabled={!dirty || saving}
+            onClick={() => void save()}
+          >
             {saving ? "保存中…" : "保存下载配置"}
           </button>
         </div>

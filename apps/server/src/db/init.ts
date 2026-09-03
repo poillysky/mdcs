@@ -1,5 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
 import { listResolvedKinds, loadLibrariesConfig } from "../config/loadConfig.js";
+import { recoverStaleInflightStatuses, revertOrphanPipelineFiles } from "../jobs/jobFiles.js";
 import {
   DB_PATH,
   DATA_DIR,
@@ -58,6 +59,25 @@ function migrateDatabase(database: DatabaseSync) {
     database.exec(`ALTER TABLE files ADD COLUMN job_id TEXT`);
   }
   database.exec(`CREATE INDEX IF NOT EXISTS idx_files_job_id ON files (job_id)`);
+  const indexed = database
+    .prepare(
+      `UPDATE files SET status = 'indexed'
+       WHERE status = 'pending' AND scraped_at IS NULL AND organized_at IS NULL`,
+    )
+    .run();
+  if (Number(indexed.changes ?? 0) > 0) {
+    console.log(`[mdcs] 已将 ${indexed.changes} 条仅扫描未刮削记录标为 indexed`);
+  }
+  recoverOrphanPipelineStatuses();
+}
+
+/** 进程崩溃/重启后，inflight 状态会永远占着「刮削线程」；启动时回收 */
+function recoverOrphanPipelineStatuses() {
+  recoverStaleInflightStatuses();
+  const n = revertOrphanPipelineFiles();
+  if (n > 0) {
+    console.log(`[mdcs] 已回收无有效任务的流水线状态 ${n} 条（回退等待中）`);
+  }
 }
 
 export function getDb(): DatabaseSync {

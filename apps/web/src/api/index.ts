@@ -30,10 +30,13 @@ export {
   stopFiles,
   reorganizeFiles,
   deleteFiles,
+  scrapeIndexedFiles,
   runFileTaskAction,
   rescrapeFile,
   updateFileMeta,
   ensureFileSourceSnapshots,
+  startIndexAll,
+  fetchIndexAllStatus,
   type PipelineLogStepView,
   type PipelineRunKind,
   type PipelineRunView,
@@ -42,6 +45,7 @@ export {
   type CoverCropSourceInfo,
   type CoverCropBrowseEntry,
   type FileTaskActionMode,
+  type IndexAllStatus,
 } from "./files.js";
 export {
   scrapeCode,

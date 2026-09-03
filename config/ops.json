@@ -10,6 +10,30 @@
     "endpoints": []
   },
   "presets": [],
+  "lastJob": {
+    "kinds": [
+      "japan_uncensored"
+    ],
+    "mode": "full",
+    "dryRun": false,
+    "options": {
+      "useGlobal": {
+        "organize": false,
+        "download": true,
+        "naming": true,
+        "watermark": true,
+        "metadata": true,
+        "nfo": true,
+        "sources": true
+      },
+      "organize": {
+        "organizeMode": "hardlink",
+        "libraryRoot": "media/片商目录/日本无码"
+      },
+      "scanPath": "media/本地索引/日本无码/人妻斩/C0930"
+    },
+    "savedAt": 1788005249466
+  },
   "qb": {
     "enabled": false,
     "jobMode": "full",
@@ -19,6 +43,14 @@
   "actors": {
     "source": "local",
     "embyUrl": "",
-    "embyApiKey": ""
+    "embyApiKey": "",
+    "embyUserId": "",
+    "libraryIds": [],
+    "autoScrapeEnabled": false,
+    "autoScrapeRecentDays": 0,
+    "refreshLibraryAfterScrape": false,
+    "scrapeMetadata": true,
+    "scrapeImages": true,
+    "metadataOverwrite": "missing"
   }
 }

@@ -1,3 +1,19 @@
+import { toStorageRelativePath } from "../paths.js";
+
+function normalizeOutboundSourcePath(value: unknown): string | null {
+  if (value == null || value === "") return null;
+  const s = String(value).trim();
+  if (!s) return null;
+  return toStorageRelativePath(s) || s.replace(/\\/g, "/").replace(/^\/+/, "");
+}
+
+function normalizeOutboundTargetPath(value: unknown): string | null {
+  if (value == null || value === "") return null;
+  const s = String(value).trim();
+  if (!s) return null;
+  return s.replace(/\\/g, "/").replace(/^\/+/, "");
+}
+
 function parseMetaJson(raw: unknown): Record<string, unknown> | null {
   if (raw == null || raw === "") return null;
   try {
@@ -111,8 +127,14 @@ export function mapFileListRow(row: Record<string, unknown>) {
       ? meta.premiered.trim().slice(0, 10)
       : null;
   const rawTrigger = row.trigger_source != null ? String(row.trigger_source).trim() : "";
+  const triggerSource: "manual" | "monitor" =
+    rawTrigger === "monitor" ? "monitor" : "manual";
+  const sourcePath = normalizeOutboundSourcePath(row.source_path);
+  const targetPath = normalizeOutboundTargetPath(row.target_path);
   return {
     ...rest,
+    source_path: sourcePath ?? rest.source_path,
+    target_path: targetPath ?? rest.target_path,
     title: titleZh ?? titleFromMeta ?? rest.title ?? null,
     titleZh,
     premiered,
@@ -122,6 +144,6 @@ export function mapFileListRow(row: Record<string, unknown>) {
       (meta && typeof meta.coverUrl === "string" ? meta.coverUrl : null) ?? rest.cover_url ?? null,
     actors,
     duration,
-    triggerSource: rawTrigger || null,
+    triggerSource,
   };
 }

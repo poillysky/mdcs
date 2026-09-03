@@ -50,6 +50,7 @@ export const ORGANIZE_MODE_LABELS: Record<string, string> = {
 };
 
 export const FILE_STATUS_LABELS: Record<string, string> = {
+  indexed: "已索引",
   pending: "待处理",
   scraping: "刮削中",
   scraped: "已刮削",

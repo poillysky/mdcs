@@ -1,11 +1,19 @@
-import { useEffect, useState } from "react";
-import { fetchScrapeConfig, saveScrapeConfig } from "../api";
+import { useCallback, useMemo, useState } from "react";
+import { saveScrapeConfig } from "../api";
 import {
   SourcesSubpage,
   SourcesSubpageActions,
   SourcesSubpageLoading,
   SourcesSubpagePanel,
 } from "../components/SourcesSubpageLayout";
+import {
+  useDirtyBaseline,
+  useReportSaveActions,
+  type SettingsSaveActions,
+} from "../hooks/useDirtyBaseline";
+import { useCacheDiscard } from "../hooks/settingsDiscard";
+import { useSharedScrapeConfig } from "../hooks/useSharedScrapeConfig";
+import { SCRAPE_CONFIG_KEY } from "../lib/queryCacheKeys";
 import type { NotifyFn } from "../lib/notify";
 import type { RecognitionKindKey, ScrapeConfig } from "../types";
 
@@ -14,6 +22,7 @@ type Props = {
   embedded?: boolean;
   value?: ScrapeConfig;
   onChange?: (next: ScrapeConfig) => void;
+  onActionsChange?: (actions: SettingsSaveActions | null) => void;
 };
 
 type RecognitionWords = NonNullable<ScrapeConfig["recognitionWords"]>;
@@ -161,42 +170,26 @@ export function RecognitionSettingsPanel({
   embedded = false,
   value,
   onChange,
+  onActionsChange,
 }: Props) {
   const controlled = embedded && Boolean(value) && Boolean(onChange);
-  const [config, setConfig] = useState<ScrapeConfig | null>(value ?? null);
-  const [loading, setLoading] = useState(!controlled);
+  const { config, loading, refreshing, setConfig, reload } = useSharedScrapeConfig({
+    controlled,
+    value,
+    transform: (cfg) => ({
+      ...cfg,
+      recognitionWords: normalizeRecognition(cfg.recognitionWords),
+    }),
+    onError: (e) => notify("error", e, "加载自定义识别配置失败"),
+  });
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (!controlled) return;
-    setConfig(
-      value
-        ? {
-            ...value,
-            recognitionWords: normalizeRecognition(value.recognitionWords),
-          }
-        : null,
-    );
-    setLoading(false);
-  }, [controlled, value]);
-
-  useEffect(() => {
-    if (controlled) return;
-    void (async () => {
-      setLoading(true);
-      try {
-        const data = await fetchScrapeConfig();
-        setConfig({
-          ...data.config,
-          recognitionWords: normalizeRecognition(data.config.recognitionWords),
-        });
-      } catch (e) {
-        notify("error", e, "加载自定义识别配置失败");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [controlled, notify]);
+  const snap = useMemo(
+    () => (config && !controlled ? normalizeRecognition(config.recognitionWords) : null),
+    [config, controlled],
+  );
+  const { dirty, markClean } = useDirtyBaseline({ current: snap, enabled: !controlled });
+  const discard = useCacheDiscard(SCRAPE_CONFIG_KEY, reload);
 
   function commit(next: ScrapeConfig) {
     setConfig(next);
@@ -208,7 +201,7 @@ export function RecognitionSettingsPanel({
     commit({ ...config, recognitionWords: next });
   }
 
-  async function save() {
+  const save = useCallback(async () => {
     if (!config) return;
     if (controlled) {
       onChange?.(config);
@@ -216,23 +209,28 @@ export function RecognitionSettingsPanel({
     }
     setSaving(true);
     try {
+      const words = normalizeRecognition(config.recognitionWords);
       const { config: saved } = await saveScrapeConfig({
         ...config,
-        recognitionWords: normalizeRecognition(config.recognitionWords),
+        recognitionWords: words,
       });
+      const normalized = normalizeRecognition(saved.recognitionWords);
       setConfig({
         ...saved,
-        recognitionWords: normalizeRecognition(saved.recognitionWords),
+        recognitionWords: normalized,
       });
+      markClean(normalized);
       notify("ok", "自定义识别已保存");
     } catch (e) {
       notify("error", e, "保存失败");
     } finally {
       setSaving(false);
     }
-  }
+  }, [config, controlled, markClean, notify, onChange, setConfig]);
 
-  if (loading) {
+  useReportSaveActions(!embedded, dirty, saving, save, onActionsChange, discard);
+
+  if (loading && !config) {
     return <SourcesSubpageLoading label="加载自定义识别配置…" />;
   }
   if (!config) {
@@ -242,7 +240,7 @@ export function RecognitionSettingsPanel({
   const recognition = normalizeRecognition(config.recognitionWords);
 
   return (
-    <SourcesSubpage>
+    <SourcesSubpage className={refreshing ? "is-refreshing" : undefined}>
       <SourcesSubpagePanel bodyClassName=" rcogn-compact-body">
         <RecognitionBlock
           title="自定义识别词（番号）"
@@ -259,7 +257,7 @@ export function RecognitionSettingsPanel({
           onChange={(path) => patchRecognition({ ...recognition, path })}
         />
       </SourcesSubpagePanel>
-      {!embedded ? (
+      {embedded ? (
         <SourcesSubpageActions>
           <button type="button" className="btn primary" disabled={saving} onClick={() => void save()}>
             {saving ? "保存中…" : "保存配置"}

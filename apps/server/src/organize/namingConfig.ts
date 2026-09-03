@@ -43,7 +43,7 @@ export function defaultNamingConfig(): GlobalNamingConfig {
     resolutionTextMap: "720P, 1080P, 4K, 8K",
     resolutionEnabled: { "720P": true, "1080P": true, "4K": true, "8K": true },
     resolutionInactiveLabel: "1080P",
-    resolutionSuffixTemplate: "",
+    resolutionSuffixTemplate: "-{resolution}",
     resolutionSuffixEnabled: { "720P": true, "1080P": true, "4K": true, "8K": true },
     resolutionSource: "prefer_path",
     resolutionFallback: true,

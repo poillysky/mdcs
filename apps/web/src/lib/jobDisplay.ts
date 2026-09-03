@@ -1,10 +1,26 @@
 import { kindLabel, ORGANIZE_MODE_LABELS } from "./labels";
-import { pickDisplayPath } from "./paths";
+import { formatRecordPaths, pickDisplayPath } from "./paths";
 import type { JobOptions } from "./jobOptions";
 import type { JobRow, KindRow } from "../types";
 
-export function buildJobRecordsPath(job: JobRow): string {
-  return `/records?jobId=${encodeURIComponent(job.id)}`;
+export function buildJobRecordsPath(job: JobRow, opts?: { status?: string }): string {
+  const q = new URLSearchParams({ jobId: job.id });
+  const status = opts?.status?.trim();
+  if (status) q.set("status", status);
+  return `/records?${q}`;
+}
+
+/** 任务进度 pill → 刮削记录 status 查询参数 */
+export type JobProgressRecordsFilter =
+  | "success"
+  | "failed"
+  | "waiting"
+  | "processing"
+  | "skipped";
+
+export function jobProgressFilterToRecordsStatus(filter: JobProgressRecordsFilter): string {
+  if (filter === "success") return "done";
+  return filter;
 }
 
 export function buildKindRecordsPath(kind: KindRow | string): string {
@@ -99,11 +115,10 @@ export function formatJobDuration(job: JobRow, now = Date.now()): string {
   const h = Math.floor(sec / 3600);
   const m = Math.floor((sec % 3600) / 60);
   const s = sec % 60;
-  const parts: string[] = [];
-  if (h > 0) parts.push(`${h}h`);
-  if (m > 0 || h > 0) parts.push(`${m}m`);
-  parts.push(`${s}s`);
-  return parts.join(" ");
+  if (h > 0) {
+    return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+  return `${m}:${String(s).padStart(2, "0")}`;
 }
 
 export function jobProgressStats(job: JobRow) {
@@ -120,7 +135,13 @@ export function resolveJobPaths(job: JobRow, kinds: KindRow[]) {
   if (!matched.length) return { source: "—", library: "—" };
 
   const jobOpts = job.options as JobOptions | undefined;
-  const sources = matched.map((k) => pickDisplayPath(k.sourceRoot, k.sourceAbs));
+  const scanPath = typeof jobOpts?.scanPath === "string" ? jobOpts.scanPath.trim() : "";
+  const sources = matched.map((k, i) => {
+    if (scanPath && matched.length === 1 && i === 0) {
+      return pickDisplayPath(scanPath);
+    }
+    return pickDisplayPath(k.sourceRoot, k.sourceAbs);
+  });
   const libraries = matched.map((k) => {
     const override = jobOpts?.organize?.libraryRoot?.trim();
     if (override && matched.length === 1) {
@@ -140,6 +161,20 @@ export function resolveJobPaths(job: JobRow, kinds: KindRow[]) {
     source: sources.map((p) => p.display).join("\n"),
     library: libraries.map((p) => p.display).join("\n"),
   };
+}
+
+export function formatJobPathCellGroups(
+  job: JobRow,
+  kinds: KindRow[],
+): Array<{ source: string; target?: string; title: string }> {
+  const paths = resolveJobPaths(job, kinds);
+  const srcLines = paths.source === "—" ? [] : paths.source.split("\n").filter(Boolean);
+  const libLines = paths.library === "—" ? [] : paths.library.split("\n").filter(Boolean);
+  if (!srcLines.length) return [{ source: "—", title: "" }];
+  return srcLines.map((source, i) => {
+    const lib = libLines[i] ?? libLines[0];
+    return formatRecordPaths(source, lib && lib !== "—" ? lib : undefined);
+  });
 }
 
 export function resolveOrganizeModeLabel(job: JobRow, kinds: KindRow[]): string {
@@ -192,8 +227,12 @@ export function kindIndexProgressStats(stats: Record<string, number>) {
   const done = stats.done ?? 0;
   const failed = stats.failed ?? 0;
   const skipped = stats.skipped ?? 0;
-  /** 仅统计正在执行的阶段：刮削中、整理中 */
-  const processing = (stats.scraping ?? 0) + (stats.organizing ?? 0);
+  /** 刮削+整理流水线进行中 */
+  const processing =
+    (stats.scraping ?? 0) +
+    (stats.scraped ?? 0) +
+    (stats.planned ?? 0) +
+    (stats.organizing ?? 0);
   const total =
     stats.total ??
     pending +
@@ -214,6 +253,7 @@ export type ProgressPillView = {
   success: number;
   middleLabel: "跳过" | "待处理";
   middle: number;
+  queued: number;
   failed: number;
   processing: number;
   total: number;
@@ -224,6 +264,7 @@ export function emptyProgressPills(): ProgressPillView {
     success: 0,
     middleLabel: "待处理",
     middle: 0,
+    queued: 0,
     failed: 0,
     processing: 0,
     total: 0,
@@ -231,15 +272,27 @@ export function emptyProgressPills(): ProgressPillView {
 }
 
 export function jobProgressPills(job: JobRow): ProgressPillView {
+  const fs = job.fileStats;
+  if (fs) {
+    return {
+      success: fs.success,
+      middleLabel: "跳过",
+      middle: fs.skipped,
+      queued: fs.queued,
+      failed: fs.failed,
+      processing: fs.processing,
+      total: fs.total,
+    };
+  }
+
   const stats = jobProgressStats(job);
-  const active = job.status === "running" || job.status === "queued" || job.status === "paused";
-  const processing = active && stats.total > 0 ? Math.max(0, stats.total - job.processed) : 0;
   return {
     success: stats.success,
     middleLabel: "跳过",
     middle: stats.skipped,
+    queued: 0,
     failed: stats.failed,
-    processing,
+    processing: 0,
     total: stats.total,
   };
 }
@@ -250,6 +303,7 @@ export function kindIndexProgressPills(stats: Record<string, number>): ProgressP
     success: index.done,
     middleLabel: "待处理",
     middle: index.pending,
+    queued: 0,
     failed: index.failed,
     processing: index.processing,
     total: index.total,

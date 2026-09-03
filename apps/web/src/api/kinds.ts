@@ -37,6 +37,11 @@ export function updateOrganizeConfig(patch: Partial<OrganizeConfig>) {
   });
 }
 
-export function scanKind(kindId: string) {
-  return api(`/api/kinds/${encodeURIComponent(kindId)}/scan`, { method: "POST" });
+export function scanKind(kindId: string, opts?: { path?: string }) {
+  const body =
+    opts?.path?.trim() ? JSON.stringify({ path: opts.path.trim() }) : undefined;
+  return api(`/api/kinds/${encodeURIComponent(kindId)}/scan`, {
+    method: "POST",
+    body,
+  });
 }

@@ -11,6 +11,7 @@
 @import "./components/status-badges.css";
 @import "./components/tables.css";
 @import "./components/pagination.css";
+@import "./components/skeleton.css";
 @import "./pages/live.css";
 @import "./pages/sources.css";
 @import "./utilities/responsive.css";

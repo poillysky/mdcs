@@ -55,4 +55,30 @@ describe("copySubtitlesBesideVideo overwrite", () => {
       fs.rmSync(root, { recursive: true, force: true });
     }
   });
+
+  it("onConflict=rename 时不覆盖已有字幕，写入重命名副本", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "scrap-sub3-"));
+    const lib = path.join(root, "lib");
+    const out = path.join(root, "out");
+    fs.mkdirSync(lib);
+    fs.mkdirSync(out);
+    try {
+      fs.writeFileSync(path.join(lib, "ABC-123.srt"), "new");
+      const video = path.join(out, "ABC-123.mp4");
+      fs.writeFileSync(video, "v");
+      const dest = path.join(out, "ABC-123.srt");
+      fs.writeFileSync(dest, "old");
+      const copied = copySubtitlesBesideVideo({
+        libraryAbs: lib,
+        code: "ABC-123",
+        videoAbs: video,
+        onConflict: "rename",
+      });
+      assert.equal(fs.readFileSync(dest, "utf8"), "old");
+      assert.ok(copied.some((p) => p.includes("ABC-123 (1).srt")));
+      assert.equal(fs.readFileSync(copied.find((p) => p.includes("(1)"))!, "utf8"), "new");
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
 });

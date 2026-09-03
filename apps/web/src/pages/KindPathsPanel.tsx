@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { updateKind, type KindRow } from "../api";
 import { KindSettingsModal } from "./KindSettingsModal";
+import { PanelSkeleton } from "../components/ui/PanelSkeleton";
 import { KIND_SHORT_LABELS } from "../lib/labels";
 import { displayRelativePath, shortRelativePath } from "../lib/paths";
 import type { NotifyFn } from "../lib/notify";
@@ -71,12 +72,16 @@ export function KindPathsPanel({ kinds, loading, onChanged, notify }: Props) {
     }
   }
 
+  if (loading && !kinds.length) {
+    return <PanelSkeleton label="加载分区配置…" lines={6} />;
+  }
+
   if (!kinds.length) {
-    return <div className="empty-block">加载分区配置…</div>;
+    return <div className="empty-block">暂无分区配置</div>;
   }
 
   return (
-    <section className="mon-panel">
+    <section className={`mon-panel${loading ? " is-refreshing" : ""}`}>
       <header className="mon-panel-head">
         <h3 className="mon-panel-title">七区监控</h3>
       </header>

@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/solid";
+import { useSharedIndexAll } from "../hooks/useSharedIndexAll";
 import { NAV_ICONS } from "../lib/navIcons";
 import { lockBodyScroll } from "../lib/lockBodyScroll";
 import { NAV_ITEMS } from "../lib/routes";
@@ -34,25 +35,30 @@ function NavButton({
   path,
   active,
   onNavigate,
+  busy,
+  busyTitle,
 }: {
   itemId: RouteId;
   label: string;
   path: string;
   active: boolean;
   onNavigate: (path: string) => void;
+  busy?: boolean;
+  busyTitle?: string;
 }) {
   const Icon = NAV_ICONS[itemId];
   return (
     <button
       type="button"
-      className={`nav-item${active ? " active" : ""}`}
-      title={label}
+      className={`nav-item${active ? " active" : ""}${busy ? " nav-item--busy" : ""}`}
+      title={busy && busyTitle ? busyTitle : label}
       onClick={() => onNavigate(path)}
     >
       <span className="nav-icon" aria-hidden>
         <Icon />
       </span>
       <span className="nav-label">{label}</span>
+      {busy ? <span className="nav-busy-dot" aria-hidden /> : null}
     </button>
   );
 }
@@ -61,6 +67,12 @@ export function AppShell({ route, onNavigate, children }: Props) {
   const [isDesktop, setIsDesktop] = useState(getIsDesktop);
   const [open, setOpen] = useState(getIsDesktop);
   const [wide, setWide] = useState(readWideMode);
+  const { indexStatus, indexingAll } = useSharedIndexAll();
+  const indexHint =
+    indexStatus?.message?.trim() ||
+    (indexStatus?.discovered
+      ? `全量索引中，已发现 ${indexStatus.discovered} 个文件`
+      : "全量索引进行中");
   const mainItems = NAV_ITEMS.filter((n) => !n.group);
   const systemItems = NAV_ITEMS.filter((n) => n.group === "system");
 
@@ -126,6 +138,8 @@ export function AppShell({ route, onNavigate, children }: Props) {
               path={item.path}
               active={route === item.id}
               onNavigate={go}
+              busy={item.id === "files" && indexingAll}
+              busyTitle={item.id === "files" && indexingAll ? indexHint : undefined}
             />
           ))}
 

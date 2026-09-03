@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { PanelSkeleton } from "./ui/PanelSkeleton";
 
 export function SourcesSubpage({
   children,
@@ -48,7 +49,7 @@ export function SourcesSubpageActions({ children }: { children: ReactNode }) {
 }
 
 export function SourcesSubpageLoading({ label }: { label: string }) {
-  return <div className="empty-block">{label}</div>;
+  return <PanelSkeleton label={label} lines={6} className="panel-skeleton sources-subpage-skeleton" />;
 }
 
 export function SourcesHideSwitch({

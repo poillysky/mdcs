@@ -43,6 +43,7 @@ export function defaultOrganizeConfig(): OrganizeConfig {
     onConflict: "overwrite",
     metadataDir: "",
     deleteMetadataOnFail: false,
+    purgeCoverCacheAfterDone: true,
     overwriteVideoSubtitle: true,
     overwriteImages: true,
     minFileSizeMb: 100,

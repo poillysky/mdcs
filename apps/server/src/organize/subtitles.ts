@@ -41,6 +41,17 @@ export function findSubtitlesForCode(libraryAbs: string, code: string): string[]
   return hits;
 }
 
+function renameSubtitleTarget(targetAbs: string): string {
+  const dir = path.dirname(targetAbs);
+  const ext = path.extname(targetAbs);
+  const base = path.basename(targetAbs, ext);
+  for (let i = 1; i < 1000; i++) {
+    const candidate = path.join(dir, `${base} (${i})${ext}`);
+    if (!fs.existsSync(candidate)) return candidate;
+  }
+  return path.join(dir, `${base}-${Date.now()}${ext}`);
+}
+
 /**
  * 按番号从字幕库复制到视频旁。
  * addChsSuffix=true 时在扩展名前插入 .chs（如 video.chs.srt）。
@@ -50,7 +61,7 @@ export function copySubtitlesBesideVideo(opts: {
   code: string;
   videoAbs: string;
   addChsSuffix?: boolean;
-  /** skip=已存在则跳过；overwrite=覆盖。默认 overwrite */
+  /** skip=已存在则跳过；overwrite=覆盖；rename=重命名副本 */
   onConflict?: "skip" | "overwrite" | "rename";
   dryRun?: boolean;
 }): string[] {
@@ -64,10 +75,15 @@ export function copySubtitlesBesideVideo(opts: {
 
   for (const src of found) {
     const ext = path.extname(src);
-    const dest = path.join(dir, `${videoBase}${chs}${ext}`);
-    if (fs.existsSync(dest) && onConflict === "skip") {
-      copied.push(dest);
-      continue;
+    let dest = path.join(dir, `${videoBase}${chs}${ext}`);
+    if (fs.existsSync(dest)) {
+      if (onConflict === "skip") {
+        copied.push(dest);
+        continue;
+      }
+      if (onConflict === "rename") {
+        dest = renameSubtitleTarget(dest);
+      }
     }
     if (opts.dryRun) {
       copied.push(dest);

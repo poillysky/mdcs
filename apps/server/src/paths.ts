@@ -31,6 +31,11 @@ export function pathExists(p: string): boolean {
   }
 }
 
+/** 规范化后是否指向同一路径（不要求文件存在） */
+export function pathsReferToSameLocation(a: string, b: string): boolean {
+  return path.resolve(a) === path.resolve(b);
+}
+
 export const CONFIG_DIR = resolveFromRoot("config");
 export const DATA_DIR = resolveFromRoot("data");
 export const DB_PATH = path.join(DATA_DIR, "mdcs.db");
@@ -86,11 +91,28 @@ export function toProjectRelativePath(raw: string, root = PROJECT_ROOT): string 
   const s = String(raw || "").trim();
   if (!s) return "";
   const norm = s.replace(/\\/g, "/");
+  // /media/... 等为项目内相对路径（带前导斜杠），不是盘符绝对路径
+  if (norm.startsWith("/") && !/^[a-zA-Z]:/.test(norm)) {
+    return norm.replace(/^\/+/, "").replace(/\/+$/, "");
+  }
   if (path.isAbsolute(s) || /^[a-zA-Z]:/.test(norm)) {
     const rel = toPosixRelative(s, root);
-    return rel.startsWith("..") ? norm : rel;
+    return rel.startsWith("..") ? norm.replace(/^\/+/, "") : rel;
   }
-  return norm.replace(/^\//, "");
+  return norm.replace(/^\/+/, "").replace(/\/+$/, "");
+}
+
+/** 存储/API 用：相对项目根、无前导斜杠、统一正斜杠 */
+export function toStorageRelativePath(raw: string, root = PROJECT_ROOT): string {
+  return toProjectRelativePath(raw, root);
+}
+
+/** 片库绝对路径 → 相对片库根（存 target_path） */
+export function toLibraryRelativePath(absPath: string, libraryAbs: string): string {
+  if (!libraryAbs?.trim()) return "";
+  const rel = path.relative(libraryAbs, path.resolve(absPath)).replace(/\\/g, "/");
+  if (!rel || rel.startsWith("..") || path.isAbsolute(rel)) return "";
+  return rel;
 }
 
 /** 读取封面缓存等：相对路径 → 绝对路径 */

@@ -21,6 +21,13 @@ export function preferHighResCoverUrl(url: string): string {
   return url.replace(/ps\.jpg(\?|$)/i, "pl.jpg$1");
 }
 
+/** 整理 thumb：pl.jpg → ps.jpg，已是 ps 或非 DMM 则保持 */
+export function preferThumbCoverUrl(url: string): string {
+  if (!url) return url;
+  if (/ps\.jpg(\?|$)/i.test(url)) return url;
+  return url.replace(/pl\.jpg(\?|$)/i, "ps.jpg$1");
+}
+
 /** 流媒体预览 / 第三方 vod 缩略图，不宜作封面 */
 export function isJunkCoverUrl(url: string): boolean {
   const raw = String(url || "").trim();
@@ -68,8 +75,9 @@ export type DownloadPrefs = {
 };
 
 /**
- * 从候选封面 URL 中选出最终下载地址。
- * - 关闭海报且关闭缩略图 → null（不下）
+ * 从候选封面 URL 中选出刮削阶段下载地址。
+ * - 关闭 poster 且关闭 thumb → null（不下缓存；整理阶段亦不会写出对应文件）
+ * - 任一开启 → 下载一张封面原图供整理分别生成 poster.jpg / thumb.jpg（MDC-NG 语义）
  * - skipAmazon 时过滤 Amazon 图；若过滤后为空则 null
  * - preferHighRes 时尝试 ps→pl
  */

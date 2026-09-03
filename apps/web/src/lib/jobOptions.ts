@@ -80,6 +80,8 @@ export type JobOptions = {
   nfo?: JobNfoOptions;
   sources?: JobSourcesOptions;
   forceScan?: boolean;
+  /** 扫描子目录（须在分区来源下）；缺省扫整个来源根 */
+  scanPath?: string;
 };
 
 export function defaultJobOptions(): JobOptions {

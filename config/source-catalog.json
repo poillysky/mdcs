@@ -1,0 +1,113 @@
+[
+  {
+    "id": "javbus",
+    "name": "JavBus",
+    "group": "av",
+    "defaultUrl": "https://www.javbus.com",
+    "access": "proxy_adaptive",
+    "defaultCookie": "existmag=all; age=verified; dv=1",
+    "implemented": true,
+    "notes": "主站 · 厂牌/系列/发行齐全"
+  },
+  {
+    "id": "libredmm",
+    "name": "LibreDMM",
+    "group": "av",
+    "defaultUrl": "https://www.libredmm.com",
+    "access": "proxy_adaptive",
+    "implemented": true,
+    "notes": "DMM JSON API · 厂牌/发行"
+  },
+  {
+    "id": "r18dev",
+    "name": "R18.dev",
+    "group": "av",
+    "defaultUrl": "https://r18.dev",
+    "access": "proxy_adaptive",
+    "implemented": true,
+    "notes": "JSON API · 番号补零 · 免 CF"
+  },
+  {
+    "id": "avbase",
+    "name": "AVBase",
+    "group": "av",
+    "defaultUrl": "https://www.avbase.net",
+    "access": "proxy_adaptive",
+    "implemented": true,
+    "notes": "结构化元数据 · 系列"
+  },
+  {
+    "id": "iqqtv",
+    "name": "iQQTV",
+    "group": "av",
+    "defaultUrl": "https://iqq5.xyz/cn",
+    "access": "proxy_adaptive",
+    "implemented": true,
+    "notes": "中文标题/简介快源"
+  },
+  {
+    "id": "airav_io",
+    "name": "AirAV.io",
+    "group": "av",
+    "defaultUrl": "https://airav.io/cn",
+    "access": "proxy_adaptive",
+    "implemented": true,
+    "notes": "中文元数据补充"
+  },
+  {
+    "id": "carib",
+    "name": "Caribbean",
+    "group": "uncensored",
+    "defaultUrl": "https://www.caribbeancom.com",
+    "access": "proxy_adaptive",
+    "implemented": true,
+    "notes": "无码官方 · 厂牌齐全"
+  },
+  {
+    "id": "fc2",
+    "name": "FC2",
+    "group": "fc2",
+    "defaultUrl": "https://adult.contents.fc2.com",
+    "access": "proxy_adaptive",
+    "defaultCookie": "adult_check=1",
+    "implemented": true,
+    "notes": "FC2 官方"
+  },
+  {
+    "id": "fd2ppv",
+    "name": "FC2-PPV",
+    "group": "fc2",
+    "defaultUrl": "https://fd2ppv.cc",
+    "access": "proxy_adaptive",
+    "implemented": true,
+    "notes": "FC2 番号库补充"
+  },
+  {
+    "id": "madou",
+    "name": "Madou",
+    "group": "chinese",
+    "defaultUrl": "https://madou.club",
+    "access": "proxy_adaptive",
+    "implemented": true,
+    "notes": "国产封面/厂牌"
+  },
+  {
+    "id": "madouqu",
+    "name": "Madouqu",
+    "group": "chinese",
+    "defaultUrl": "https://madouqu.com",
+    "access": "proxy_adaptive",
+    "implemented": true,
+    "notes": "国产元数据补充"
+  },
+  {
+    "id": "theporndb",
+    "name": "ThePornDB",
+    "group": "western",
+    "defaultUrl": "https://theporndb.net",
+    "access": "proxy_adaptive",
+    "needsApiKey": true,
+    "implemented": true,
+    "notes": "REST API · 须填 API Key"
+  }
+]

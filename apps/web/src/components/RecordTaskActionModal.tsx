@@ -72,7 +72,7 @@ export function RecordTaskActionModal({ open, file, onClose, onConfirm }: Props)
             <span className="rd-task-radio" aria-hidden />
             <span className="rd-task-option-body">
               <span className="rd-task-option-title">重试刮削</span>
-              <span className="rd-task-option-desc">重新从网络刮削元数据并整理文件</span>
+              <span className="rd-task-option-desc">重新刮削元数据、下载封面并生成 NFO</span>
             </span>
           </label>
 
@@ -86,7 +86,7 @@ export function RecordTaskActionModal({ open, file, onClose, onConfirm }: Props)
             <span className="rd-task-radio" aria-hidden />
             <span className="rd-task-option-body">
               <span className="rd-task-option-title">重新整理</span>
-              <span className="rd-task-option-desc">使用当前配置重新生成目录结构、文件名和 NFO</span>
+              <span className="rd-task-option-desc">按当前配置重新生成片库目录、转移文件与海报</span>
             </span>
           </label>
         </div>

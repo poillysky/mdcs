@@ -16,6 +16,26 @@ describe("normalizeLibrariesConfig", () => {
     });
     assert.equal(cfg.organize.defaultMode, "hardlink");
   });
+
+  it("显式 onConflict 优先于 overwriteVideoSubtitle", () => {
+    const cfg = normalizeLibrariesConfig({
+      organize: {
+        onConflict: "rename",
+        overwriteVideoSubtitle: true,
+        defaultFallback: "copy",
+      },
+    });
+    assert.equal(cfg.organize.onConflict, "rename");
+    assert.equal(cfg.organize.overwriteVideoSubtitle, false);
+  });
+
+  it("无 onConflict 时由 overwriteVideoSubtitle 推导冲突策略", () => {
+    const cfg = normalizeLibrariesConfig({
+      organize: { overwriteVideoSubtitle: false, defaultFallback: "copy" },
+    });
+    assert.equal(cfg.organize.onConflict, "skip");
+    assert.equal(cfg.organize.overwriteVideoSubtitle, false);
+  });
 });
 
 describe("createDefaultLibrariesConfig", () => {

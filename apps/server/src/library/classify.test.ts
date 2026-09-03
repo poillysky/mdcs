@@ -35,6 +35,19 @@ describe("classifyFromPath", () => {
     assert.equal(r.suggestedKind, "china");
   });
 
+  it("国产无码路径不被泛义无码判成日本无码", () => {
+    const r = classifyFromPath("inbox/国产无码/MD-001.mp4", "MD-001.mp4", "MD-001");
+    assert.equal(r.suggestedKind, "china");
+    assert.equal(r.mosaic, "无码");
+  });
+
+  it("国产分区扫描不被无码关键词覆盖", () => {
+    assert.equal(
+      resolveFileKind("china", { suggestedKind: "japan_uncensored" }),
+      "china",
+    );
+  });
+
   it("无关键词时 mosaic 为空", () => {
     const r = classifyFromPath("inbox/misc/foo.mp4", "foo.mp4", null);
     assert.equal(r.mosaic, "");

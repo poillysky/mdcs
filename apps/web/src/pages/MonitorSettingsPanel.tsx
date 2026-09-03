@@ -1,82 +1,129 @@
-import { useEffect, useState } from "react";
-import { fetchOpsConfig, saveOpsConfig } from "../api";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { saveOpsConfig } from "../api";
 import { SettingRow } from "../components/SettingRow";
+import { PanelSkeleton } from "../components/ui/PanelSkeleton";
+import { useSharedOpsConfig } from "../hooks/useSharedOpsConfig";
+import { useCacheDiscard } from "../hooks/settingsDiscard";
+import type { SettingsSaveActions } from "../hooks/useDirtyBaseline";
 import type { NotifyFn } from "../lib/notify";
+import { OPS_CONFIG_KEY } from "../lib/queryCacheKeys";
 import type { KindRow, OpsConfig } from "../types";
 import { KindPathsPanel } from "./KindPathsPanel";
+
+export type MonitorSaveActions = SettingsSaveActions;
 
 type Props = {
   kinds: KindRow[];
   kindsLoading?: boolean;
   onChanged: () => void;
+  onActionsChange: (actions: MonitorSaveActions | null) => void;
   notify: NotifyFn;
 };
 
-export function MonitorSettingsPanel({ kinds, kindsLoading, onChanged, notify }: Props) {
-  const [config, setConfig] = useState<OpsConfig | null>(null);
-  const [loading, setLoading] = useState(true);
+function cloneMonitor(m: OpsConfig["monitor"]): OpsConfig["monitor"] {
+  return {
+    ...m,
+    entries: m.entries.map((e) => ({ ...e, kinds: [...e.kinds] })),
+  };
+}
+
+function withOpsDefaults(config: OpsConfig): OpsConfig {
+  return {
+    ...config,
+    presets: config.presets ?? [],
+    actors: config.actors ?? {
+      source: "local" as const,
+      embyUrl: "",
+      embyApiKey: "",
+      embyUserId: "",
+      libraryIds: [],
+      autoScrapeEnabled: false,
+      autoScrapeRecentDays: 0,
+      refreshLibraryAfterScrape: false,
+      scrapeMetadata: true,
+      scrapeImages: true,
+      metadataOverwrite: "missing" as const,
+    },
+  };
+}
+
+export function MonitorSettingsPanel({
+  kinds,
+  kindsLoading,
+  onChanged,
+  onActionsChange,
+  notify,
+}: Props) {
+  const { config, loading, refreshing, setConfig, reload } = useSharedOpsConfig({
+    onError: (e) => notify("error", e, "加载监控配置失败"),
+  });
+  const [baselineMonitor, setBaselineMonitor] = useState<OpsConfig["monitor"] | null>(() =>
+    config ? cloneMonitor(config.monitor) : null,
+  );
   const [saving, setSaving] = useState(false);
+  const dirtyRef = useRef(false);
+
+  const dirty = useMemo(() => {
+    if (!config || !baselineMonitor) return false;
+    return JSON.stringify(config.monitor) !== JSON.stringify(baselineMonitor);
+  }, [config, baselineMonitor]);
+
+  dirtyRef.current = dirty;
 
   useEffect(() => {
-    void (async () => {
-      setLoading(true);
-      try {
-        const data = await fetchOpsConfig();
-        setConfig(data.config);
-      } catch (e) {
-        notify("error", e, "加载监控配置失败");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [notify]);
+    if (!config) return;
+    const next = cloneMonitor(config.monitor);
+    if (!dirtyRef.current) {
+      setBaselineMonitor(next);
+    } else {
+      setBaselineMonitor((prev) => prev ?? next);
+    }
+  }, [config]);
 
   function patchMonitor(partial: Partial<OpsConfig["monitor"]>) {
     if (!config) return;
     setConfig({ ...config, monitor: { ...config.monitor, ...partial } });
   }
 
-  async function save() {
+  const save = useCallback(async () => {
     if (!config) return;
     setSaving(true);
     try {
-      const payload = {
-        ...config,
-        qb: config.qb ?? { enabled: false, jobMode: "full", kinds: [], categories: [] },
-        presets: config.presets ?? [],
-        actors: config.actors ?? {
-          source: "local" as const,
-          embyUrl: "",
-          embyApiKey: "",
-          embyUserId: "",
-          libraryIds: [],
-          autoScrapeEnabled: false,
-          autoScrapeRecentDays: 0,
-          refreshLibraryAfterScrape: false,
-          scrapeMetadata: true,
-          scrapeImages: true,
-          metadataOverwrite: "missing" as const,
-        },
-      };
-      const { config: saved } = await saveOpsConfig(payload);
+      const { config: saved } = await saveOpsConfig(withOpsDefaults(config));
       setConfig(saved);
+      setBaselineMonitor(cloneMonitor(saved.monitor));
       notify("ok", "监控配置已保存并立即生效");
     } catch (e) {
       notify("error", e, "保存失败");
     } finally {
       setSaving(false);
     }
+  }, [config, notify, setConfig]);
+
+  const resetLocal = useCallback(() => {
+    dirtyRef.current = false;
+    setBaselineMonitor(null);
+  }, []);
+  const discard = useCacheDiscard(OPS_CONFIG_KEY, reload, resetLocal);
+
+  useEffect(() => {
+    onActionsChange({ dirty, saving, save, discard });
+    return () => onActionsChange(null);
+  }, [dirty, saving, save, discard, onActionsChange]);
+
+  if (loading && !config) {
+    return <PanelSkeleton label="加载监控配置…" lines={5} />;
   }
 
-  if (loading || !config) {
-    return <div className="empty-block">加载监控配置…</div>;
+  if (!config) {
+    return <PanelSkeleton label="监控配置不可用" lines={4} />;
   }
 
   const m = config.monitor;
   const monitorOff = !m.enabled;
 
   return (
-    <div className="monitor-settings">
+    <div className={`monitor-settings${refreshing ? " is-refreshing" : ""}`}>
       <section className={`mon-panel${monitorOff ? " is-off" : ""}`}>
         <header className="mon-panel-head">
           <h3 className="mon-panel-title">目录监控</h3>
@@ -112,7 +159,7 @@ export function MonitorSettingsPanel({ kinds, kindsLoading, onChanged, notify }:
             </select>
           </SettingRow>
           {m.mode === "compat" ? (
-            <SettingRow label="轮询间隔（秒）" hint="建议 30–120">
+            <SettingRow label="轮询间隔（秒）" hint="建议 30–120，范围 10–600">
               <input
                 className="org-input-sm"
                 type="number"
@@ -120,7 +167,13 @@ export function MonitorSettingsPanel({ kinds, kindsLoading, onChanged, notify }:
                 max={600}
                 disabled={monitorOff}
                 value={m.intervalSec}
-                onChange={(e) => patchMonitor({ intervalSec: Number(e.target.value) || 30 })}
+                onChange={(e) => {
+                  const n = Math.max(
+                    10,
+                    Math.min(600, Math.floor(Number(e.target.value) || 30)),
+                  );
+                  patchMonitor({ intervalSec: n });
+                }}
               />
             </SettingRow>
           ) : (
@@ -138,11 +191,6 @@ export function MonitorSettingsPanel({ kinds, kindsLoading, onChanged, notify }:
         notify={notify}
       />
 
-      <div className="page-save-row">
-        <button type="button" className="btn primary" disabled={saving} onClick={() => void save()}>
-          {saving ? "保存中…" : "保存监控配置"}
-        </button>
-      </div>
     </div>
   );
 }

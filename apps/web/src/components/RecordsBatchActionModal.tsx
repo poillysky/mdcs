@@ -19,7 +19,7 @@ const ACTION_META: Record<
 > = {
   stop: { title: "停止任务", confirmLabel: "确认停止" },
   retry: { title: "重试 / 重新整理", confirmLabel: "确认重试" },
-  delete: { title: "删除任务", confirmLabel: "确认删除", danger: true },
+  delete: { title: "删除记录", confirmLabel: "确认删除", danger: true },
 };
 
 export function RecordsBatchActionModal({ open, action, count, onClose, onConfirm }: Props) {
@@ -42,7 +42,7 @@ export function RecordsBatchActionModal({ open, action, count, onClose, onConfir
     <Modal
       open={open}
       title={meta.title}
-      subtitle={`对 ${count} 个任务执行操作`}
+      subtitle={action === "delete" ? `对 ${count} 条记录执行删除` : `对 ${count} 条记录执行操作`}
       variant="sheet"
       padded={action === "retry"}
       className={`modal-task-action modal-batch-action${action === "retry" ? "" : " modal-batch-action--confirm"}`}
@@ -96,6 +96,8 @@ export function RecordsBatchActionModal({ open, action, count, onClose, onConfir
 
           <p className="rd-task-batch-hint">批量重试不支持手动指定番号或页面链接</p>
         </div>
+      ) : action === "delete" ? (
+        <p className="rd-task-batch-hint">其他状态将回退为等待中；等待中的记录将跳过</p>
       ) : null}
     </Modal>
   );

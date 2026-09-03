@@ -3,11 +3,12 @@ export type {
   OrganizeCleanupConfig,
   OrganizeConfig,
   IndexFolder,
+  IndexFile,
   IndexBrowse,
   KindRow,
 } from "./kinds.js";
 export type { JobRow, JobEvent, JobPreset, LastJobSnapshot } from "./jobs.js";
-export type { FileRow, ScrapeMetaView, SourceSnapshotView } from "./files.js";
+export type { FileRow, ScrapeMetaView, SourceSnapshotView, FileChangeEvent, IndexAllStatus } from "./files.js";
 export type { ProviderSiteConfig } from "./provider.js";
 export type { RecognitionKindKey, ScrapeConfig, ProviderCatalogRow } from "./scrape.js";
 export type { MonitorEntry, WebhookEndpoint, OpsConfig } from "./ops.js";

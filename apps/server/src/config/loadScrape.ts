@@ -5,6 +5,7 @@ import {
   pathExists,
   SCRAPE_CONFIG_PATH,
 } from "../paths.js";
+import type { JobOptions } from "../jobs/options.js";
 import type { KindId } from "../types.js";
 import type { FieldPriority, KindScrapeProfile, ScrapeConfig } from "../scrape/types.js";
 import { applyProxy } from "../scrape/network/proxy.js";
@@ -135,6 +136,51 @@ export function resolveKindScrapePrefs(kind: KindId, cfg = loadScrapeConfig()) {
       : { ...cfg.nfo, mergeStrategy: nfoMergeStrategy };
 
   return { download, watermark, metadata, nfoMergeStrategy, nfo, profile, naming: cfg.naming };
+}
+
+/** 分区 + 任务级生效的 download（对齐 MDC-NG：poster/thumb 各自独立） */
+export function resolveEffectiveDownload(
+  kind: KindId,
+  cfg = loadScrapeConfig(),
+  jobOptions?: JobOptions,
+): ScrapeConfig["download"] {
+  const { download: base } = resolveKindScrapePrefs(kind, cfg);
+  const useGlobal = jobOptions?.useGlobal?.download !== false;
+  const job = jobOptions?.download;
+  if (useGlobal || !job) return base;
+
+  const merged: ScrapeConfig["download"] = {
+    ...base,
+    ...(typeof job.downloadPoster === "boolean" ? { downloadPoster: job.downloadPoster } : {}),
+    ...(typeof job.downloadThumb === "boolean" ? { downloadThumb: job.downloadThumb } : {}),
+    ...(typeof job.downloadFanart === "boolean" ? { downloadFanart: job.downloadFanart } : {}),
+    ...(typeof job.preferHighResPoster === "boolean"
+      ? { preferHighResPoster: job.preferHighResPoster }
+      : {}),
+    ...(typeof job.amazonHdPoster === "boolean" ? { amazonHdPoster: job.amazonHdPoster } : {}),
+    ...(typeof job.tenhowHdPoster === "boolean" ? { tenhowHdPoster: job.tenhowHdPoster } : {}),
+    ...(typeof job.amazonStrictMode === "boolean" ? { amazonStrictMode: job.amazonStrictMode } : {}),
+    ...(typeof job.skipAmazon === "boolean" ? { skipAmazon: job.skipAmazon } : {}),
+    ...(typeof job.subtitleLibraryPath === "string"
+      ? { subtitleLibraryPath: job.subtitleLibraryPath }
+      : {}),
+    ...(job.cropRatio === "emby" || job.cropRatio === "full"
+      ? { cropRatio: job.cropRatio }
+      : {}),
+    ...(typeof job.cropIndependentPoster === "boolean"
+      ? { cropIndependentPoster: job.cropIndependentPoster }
+      : {}),
+    ...(typeof job.preferCropResult === "boolean"
+      ? { preferCropResult: job.preferCropResult }
+      : {}),
+  };
+
+  if (typeof job.amazonHdPoster === "boolean") {
+    merged.skipAmazon = !job.amazonHdPoster;
+  } else if (typeof job.skipAmazon === "boolean") {
+    merged.amazonHdPoster = !job.skipAmazon;
+  }
+  return merged;
 }
 
 export function getNetworkConfig() {

@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+export { Switch } from "../ui/Switch";
 
 export function TagListEditor({
   values,
@@ -64,28 +65,6 @@ export function TagListEditor({
         </button>
       </div>
     </div>
-  );
-}
-
-export function Switch({
-  checked,
-  onChange,
-  disabled,
-}: {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <label className="switch">
-      <input
-        type="checkbox"
-        checked={checked}
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-      <span />
-    </label>
   );
 }
 
